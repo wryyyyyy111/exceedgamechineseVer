@@ -1,0 +1,336 @@
+[gd_scene load_steps=4 format=3 uid="uid://dx5u3h8ppeab0"]
+
+[ext_resource type="Script" uid="uid://bvm0bgcwmfdpn" path="res://scenes/menu/preferences_window.gd" id="1_ttn5r"]
+[ext_resource type="Theme" path="res://scenes/menu/main_menu_theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_background_button"]
+
+[node name="PreferencesWindow" type="Control"]
+z_index = 100
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+visible = false
+theme = ExtResource("2_theme")
+script = ExtResource("1_ttn5r")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.72)
+
+[node name="Background" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 90.0
+offset_top = 54.0
+offset_right = 1190.0
+offset_bottom = 646.0
+mouse_filter = 2
+
+[node name="BackgroundButton" type="Button" parent="."]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_background_button")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_background_button")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_background_button")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_background_button")
+
+[node name="Header" type="Label" parent="."]
+offset_left = 118.0
+offset_top = 68.0
+offset_right = 920.0
+offset_bottom = 108.0
+theme_override_colors/font_color = Color(0.92, 0.9, 0.84, 1)
+theme_override_font_sizes/font_size = 28
+text = "SETTINGS  //  系统设置"
+
+[node name="CloseButton" type="Button" parent="."]
+offset_left = 1040.0
+offset_top = 66.0
+offset_right = 1158.0
+offset_bottom = 108.0
+theme_override_font_sizes/font_size = 20
+text = "关闭"
+
+[node name="TabContainer" type="TabContainer" parent="."]
+layout_mode = 0
+anchors_preset = 0
+anchor_right = 0.0
+anchor_bottom = 0.0
+offset_left = 118.0
+offset_top = 120.0
+offset_right = 1162.0
+offset_bottom = 630.0
+theme_override_font_sizes/font_size = 22
+
+[node name="图像" type="ScrollContainer" parent="TabContainer"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/图像"]
+custom_minimum_size = Vector2(820, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="SectionLabel" type="Label" parent="TabContainer/图像/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.12, 0.14, 1)
+theme_override_font_sizes/font_size = 24
+text = "DISPLAY  图像与显示"
+
+[node name="MainMenuBackgroundLabel" type="Label" parent="TabContainer/图像/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 21
+text = "主界面背景"
+
+[node name="MainMenuBackgroundSelection" type="OptionButton" parent="TabContainer/图像/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="ArenaStyleLabel" type="Label" parent="TabContainer/图像/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 21
+text = "战斗背景风格"
+
+[node name="ArenaStyleSelection" type="OptionButton" parent="TabContainer/图像/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="FullscreenButton" type="Button" parent="TabContainer/图像/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 21
+text = "进入全屏"
+
+[node name="AnimationsCheckbutton" type="CheckButton" parent="TabContainer/图像/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 21
+button_pressed = true
+text = "启用特写动画"
+
+[node name="MobileLandscapeButton" type="Button" parent="TabContainer/图像/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 21
+text = "手机端转屏（测试）"
+
+[node name="MobileLandscapeHintLabel" type="Label" parent="TabContainer/图像/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.9, 0.84, 1)
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+text = ""
+
+[node name="音乐" type="ScrollContainer" parent="TabContainer"]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/音乐"]
+custom_minimum_size = Vector2(820, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="SectionLabel" type="Label" parent="TabContainer/音乐/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.12, 0.14, 1)
+theme_override_font_sizes/font_size = 24
+text = "AUDIO  音乐与音效"
+
+[node name="BGMCheckbutton" type="CheckButton" parent="TabContainer/音乐/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "主菜单背景音乐"
+
+[node name="GameSoundsCheckbutton" type="CheckButton" parent="TabContainer/音乐/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+button_pressed = true
+text = "游戏回合音效"
+
+[node name="游戏" type="ScrollContainer" parent="TabContainer"]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/游戏"]
+custom_minimum_size = Vector2(820, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="SectionLabel" type="Label" parent="TabContainer/游戏/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.12, 0.14, 1)
+theme_override_font_sizes/font_size = 24
+text = "GAMEPLAY  游戏规则"
+
+[node name="ActionConfirmationButton" type="Button" parent="TabContainer/游戏/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "打开操作前确认"
+
+[node name="RoomSettingsLabel" type="Label" parent="TabContainer/游戏/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "自订房间"
+
+[node name="EnforceTimerCheckbutton" type="CheckButton" parent="TabContainer/游戏/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+button_pressed = true
+text = "超时判负并强制计时"
+
+[node name="CustomHpRankModeCheckbutton" type="CheckButton" parent="TabContainer/游戏/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "启用血量平衡模式"
+
+[node name="StartingTimersLabel" type="Label" parent="TabContainer/游戏/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "起始计时"
+
+[node name="StartingTimersSelection" type="OptionButton" parent="TabContainer/游戏/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+
+[node name="MinTimePerChoiceLabel" type="Label" parent="TabContainer/游戏/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "每次选择的最短时间"
+
+[node name="MinimumTimeSelection" type="OptionButton" parent="TabContainer/游戏/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+
+[node name="BestOfLabel" type="Label" parent="TabContainer/游戏/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "几局几胜"
+
+[node name="BestOfSelection" type="OptionButton" parent="TabContainer/游戏/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+disabled = true
+selected = 0
+item_count = 5
+popup/item_0/text = "1"
+popup/item_0/id = 1
+popup/item_1/text = "3"
+popup/item_1/id = 3
+popup/item_2/text = "5"
+popup/item_2/id = 5
+popup/item_3/text = "7"
+popup/item_3/id = 7
+popup/item_4/text = "∞"
+popup/item_4/id = 4
+
+[node name="AILabel" type="Label" parent="TabContainer/游戏/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "AI 对战"
+
+[node name="AIFirstPlayerCheckbutton" type="CheckButton" parent="TabContainer/游戏/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "与 AI 对战时随机先后手"
+
+[node name="AIModeLabel" type="Label" parent="TabContainer/游戏/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+text = "AI 模式"
+
+[node name="AIModeSelection" type="OptionButton" parent="TabContainer/游戏/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+
+[node name="其他" type="ScrollContainer" parent="TabContainer"]
+visible = false
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/其他"]
+custom_minimum_size = Vector2(820, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="SectionLabel" type="Label" parent="TabContainer/其他/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.12, 0.14, 1)
+theme_override_font_sizes/font_size = 24
+text = "OTHER  其他"
+
+[node name="ReplayShowOpponentHandButton" type="CheckButton" parent="TabContainer/其他/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+button_pressed = true
+text = "回放中显示对手手牌"
+
+[node name="TrueRandomSelectCheckbox" type="CheckButton" parent="TabContainer/其他/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "真正随机角色选择"
+
+[connection signal="pressed" from="BackgroundButton" to="." method="_on_close_button_pressed"]
+[connection signal="pressed" from="CloseButton" to="." method="_on_close_button_pressed"]
+[connection signal="item_selected" from="TabContainer/图像/VBoxContainer/MainMenuBackgroundSelection" to="." method="_on_main_menu_background_selection_item_selected"]
+[connection signal="item_selected" from="TabContainer/图像/VBoxContainer/ArenaStyleSelection" to="." method="_on_arena_style_selection_item_selected"]
+[connection signal="pressed" from="TabContainer/图像/VBoxContainer/FullscreenButton" to="." method="_on_fullscreen_button_pressed"]
+[connection signal="toggled" from="TabContainer/图像/VBoxContainer/AnimationsCheckbutton" to="." method="_on_animations_check_box_toggled"]
+[connection signal="pressed" from="TabContainer/图像/VBoxContainer/MobileLandscapeButton" to="." method="_on_mobile_landscape_button_pressed"]
+[connection signal="toggled" from="TabContainer/音乐/VBoxContainer/BGMCheckbutton" to="." method="_on_bgm_check_box_toggled"]
+[connection signal="toggled" from="TabContainer/音乐/VBoxContainer/GameSoundsCheckbutton" to="." method="_on_game_sounds_check_box_toggled"]
+[connection signal="pressed" from="TabContainer/游戏/VBoxContainer/ActionConfirmationButton" to="." method="_on_action_confirmation_button_pressed"]
+[connection signal="toggled" from="TabContainer/游戏/VBoxContainer/EnforceTimerCheckbutton" to="." method="_on_enforce_timer_check_box_toggled"]
+[connection signal="toggled" from="TabContainer/游戏/VBoxContainer/CustomHpRankModeCheckbutton" to="." method="_on_custom_hp_rank_mode_checkbutton_toggled"]
+[connection signal="item_selected" from="TabContainer/游戏/VBoxContainer/StartingTimersSelection" to="." method="_on_starting_timers_selection_item_selected"]
+[connection signal="item_selected" from="TabContainer/游戏/VBoxContainer/MinimumTimeSelection" to="." method="_on_minimum_time_selection_item_selected"]
+[connection signal="toggled" from="TabContainer/游戏/VBoxContainer/AIFirstPlayerCheckbutton" to="." method="_on_ai_first_player_checkbutton_toggled"]
+[connection signal="item_selected" from="TabContainer/游戏/VBoxContainer/AIModeSelection" to="." method="_on_ai_mode_selection_item_selected"]
+[connection signal="toggled" from="TabContainer/其他/VBoxContainer/ReplayShowOpponentHandButton" to="." method="_on_replay_show_opponent_hand_button_toggled"]
+[connection signal="toggled" from="TabContainer/其他/VBoxContainer/TrueRandomSelectCheckbox" to="." method="_on_true_random_select_checkbox_toggled"]

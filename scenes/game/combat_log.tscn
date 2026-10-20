@@ -1,0 +1,189 @@
+[gd_scene load_steps=3 format=3 uid="uid://w87ls4e8oasj"]
+
+[ext_resource type="Script" uid="uid://bw311pnp18inx" path="res://scenes/game/combat_log.gd" id="1_xmj2v"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0ipmd"]
+bg_color = Color(0.141176, 0.141176, 0.141176, 0.580392)
+
+[node name="CombatLog" type="CenterContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_xmj2v")
+
+[node name="CloseOuterClick" type="Button" parent="."]
+modulate = Color(1, 1, 1, 0)
+custom_minimum_size = Vector2(1280, 720)
+layout_mode = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_0ipmd")
+
+[node name="OuterMargin" type="MarginContainer" parent="PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VerticalLayout" type="VBoxContainer" parent="PanelContainer/OuterMargin"]
+layout_mode = 2
+
+[node name="CloseButton" type="Button" parent="PanelContainer/OuterMargin/VerticalLayout"]
+layout_mode = 2
+text = "关闭纪录"
+
+[node name="LogText" type="RichTextLabel" parent="PanelContainer/OuterMargin/VerticalLayout"]
+custom_minimum_size = Vector2(1000, 500)
+layout_mode = 2
+focus_mode = 2
+theme_override_font_sizes/normal_font_size = 24
+bbcode_enabled = true
+text = "SUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then thisSUPER LONG
+HERE's the thing
+fkashldflkahsf
+1444444444
+this happened then this"
+scroll_following = true
+selection_enabled = true
+
+[node name="LogButtons" type="HBoxContainer" parent="PanelContainer/OuterMargin/VerticalLayout"]
+layout_mode = 2
+alignment = 1
+
+[node name="CopyButton" type="Button" parent="PanelContainer/OuterMargin/VerticalLayout/LogButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "复制纪录到剪贴簿"
+
+[node name="LogFilters" type="HBoxContainer" parent="PanelContainer/OuterMargin/VerticalLayout"]
+layout_mode = 2
+
+[node name="Actions" type="CheckBox" parent="PanelContainer/OuterMargin/VerticalLayout/LogFilters"]
+layout_mode = 2
+button_pressed = true
+text = "回合行动"
+
+[node name="CardInfo" type="CheckBox" parent="PanelContainer/OuterMargin/VerticalLayout/LogFilters"]
+layout_mode = 2
+button_pressed = true
+text = "卡牌资讯"
+
+[node name="Effects" type="CheckBox" parent="PanelContainer/OuterMargin/VerticalLayout/LogFilters"]
+layout_mode = 2
+button_pressed = true
+text = "效果"
+
+[node name="Strikes" type="CheckBox" parent="PanelContainer/OuterMargin/VerticalLayout/LogFilters"]
+layout_mode = 2
+button_pressed = true
+text = "战斗结算"
+
+[node name="Damage" type="CheckBox" parent="PanelContainer/OuterMargin/VerticalLayout/LogFilters"]
+layout_mode = 2
+button_pressed = true
+text = "伤害or回复"
+
+[node name="PlayerMovement" type="CheckBox" parent="PanelContainer/OuterMargin/VerticalLayout/LogFilters"]
+layout_mode = 2
+button_pressed = true
+text = "角色移动"
+
+[node name="Buffer" type="Control" parent="PanelContainer/OuterMargin/VerticalLayout/LogFilters"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="PanelContainer/OuterMargin/VerticalLayout/LogFilters"]
+layout_mode = 2
+text = "颜色："
+vertical_alignment = 1
+
+[node name="PlayerColorPicker" type="ColorPickerButton" parent="PanelContainer/OuterMargin/VerticalLayout/LogFilters"]
+layout_mode = 2
+text = "ab"
+color = Color(1, 0, 0, 1)
+edit_alpha = false
+
+[node name="OpponentColorPicker" type="ColorPickerButton" parent="PanelContainer/OuterMargin/VerticalLayout/LogFilters"]
+layout_mode = 2
+text = "ab"
+color = Color(0.0862745, 0.760784, 0.968627, 1)
+edit_alpha = false
+
+[node name="CardColorPicker" type="ColorPickerButton" parent="PanelContainer/OuterMargin/VerticalLayout/LogFilters"]
+layout_mode = 2
+text = "ab"
+color = Color(0.490196, 0.976471, 1, 1)
+edit_alpha = false
+
+[connection signal="pressed" from="CloseOuterClick" to="." method="_on_close_button_pressed"]
+[connection signal="pressed" from="PanelContainer/OuterMargin/VerticalLayout/CloseButton" to="." method="_on_close_button_pressed"]
+[connection signal="pressed" from="PanelContainer/OuterMargin/VerticalLayout/LogButtons/CopyButton" to="." method="_on_copy_button_pressed"]
+[connection signal="toggled" from="PanelContainer/OuterMargin/VerticalLayout/LogFilters/Actions" to="." method="_on_log_filter_actions_toggle"]
+[connection signal="toggled" from="PanelContainer/OuterMargin/VerticalLayout/LogFilters/CardInfo" to="." method="_on_log_filter_card_info_toggle"]
+[connection signal="toggled" from="PanelContainer/OuterMargin/VerticalLayout/LogFilters/Effects" to="." method="_on_log_filter_effects_toggle"]
+[connection signal="toggled" from="PanelContainer/OuterMargin/VerticalLayout/LogFilters/Strikes" to="." method="_on_log_filter_strikes_toggle"]
+[connection signal="toggled" from="PanelContainer/OuterMargin/VerticalLayout/LogFilters/Damage" to="." method="_on_log_filter_health_toggle"]
+[connection signal="toggled" from="PanelContainer/OuterMargin/VerticalLayout/LogFilters/PlayerMovement" to="." method="_on_log_filter_player_movement_toggle"]
+[connection signal="color_changed" from="PanelContainer/OuterMargin/VerticalLayout/LogFilters/PlayerColorPicker" to="." method="_on_player_color_changed"]
+[connection signal="color_changed" from="PanelContainer/OuterMargin/VerticalLayout/LogFilters/OpponentColorPicker" to="." method="_on_opponent_color_changed"]
+[connection signal="color_changed" from="PanelContainer/OuterMargin/VerticalLayout/LogFilters/CardColorPicker" to="." method="_on_card_color_changed"]

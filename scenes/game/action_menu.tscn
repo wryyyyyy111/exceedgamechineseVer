@@ -1,0 +1,525 @@
+[gd_scene load_steps=11 format=3 uid="uid://dal56iqk5k8rh"]
+
+[ext_resource type="Script" uid="uid://cxeq7pacqen40" path="res://scenes/game/action_menu.gd" id="1_lxy8k"]
+[ext_resource type="Texture2D" uid="uid://dbohb8bxokjln" path="res://assets/icons/eye_show.png" id="2_f4rxt"]
+[ext_resource type="Texture2D" uid="uid://pdiyhalge6ju" path="res://assets/icons/eye_hide.png" id="3_87etl"]
+[ext_resource type="Texture2D" uid="uid://bpdpb3e74d2cu" path="res://assets/cards/arena_border_highlight_pressed.png" id="4_m7dp2"]
+[ext_resource type="Texture2D" uid="uid://b08j76upbucvr" path="res://assets/cards/arena_border_highlight_selected.png" id="5_57fb7"]
+[ext_resource type="Texture2D" uid="uid://dt2r5ub4flnpu" path="res://assets/icons/minus.png" id="6_wqqul"]
+[ext_resource type="Texture2D" uid="uid://1hag5iakybsy" path="res://assets/icons/plus.png" id="7_uju7x"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cmck5"]
+bg_color = Color(0.235294, 0.235294, 0.235294, 0.882353)
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.0784314, 0.0784314, 0.0784314, 1)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hwdeh"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_yjcu6"]
+
+[node name="ActionMenu" type="PanelContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -155.5
+offset_top = -89.0
+offset_right = -1124.5
+offset_bottom = -631.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_cmck5")
+script = ExtResource("1_lxy8k")
+
+[node name="OuterMargin" type="MarginContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 0
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="MainVBox" type="VBoxContainer" parent="OuterMargin"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="OuterMargin/MainVBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_hwdeh")
+
+[node name="InstructionHBox" type="HBoxContainer" parent="OuterMargin/MainVBox/PanelContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="OuterMargin/MainVBox/PanelContainer/InstructionHBox"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+
+[node name="InstructionsLabel" type="RichTextLabel" parent="OuterMargin/MainVBox/PanelContainer/InstructionHBox"]
+clip_contents = false
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/normal_font_size = 20
+theme_override_font_sizes/bold_font_size = 20
+bbcode_enabled = true
+text = "这里会显示指导你该怎么做的说明："
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+
+[node name="MarginContainer2" type="MarginContainer" parent="OuterMargin/MainVBox/PanelContainer/InstructionHBox"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+
+[node name="ShowHideHBox" type="HBoxContainer" parent="OuterMargin/MainVBox/PanelContainer"]
+layout_mode = 2
+alignment = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="OuterMargin/MainVBox/PanelContainer/ShowHideHBox"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="OuterMargin/MainVBox/PanelContainer/ShowHideHBox/MarginContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="ShowImage" type="TextureRect" parent="OuterMargin/MainVBox/PanelContainer/ShowHideHBox/MarginContainer/MarginContainer"]
+visible = false
+layout_mode = 2
+texture = ExtResource("2_f4rxt")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="HideImage" type="TextureRect" parent="OuterMargin/MainVBox/PanelContainer/ShowHideHBox/MarginContainer/MarginContainer"]
+layout_mode = 2
+texture = ExtResource("3_87etl")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="ShowHideButton" type="TextureButton" parent="OuterMargin/MainVBox/PanelContainer/ShowHideHBox/MarginContainer"]
+layout_mode = 2
+texture_pressed = ExtResource("4_m7dp2")
+texture_hover = ExtResource("5_57fb7")
+ignore_texture_size = true
+stretch_mode = 4
+
+[node name="Spacing" type="MarginContainer" parent="OuterMargin/MainVBox"]
+layout_mode = 2
+
+[node name="CheckHBox3" type="HBoxContainer" parent="OuterMargin/MainVBox"]
+layout_mode = 2
+alignment = 2
+
+[node name="FreeForceOptionCheck" type="CheckBox" parent="OuterMargin/MainVBox/CheckHBox3"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "使用免费生成的能量"
+
+[node name="CheckHBox" type="HBoxContainer" parent="OuterMargin/MainVBox"]
+layout_mode = 2
+alignment = 2
+
+[node name="UltrasForceOptionCheck" type="CheckBox" parent="OuterMargin/MainVBox/CheckHBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "必杀技算作 1 能量"
+
+[node name="CheckHBox2" type="HBoxContainer" parent="OuterMargin/MainVBox"]
+layout_mode = 2
+alignment = 2
+
+[node name="ExDiscardOrderCheck" type="CheckBox" parent="OuterMargin/MainVBox/CheckHBox2"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "支付费用前先弃置 EX 复制牌"
+
+[node name="NumberSelectionPanel" type="PanelContainer" parent="OuterMargin/MainVBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_yjcu6")
+
+[node name="Hbox" type="HBoxContainer" parent="OuterMargin/MainVBox/NumberSelectionPanel"]
+layout_mode = 2
+theme_override_constants/separation = 30
+alignment = 1
+
+[node name="MinusButtonContainer" type="MarginContainer" parent="OuterMargin/MainVBox/NumberSelectionPanel/Hbox"]
+layout_mode = 2
+
+[node name="MinusImage" type="TextureRect" parent="OuterMargin/MainVBox/NumberSelectionPanel/Hbox/MinusButtonContainer"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+texture = ExtResource("6_wqqul")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="MinusButton" type="TextureButton" parent="OuterMargin/MainVBox/NumberSelectionPanel/Hbox/MinusButtonContainer"]
+layout_mode = 2
+texture_pressed = ExtResource("4_m7dp2")
+texture_hover = ExtResource("5_57fb7")
+ignore_texture_size = true
+stretch_mode = 4
+
+[node name="NumberLabel" type="Label" parent="OuterMargin/MainVBox/NumberSelectionPanel/Hbox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "#"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PlusButtonContainer" type="MarginContainer" parent="OuterMargin/MainVBox/NumberSelectionPanel/Hbox"]
+layout_mode = 2
+
+[node name="PlusImage" type="TextureRect" parent="OuterMargin/MainVBox/NumberSelectionPanel/Hbox/PlusButtonContainer"]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+texture = ExtResource("7_uju7x")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="PlusButton" type="TextureButton" parent="OuterMargin/MainVBox/NumberSelectionPanel/Hbox/PlusButtonContainer"]
+layout_mode = 2
+texture_pressed = ExtResource("4_m7dp2")
+texture_hover = ExtResource("5_57fb7")
+ignore_texture_size = true
+stretch_mode = 4
+
+[node name="ChoiceButtons" type="GridContainer" parent="OuterMargin/MainVBox"]
+layout_mode = 2
+size_flags_vertical = 2
+theme_override_constants/h_separation = 40
+theme_override_constants/v_separation = 15
+
+[node name="Choice0" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Button" type="Button" parent="OuterMargin/MainVBox/ChoiceButtons/Choice0"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="MarginContainer" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons/Choice0"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Label" type="RichTextLabel" parent="OuterMargin/MainVBox/ChoiceButtons/Choice0/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/bold_font_size = 28
+bbcode_enabled = true
+text = "选项 0"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[node name="Choice1" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Button" type="Button" parent="OuterMargin/MainVBox/ChoiceButtons/Choice1"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="MarginContainer" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons/Choice1"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Label" type="RichTextLabel" parent="OuterMargin/MainVBox/ChoiceButtons/Choice1/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/bold_font_size = 28
+bbcode_enabled = true
+text = "选项 1"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[node name="Choice2" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Button" type="Button" parent="OuterMargin/MainVBox/ChoiceButtons/Choice2"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="MarginContainer" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons/Choice2"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Label" type="RichTextLabel" parent="OuterMargin/MainVBox/ChoiceButtons/Choice2/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/bold_font_size = 28
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[node name="Choice3" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Button" type="Button" parent="OuterMargin/MainVBox/ChoiceButtons/Choice3"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="MarginContainer" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons/Choice3"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Label" type="RichTextLabel" parent="OuterMargin/MainVBox/ChoiceButtons/Choice3/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/bold_font_size = 28
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[node name="Choice4" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Button" type="Button" parent="OuterMargin/MainVBox/ChoiceButtons/Choice4"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="MarginContainer" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons/Choice4"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Label" type="RichTextLabel" parent="OuterMargin/MainVBox/ChoiceButtons/Choice4/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/bold_font_size = 28
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[node name="Choice5" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Button" type="Button" parent="OuterMargin/MainVBox/ChoiceButtons/Choice5"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="MarginContainer" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons/Choice5"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Label" type="RichTextLabel" parent="OuterMargin/MainVBox/ChoiceButtons/Choice5/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/bold_font_size = 28
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[node name="Choice6" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Button" type="Button" parent="OuterMargin/MainVBox/ChoiceButtons/Choice6"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="MarginContainer" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons/Choice6"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Label" type="RichTextLabel" parent="OuterMargin/MainVBox/ChoiceButtons/Choice6/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/bold_font_size = 28
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[node name="Choice7" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Button" type="Button" parent="OuterMargin/MainVBox/ChoiceButtons/Choice7"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="MarginContainer" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons/Choice7"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Label" type="RichTextLabel" parent="OuterMargin/MainVBox/ChoiceButtons/Choice7/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/bold_font_size = 28
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[node name="Choice8" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Button" type="Button" parent="OuterMargin/MainVBox/ChoiceButtons/Choice8"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="MarginContainer" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons/Choice8"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Label" type="RichTextLabel" parent="OuterMargin/MainVBox/ChoiceButtons/Choice8/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/bold_font_size = 28
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[node name="Choice9" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+mouse_filter = 2
+
+[node name="Button" type="Button" parent="OuterMargin/MainVBox/ChoiceButtons/Choice9"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+
+[node name="MarginContainer" type="MarginContainer" parent="OuterMargin/MainVBox/ChoiceButtons/Choice9"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 6
+
+[node name="Label" type="RichTextLabel" parent="OuterMargin/MainVBox/ChoiceButtons/Choice9/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 28
+theme_override_font_sizes/bold_font_size = 28
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[connection signal="pressed" from="OuterMargin/MainVBox/PanelContainer/ShowHideHBox/MarginContainer/ShowHideButton" to="." method="_on_show_hide_button_pressed"]
+[connection signal="toggled" from="OuterMargin/MainVBox/CheckHBox3/FreeForceOptionCheck" to="." method="_on_free_force_check_toggled"]
+[connection signal="toggled" from="OuterMargin/MainVBox/CheckHBox/UltrasForceOptionCheck" to="." method="_on_ultras_force_option_check_toggled"]
+[connection signal="toggled" from="OuterMargin/MainVBox/CheckHBox2/ExDiscardOrderCheck" to="." method="_on_ex_discard_order_check_toggled"]
+[connection signal="pressed" from="OuterMargin/MainVBox/NumberSelectionPanel/Hbox/MinusButtonContainer/MinusButton" to="." method="_on_minus_button_pressed"]
+[connection signal="pressed" from="OuterMargin/MainVBox/NumberSelectionPanel/Hbox/PlusButtonContainer/PlusButton" to="." method="_on_plus_button_pressed"]
+[connection signal="pressed" from="OuterMargin/MainVBox/ChoiceButtons/Choice0/Button" to="." method="_on_choice_pressed" binds= [0]]
+[connection signal="pressed" from="OuterMargin/MainVBox/ChoiceButtons/Choice1/Button" to="." method="_on_choice_pressed" binds= [1]]
+[connection signal="pressed" from="OuterMargin/MainVBox/ChoiceButtons/Choice2/Button" to="." method="_on_choice_pressed" binds= [2]]
+[connection signal="pressed" from="OuterMargin/MainVBox/ChoiceButtons/Choice3/Button" to="." method="_on_choice_pressed" binds= [3]]
+[connection signal="pressed" from="OuterMargin/MainVBox/ChoiceButtons/Choice4/Button" to="." method="_on_choice_pressed" binds= [4]]
+[connection signal="pressed" from="OuterMargin/MainVBox/ChoiceButtons/Choice5/Button" to="." method="_on_choice_pressed" binds= [5]]
+[connection signal="pressed" from="OuterMargin/MainVBox/ChoiceButtons/Choice6/Button" to="." method="_on_choice_pressed" binds= [6]]
+[connection signal="pressed" from="OuterMargin/MainVBox/ChoiceButtons/Choice7/Button" to="." method="_on_choice_pressed" binds= [7]]
+[connection signal="pressed" from="OuterMargin/MainVBox/ChoiceButtons/Choice8/Button" to="." method="_on_choice_pressed" binds= [8]]
+[connection signal="pressed" from="OuterMargin/MainVBox/ChoiceButtons/Choice9/Button" to="." method="_on_choice_pressed" binds= [9]]

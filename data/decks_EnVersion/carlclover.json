@@ -1,0 +1,381 @@
+{
+	"id": "carlclover",
+	"season": 5,
+	"display_name": "Carl Clover",
+	"buddy_cards": [
+		"nirvana_active",
+		"nirvana_disabled"
+	],
+	"buddy_card_graphics_id": [
+		"nirvana_active",
+		"nirvana_disabled"
+	],
+	"buddy_display_names": [
+		"Nirvana",
+		"Nirvana"
+	],
+	"buddy_starting_offset": 0,
+	"buddy_starting_id": "nirvana_active",
+	"exceed_cost": 3,
+	"exceed_to_overdrive": true,
+	"on_exceed": {
+		"condition": "buddy_in_play",
+		"condition_buddy_id": "nirvana_disabled",
+		"buddy_name": "Nirvana",
+		"effect_type": "swap_buddy",
+		"description": "Reactivate Nirvana",
+		"buddy_to_remove": "nirvana_disabled",
+		"buddy_to_place": "nirvana_active"
+	},
+	"overdrive_effect": {
+		"condition": "buddy_in_play",
+		"condition_buddy_id": "nirvana_active",
+		"effect_type": "move_buddy",
+		"buddy_name": "Nirvana",
+		"buddy_id": "nirvana_active",
+		"amount": 0,
+		"amount2": 1
+	},
+	"character_action_default": [{
+		"gauge_cost": 0,
+		"force_cost": 0,
+		"action_name": "Move Nirvana 1",
+		"requires_buddy_in_play": "true",
+		"buddy_id": "nirvana_active",
+		"buddy_name": "Nirvana",
+		"shortcut_effect_type": "move_buddy",
+		"effect": {
+			"effect_type": "move_buddy",
+			"buddy_id": "nirvana_active",
+			"buddy_name": "Nirvana",
+			"amount": 1,
+			"amount2": 1
+		}
+	}],
+	"character_action_exceeded": [{
+		"gauge_cost": 0,
+		"force_cost": 0,
+		"action_name": "Move Nirvana 1 and Strike",
+		"requires_buddy_in_play": "true",
+		"buddy_id": "nirvana_active",
+		"buddy_name": "Nirvana",
+		"shortcut_effect_type": "move_buddy",
+		"effect": {
+			"effect_type": "move_buddy",
+			"strike_after": true,
+			"buddy_id": "nirvana_active",
+			"buddy_name": "Nirvana",
+			"amount": 1,
+			"amount2": 1
+		}
+	}],
+	"ability_effects": [
+		{
+			"timing": "on_reshuffle",
+			"condition": "manual_reshuffle",
+			"effect_type": "add_set_aside_card_to_deck",
+			"id": "carlclover_deusexmachina"
+		},
+		{
+			"NOTE": "Nirvana active ability - powerup special/ultras",
+			"timing": "set_strike",
+			"condition": "is_buddy_special_or_ultra_attack",
+			"condition_buddy_id": "nirvana_active",
+			"effect_type": "pass",
+			"and": {
+				"condition": "opponent_between_buddy",
+				"include_buddy_space": true,
+				"condition_buddy_id": "nirvana_active",
+				"effect_type": "add_attack_effect",
+				"added_effect": {
+					"condition": "is_buddy_special_or_ultra_attack",
+					"condition_buddy_id": "nirvana_active",
+					"timing": "during_strike",
+					"character_effect": true,
+					"effect_type": "powerup",
+					"amount": 1,
+					"and": {
+						"effect_type": "speedup",
+						"amount": 1
+					}
+				}
+			}
+		},
+		{
+			"NOTE": "Nirvana active ability - opponent can hit them",
+			"timing": "opponent_before",
+			"condition": "opponent_buddy_in_range",
+			"condition_detail": "Nirvana",
+			"condition_extra": "buddy_not_immune_to_flip",
+			"condition_buddy_id": "nirvana_active",
+			"effect_type": "choice",
+			"choice": [
+				{
+					"effect_type": "flip_buddy_miss_get_gauge",
+					"buddy_to_remove": "nirvana_active",
+					"buddy_to_place": "nirvana_disabled",
+					"swap_description": "Nirvana Disabled",
+					"description": "Disable Nirvana, attack does not hit but goes to gauge"
+				},
+				{ "effect_type": "pass" }
+			]
+		},
+		{
+			"NOTE": "Nirvana disabled ability - reactivate on cleanup",
+			"timing": "cleanup",
+			"condition": "buddy_in_play",
+			"condition_detail": "Nirvana (Disabled)",
+			"condition_buddy_id": "nirvana_disabled",
+			"condition_extra": "buddy_not_entered_play_this_strike",
+			"effect_type": "choice",
+			"choice": [
+				{
+					"effect_type": "swap_buddy",
+					"description": "Reactivate Nirvana",
+					"buddy_to_remove": "nirvana_disabled",
+					"buddy_to_place": "nirvana_active"
+				},
+				{ "effect_type": "pass" }
+			]
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"timing": "on_reshuffle",
+			"condition": "manual_reshuffle",
+			"effect_type": "add_set_aside_card_to_deck",
+			"id": "carlclover_deusexmachina"
+		},
+		{
+			"NOTE": "Nirvana active ability - powerup special/ultras",
+			"timing": "set_strike",
+			"condition": "is_buddy_special_or_ultra_attack",
+			"condition_buddy_id": "nirvana_active",
+			"effect_type": "pass",
+			"and": {
+				"condition": "opponent_between_buddy",
+				"include_buddy_space": true,
+				"condition_buddy_id": "nirvana_active",
+				"effect_type": "add_attack_effect",
+				"added_effect": {
+					"condition": "is_buddy_special_or_ultra_attack",
+					"condition_buddy_id": "nirvana_active",
+					"timing": "during_strike",
+					"character_effect": true,
+					"effect_type": "powerup",
+					"amount": 1,
+					"and": {
+						"effect_type": "speedup",
+						"amount": 1
+					}
+				}
+			}
+		},
+		{
+			"NOTE": "Nirvana disabled ability - reactivate on cleanup",
+			"timing": "cleanup",
+			"condition": "buddy_in_play",
+			"condition_detail": "Nirvana (Disabled)",
+			"condition_buddy_id": "nirvana_disabled",
+			"condition_extra": "buddy_not_entered_play_this_strike",
+			"effect_type": "choice",
+			"choice": [
+				{
+					"effect_type": "swap_buddy",
+					"description": "Reactivate Nirvana",
+					"buddy_to_remove": "nirvana_disabled",
+					"buddy_to_place": "nirvana_active"
+				},
+				{ "effect_type": "pass" }
+			]
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://i.imgur.com/B3XpB0n.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://i.imgur.com/Ls0RIiE.jpeg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://i.imgur.com/ePmFdNt.jpg",
+			"multiple_cards": false
+		},
+		"nirvana_active": {
+			"url": "https://i.imgur.com/R1tjQW3.jpeg",
+			"multiple_cards": false
+		},
+		"nirvana_disabled": {
+			"url": "https://i.imgur.com/2ylT2x2.jpeg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://i.imgur.com/YrTDqYN.jpeg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://i.imgur.com/uM8z42h.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"set_aside": true,
+			"definition_id": "carlclover_deusexmachina",
+			"image_name": "specials",
+			"image_index": 7
+		},
+		{
+			"definition_id": "carlclover_rhapsodyofmemories",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "carlclover_rhapsodyofmemories",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "carlclover_laetabiliscantata",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "carlclover_laetabiliscantata",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "carlclover_conbrio",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "carlclover_conbrio",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "carlclover_cantabile",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "carlclover_cantabile",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "carlclover_confuoco",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "carlclover_confuoco",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "carlclover_conanima",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "carlclover_conanima",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "carlclover_volante",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "carlclover_volante",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

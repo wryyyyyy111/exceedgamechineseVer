@@ -1,0 +1,244 @@
+{
+	"id": "orie",
+	"season": 6,
+	"display_name": "Orie Ballardiae",
+	"exceed_cost": 1,
+	"character_action_default": [{
+		"gauge_cost": 0,
+		"force_cost": 0,
+		"shortcut_effect_type": "strike",
+		"effect": {
+			"effect_type": "strike"
+		}
+	}],
+	"character_action_exceeded": [
+		{
+			"gauge_cost": 1,
+			"force_cost": 0,
+			"effect": {
+				"effect_type": "strike"
+			}
+		},
+		{
+			"gauge_cost": 0,
+			"force_cost": 0,
+			"min_hand_size": 1,
+			"action_name": "Revert",
+			"shortcut_effect_type": "gauge_from_hand",
+			"effect": {
+				"effect_type": "gauge_from_hand",
+				"min_amount": 1,
+				"max_amount": 1,
+				"and": {
+					"effect_type": "revert",
+					"and": {
+						"effect_type": "take_bonus_actions",
+						"amount": 1
+					}
+				}
+			}
+		}
+	],
+	"ability_effects": [
+		{
+			"character_effect": true,
+			"timing": "set_strike",
+			"condition": "used_character_action",
+			"condition_details": ["default", 0],
+			"effect_type": "add_attack_effect",
+			"added_effect": {
+				"timing": "during_strike",
+				"condition": "is_special_or_ultra_attack",
+				"effect_type": "armorup",
+				"amount": 2
+			}
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"character_effect": true,
+			"timing": "set_strike",
+			"condition": "used_character_action",
+			"condition_details": ["exceed", 0],
+			"effect_type": "add_attack_effect",
+			"added_effect": {
+				"timing": "hit",
+				"effect_type": "use_top_discard_as_printed_power"
+			}
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://i.imgur.com/l6QWRno.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://i.imgur.com/fMkEDyx.jpeg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://i.imgur.com/hF2y7MA.jpg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://i.imgur.com/GgPWRVQ.jpeg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://i.imgur.com/GcwlsFA.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"definition_id": "orie_luminousembrace",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "orie_luminousembrace",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "orie_restinpeace",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "orie_restinpeace",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "orie_divinethrust",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "orie_divinethrust",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "orie_tome",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "orie_tome",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "orie_sealinghoplon",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "orie_sealinghoplon",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "orie_succession",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "orie_succession",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "orie_sacredarrow",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "orie_sacredarrow",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "uni_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "uni_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "uni_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "uni_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "uni_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "uni_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "uni_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "uni_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "uni_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "uni_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "uni_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "uni_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "uni_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "uni_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "uni_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "uni_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

@@ -1,0 +1,95 @@
+[gd_scene load_steps=8 format=3 uid="uid://1624xgdxrrg5"]
+
+[ext_resource type="Script" uid="uid://cpqycd3ma2c2v" path="res://scenes/game/life_scene.gd" id="1_y33ag"]
+[ext_resource type="Texture2D" uid="uid://bejcxblku7j3f" path="res://assets/icons/turnindicator.png" id="2_i7ud7"]
+[ext_resource type="PackedScene" uid="uid://e4xwxbolj4qq" path="res://scenes/game/health_bar.tscn" id="3_oy06u"]
+[ext_resource type="Texture2D" uid="uid://d4h7c1xe0swhb" path="res://assets/icons/deck.png" id="4_klaii"]
+[ext_resource type="Texture2D" uid="uid://b5vet26fq1tu3" path="res://assets/icons/heart.png" id="4_seqfq"]
+[ext_resource type="Texture2D" uid="uid://6sicwpq2w288" path="res://assets/icons/discard.png" id="5_nefgv"]
+[ext_resource type="Texture2D" uid="uid://bbb0fvvpbx3bs" path="res://assets/icons/discard_x.png" id="7_rvxxq"]
+
+[node name="LifeScene" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_y33ag")
+
+[node name="Clock" type="Label" parent="."]
+layout_mode = 0
+offset_left = -120.0
+offset_right = -61.0
+offset_bottom = 34.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 24
+text = "88:88"
+horizontal_alignment = 2
+
+[node name="TurnIndicator" type="TextureRect" parent="."]
+layout_mode = 2
+offset_left = -55.0
+offset_top = -9.0
+offset_right = -6.0
+offset_bottom = 40.0
+texture = ExtResource("2_i7ud7")
+expand_mode = 3
+
+[node name="HealthBar" parent="." instance=ExtResource("3_oy06u")]
+
+[node name="CardInfoBox" type="HBoxContainer" parent="."]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 0
+offset_top = 38.0
+offset_right = 266.0
+offset_bottom = 86.0
+scale = Vector2(0.75, 0.75)
+
+[node name="HPIcon" type="TextureRect" parent="CardInfoBox"]
+layout_mode = 2
+tooltip_text = "体力"
+texture = ExtResource("4_seqfq")
+expand_mode = 3
+stretch_mode = 4
+
+[node name="HPLabel" type="Label" parent="CardInfoBox"]
+layout_mode = 2
+tooltip_text = "体力"
+mouse_filter = 1
+theme_override_font_sizes/font_size = 32
+text = "88"
+
+[node name="DeckIcon" type="TextureRect" parent="CardInfoBox"]
+layout_mode = 2
+tooltip_text = "牌库中的卡牌数"
+texture = ExtResource("4_klaii")
+expand_mode = 3
+stretch_mode = 4
+
+[node name="DeckLabel" type="Label" parent="CardInfoBox"]
+layout_mode = 2
+tooltip_text = "牌库中的卡牌数"
+mouse_filter = 1
+theme_override_font_sizes/font_size = 32
+text = "88"
+
+[node name="DiscardIcon" type="TextureRect" parent="CardInfoBox"]
+layout_mode = 2
+tooltip_text = "弃牌堆中的卡牌数
+可洗牌重组"
+texture = ExtResource("5_nefgv")
+expand_mode = 2
+stretch_mode = 4
+
+[node name="DiscardXIcon" type="TextureRect" parent="CardInfoBox"]
+layout_mode = 2
+tooltip_text = "弃牌堆中的卡牌数
+不可洗牌重组"
+texture = ExtResource("7_rvxxq")
+expand_mode = 2
+stretch_mode = 4
+
+[node name="DiscardLabel" type="Label" parent="CardInfoBox"]
+layout_mode = 2
+tooltip_text = "弃牌堆中的卡牌数"
+mouse_filter = 1
+theme_override_font_sizes/font_size = 32
+text = "88"

@@ -1,0 +1,202 @@
+{
+	"id": "superskullman",
+	"season": 1,
+	"display_name": "Super Skull Man 33",
+	"exceed_cost": 3,
+	"ability_effects": [
+		{
+			"character_effect": true,
+			"timing": "during_strike",
+			"condition": "was_wild_swing",
+			"effect_type": "powerup",
+			"amount": 1
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"character_effect": true,
+			"timing": "during_strike",
+			"condition": "was_wild_swing",
+			"effect_type": "powerup",
+			"amount": 2,
+			"and": {
+				"effect_type": "guardup",
+				"amount": 3
+			}
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://i.imgur.com/HmNBAkh.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://i.imgur.com/OTLBcfE.jpeg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://i.imgur.com/s6wpKBq.jpeg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://i.imgur.com/Qg5G45T.jpeg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://i.imgur.com/PFHTq9B.jpeg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"definition_id": "superskullman_kaplow",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "superskullman_kaplow",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "superskullman_zingzingzing",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "superskullman_zingzingzing",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "superskullman_bangbangbang",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "superskullman_bangbangbang",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "superskullman_bingbong",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "superskullman_bingbong",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "superskullman_slamevil",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "superskullman_slamevil",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "superskullman_splam",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "superskullman_splam",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "superskullman_zap",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "superskullman_zap",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

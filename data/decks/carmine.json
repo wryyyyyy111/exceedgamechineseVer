@@ -1,0 +1,286 @@
+{
+    "id": "carmine",
+    "season": 6,
+    "display_name": "Carmine",
+    "exceed_cost": 1,
+    "buddy_cards": [
+        "dissolveA1",
+        "dissolveA2",
+        "dissolveB1",
+        "dissolveB2",
+        "dissolveC1",
+        "dissolveC2"
+    ],
+    "hide_buddy_reference": true,
+    "buddy_card_graphics_id": [
+        "dissolve",
+        "dissolve",
+        "dissolve",
+        "dissolve",
+        "dissolve",
+        "dissolve"
+    ],
+    "buddy_display_names": [
+        "Dissolve",
+        "Dissolve",
+        "Dissolve",
+        "Dissolve",
+        "Dissolve",
+        "Dissolve"
+    ],
+    "character_action_default": [
+        {
+            "gauge_cost": 0,
+            "force_cost": 0,
+            "shortcut_effect_type": "move_any_boost",
+            "effect": {
+                "condition": "any_buddy_in_play",
+                "condition_detail": "Dissolve",
+                "effect_type": "move_any_boost",
+                "boost_name": "Dissolve",
+                "amount_min": 1,
+                "amount_max": 1,
+                "and": {
+                    "effect_type": "choice",
+                    "choice": [
+                        {
+                            "effect_type": "advance",
+                            "amount": 1
+                        },
+                        {
+                            "effect_type": "retreat",
+                            "amount": 1
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "character_action_exceeded": [
+        {
+            "gauge_cost": 0,
+            "force_cost": 0,
+            "shortcut_effect_type": "boost_from_gauge",
+            "can_boost_ultra_boost_from_gauge": true,
+            "effect": {
+                "effect_type": "boost_from_gauge",
+                "limitation": "ultra"
+            }
+        },
+        {
+            "gauge_cost": 0,
+            "force_cost": 0,
+            "min_hand_size": 1,
+            "action_name": "Revert",
+            "shortcut_effect_type": "gauge_from_hand",
+            "effect": {
+                "effect_type": "gauge_from_hand",
+                "min_amount": 1,
+                "max_amount": 1,
+                "and": {
+                    "effect_type": "revert",
+                    "and": {
+                        "effect_type": "take_bonus_actions",
+                        "amount": 1
+                    }
+                }
+            }
+        }
+    ],
+    "ability_effects": [],
+    "exceed_ability_effects": [
+        {
+            "timing": "on_continuous_boost",
+            "condition": "used_character_action",
+            "condition_details": [
+                "exceed",
+                0
+            ],
+            "effect_type": "choice",
+            "choice": [
+                {
+                    "effect_type": "advance",
+                    "amount": 1
+                },
+                {
+                    "effect_type": "retreat",
+                    "amount": 1
+                }
+            ]
+        }
+    ],
+    "image_resources": {
+        "character_default": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/carmine/character_default.jpg",
+            "multiple_cards": false
+        },
+        "character_exceeded": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/carmine/character_exceeded.jpg",
+            "multiple_cards": false
+        },
+        "cardback": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/carmine/cardback.jpg",
+            "multiple_cards": false
+        },
+        "specials": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/carmine/specials.jpg",
+            "multiple_cards": true
+        },
+        "normals": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/carmine/normals.jpg",
+            "multiple_cards": true
+        }
+    },
+    "cards": [
+        {
+            "definition_id": "carmine_twist",
+            "image_name": "specials",
+            "image_index": 4
+        },
+        {
+            "definition_id": "carmine_twist",
+            "image_name": "specials",
+            "image_index": 4
+        },
+        {
+            "definition_id": "carmine_bedevoured",
+            "image_name": "specials",
+            "image_index": 5
+        },
+        {
+            "definition_id": "carmine_bedevoured",
+            "image_name": "specials",
+            "image_index": 5
+        },
+        {
+            "definition_id": "carmine_thisistheend",
+            "image_name": "specials",
+            "image_index": 6
+        },
+        {
+            "definition_id": "carmine_thisistheend",
+            "image_name": "specials",
+            "image_index": 6
+        },
+        {
+            "definition_id": "carmine_thrust",
+            "image_name": "specials",
+            "image_index": 0
+        },
+        {
+            "definition_id": "carmine_thrust",
+            "image_name": "specials",
+            "image_index": 0
+        },
+        {
+            "definition_id": "carmine_spin",
+            "image_name": "specials",
+            "image_index": 1
+        },
+        {
+            "definition_id": "carmine_spin",
+            "image_name": "specials",
+            "image_index": 1
+        },
+        {
+            "definition_id": "carmine_pulverize",
+            "image_name": "specials",
+            "image_index": 2
+        },
+        {
+            "definition_id": "carmine_pulverize",
+            "image_name": "specials",
+            "image_index": 2
+        },
+        {
+            "definition_id": "carmine_givemethat",
+            "image_name": "specials",
+            "image_index": 3
+        },
+        {
+            "definition_id": "carmine_givemethat",
+            "image_name": "specials",
+            "image_index": 3
+        },
+        {
+            "definition_id": "uni_normal_grasp",
+            "image_name": "normals",
+            "image_index": 0
+        },
+        {
+            "definition_id": "uni_normal_grasp",
+            "image_name": "normals",
+            "image_index": 0
+        },
+        {
+            "definition_id": "uni_normal_cross",
+            "image_name": "normals",
+            "image_index": 1
+        },
+        {
+            "definition_id": "uni_normal_cross",
+            "image_name": "normals",
+            "image_index": 1
+        },
+        {
+            "definition_id": "uni_normal_assault",
+            "image_name": "normals",
+            "image_index": 2
+        },
+        {
+            "definition_id": "uni_normal_assault",
+            "image_name": "normals",
+            "image_index": 2
+        },
+        {
+            "definition_id": "uni_normal_dive",
+            "image_name": "normals",
+            "image_index": 3
+        },
+        {
+            "definition_id": "uni_normal_dive",
+            "image_name": "normals",
+            "image_index": 3
+        },
+        {
+            "definition_id": "uni_normal_spike",
+            "image_name": "normals",
+            "image_index": 4
+        },
+        {
+            "definition_id": "uni_normal_spike",
+            "image_name": "normals",
+            "image_index": 4
+        },
+        {
+            "definition_id": "uni_normal_sweep",
+            "image_name": "normals",
+            "image_index": 5
+        },
+        {
+            "definition_id": "uni_normal_sweep",
+            "image_name": "normals",
+            "image_index": 5
+        },
+        {
+            "definition_id": "uni_normal_focus",
+            "image_name": "normals",
+            "image_index": 6
+        },
+        {
+            "definition_id": "uni_normal_focus",
+            "image_name": "normals",
+            "image_index": 6
+        },
+        {
+            "definition_id": "uni_normal_block",
+            "image_name": "normals",
+            "image_index": 7
+        },
+        {
+            "definition_id": "uni_normal_block",
+            "image_name": "normals",
+            "image_index": 7
+        }
+    ]
+}

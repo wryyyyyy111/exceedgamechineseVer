@@ -1,0 +1,205 @@
+{
+	"id": "iaquis",
+	"season": 2,
+	"display_name": "Iaquis",
+	"exceed_cost": 5,
+	"exceed_cost_reduced_by": [{ "reduction_type": "transform_discount" }],
+	"ability_effects": [
+		{
+			"timing": "set_strike",
+			"condition": "initiated_strike",
+			"effect_type": "choice",
+			"choice": [
+				{ "effect_type": "reveal_strike", "and": { "character_effect": true, "effect_type": "powerup", "amount": 2 } },
+				{ "effect_type": "pass" }
+			]
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"timing": "set_strike",
+			"effect_type": "self_discard_choose",
+			"optional": true,
+			"amount": 1,
+			"limitation": "",
+			"destination": "discard",
+			"discard_effect": {
+				"effect_type": "add_attack_triggers"
+			}
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://i.imgur.com/ZQ04Fq1.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://i.imgur.com/wwBz2qY.jpeg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://i.imgur.com/s6wpKBq.jpeg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://i.imgur.com/ryJHX1H.jpeg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://i.imgur.com/1pnJnEb.jpeg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"definition_id": "iaquis_dragonsheart",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "iaquis_dragonsheart",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "iaquis_dragonsdescent",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "iaquis_dragonsdescent",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "iaquis_dragonsfire",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "iaquis_dragonsfire",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "iaquis_dragonsflight",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "iaquis_dragonsflight",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "iaquis_dragonsspine",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "iaquis_dragonsspine",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "iaquis_dragonstail",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "iaquis_dragonstail",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "iaquis_dragonstongue",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "iaquis_dragonstongue",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

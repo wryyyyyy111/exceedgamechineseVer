@@ -1,0 +1,638 @@
+{
+	"id": "noelle",
+	"season": 0,
+	"display_name": "诺艾尔·柯涅尔",
+	"exceed_cost": 2,
+	"buddy_cards": ["noelle_groundbomb1", "noelle_groundbomb2"],
+	"buddy_card_graphics_id": ["noelle_groundbomb", "noelle_groundbomb"],
+	"buddy_display_names": ["地面炸弹", "地面炸弹"],
+	"hide_buddy_reference": true,
+	"on_exceed": {
+		"effect_type": "draw",
+		"amount": 2
+	},
+	"ability_effects": [
+		{
+			"timing": "on_strike_damage_taken",
+			"character_effect": true,
+			"effect_type": "noelle_damage_toll",
+			"override_description": "一回合一次，当你在战斗中受到伤害时，支付1能量。"
+		},
+		{
+			"timing": "hit",
+			"character_effect": true,
+			"effect_type": "choice",
+			"choice": [
+				{
+					"_choice_text": "摸1张牌",
+					"effect_type": "draw",
+					"amount": 1
+				},
+				{
+					"_choice_text": "不摸牌",
+					"effect_type": "pass"
+				}
+			],
+			"override_description": "击中：你可以摸1张牌。"
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"timing": "on_strike_damage_taken",
+			"character_effect": true,
+			"effect_type": "noelle_damage_toll",
+			"override_description": "一回合一次，当你在战斗中受到伤害时，支付1能量。"
+		},
+		{
+			"timing": "hit",
+			"character_effect": true,
+			"effect_type": "choice",
+			"choice": [
+				{
+					"_choice_text": "摸1张牌",
+					"effect_type": "draw",
+					"amount": 1
+				},
+				{
+					"_choice_text": "获得弃牌堆顶的牌",
+					"effect_type": "add_top_discard_to_hand",
+					"amount": 1
+				},
+				{
+					"_choice_text": "都不要",
+					"effect_type": "pass"
+				}
+			],
+			"override_description": "击中：你可以摸1张牌，或者获得弃牌堆顶的牌。"
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/noelle/character_default.jpg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/noelle/character_exceeded.jpg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/noelle/cardback.jpg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/noelle/specials.jpg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/noelle/normals1.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"definition_id": "noelle_purewhitearrow",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "noelle_purewhitearrow",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "noelle_setbomb",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "noelle_setbomb",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "noelle_chargedfireball",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "noelle_chargedfireball",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "noelle_whirlwindslash",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "noelle_whirlwindslash",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "noelle_cometdive",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "noelle_cometdive",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "noelle_holylightburst",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "noelle_holylightburst",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "noelle_orbitalshield",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "noelle_orbitalshield",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "gg_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "gg_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "gg_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "gg_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "gg_normal_slash",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "gg_normal_slash",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "gg_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "gg_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "gg_normal_dust",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "gg_normal_dust",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "gg_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "gg_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "gg_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "gg_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "gg_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "gg_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	],
+	"custom_card_definitions": [
+		{
+			"id": "noelle_purewhitearrow",
+			"type": "special",
+			"display_name": "纯白之箭",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 2,
+			"range_max": 5,
+			"power": 3,
+			"speed": 5,
+			"armor": 0,
+			"guard": 0,
+			"may_set_from_boost": true,
+			"effects": [
+				{
+					"timing": "during_strike",
+					"condition": "was_set_from_boosts",
+					"effect_type": "speedup",
+					"amount": 1,
+					"override_description": "如果这张卡是从加成区设置的，速度+1。"
+				},
+				{
+					"timing": "hit",
+					"effect_type": "push",
+					"amount": 1,
+					"override_description": "击中：击退1格。"
+				}
+			],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": 1,
+				"display_name": "魔法霰弹",
+				"effects": [
+					{
+						"timing": "hit",
+						"condition": "is_normal_attack",
+						"effect_type": "noelle_magic_shotgun",
+						"override_description": "你的普通技获得“击中：对手选择随机弃1张牌，或让你威力+2。”"
+					}
+				]
+			}
+		},
+		{
+			"id": "noelle_setbomb",
+			"type": "special",
+			"display_name": "设置炸弹",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 0,
+			"range_max": 1,
+			"power": 5,
+			"speed": 3,
+			"armor": 0,
+			"guard": 5,
+			"linked_buddy_id": "noelle_groundbomb",
+			"may_set_from_boost": true,
+			"effects": [
+				{
+					"timing": "set_strike",
+					"condition": "was_set_from_boosts",
+					"effect_type": "calculate_range_from_set_from_boost_space"
+				},
+				{
+					"timing": "during_strike",
+					"condition": "was_set_from_boosts",
+					"effect_type": "stun_immunity",
+					"override_description": "如果这张卡从加成区设置，击晕免疫。"
+				},
+				{
+					"timing": "hit",
+					"effect_type": "draw",
+					"amount": 2,
+					"override_description": "击中：摸2张牌。"
+				},
+				{
+					"timing": "cleanup",
+					"condition": "hit_opponent",
+					"negative_condition_effect": {
+						"effect_type": "boost_this_then_sustain",
+						"boost_effect": {
+							"effect_type": "place_boost_in_space"
+						}
+					},
+					"override_description": "整理阶段：如果没有击中，加成该卡。"
+				}
+			],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": 1,
+				"display_name": "地面炸弹",
+				"effects": [
+					{
+						"timing": "now",
+						"effect_type": "place_boost_in_space",
+						"override_description": "立即：正面设置在任何位置。"
+					},
+					{
+						"timing": "cleanup",
+						"effect_type": "sustain_this",
+						"override_description": "整理阶段：维持该卡。"
+					}
+				]
+			}
+		},
+		{
+			"id": "noelle_chargedfireball",
+			"type": "special",
+			"display_name": "聚能火球",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 3,
+			"range_max": 8,
+			"power": 5,
+			"speed": 3,
+			"armor": 0,
+			"guard": 4,
+			"effects": [
+				{
+					"timing": "hit",
+					"effect_type": "draw",
+					"amount": 1,
+					"and": {
+						"effect_type": "choice",
+						"choice": [
+							{
+								"_choice_text": "前进1格",
+								"effect_type": "advance",
+								"amount": 1
+							},
+							{
+								"_choice_text": "后退1格",
+								"effect_type": "retreat",
+								"amount": 1
+							},
+							{
+								"_choice_text": "不移动",
+								"effect_type": "pass"
+							}
+						]
+					},
+					"override_description": "击中：摸1张牌，移动至多1。"
+				}
+			],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": 1,
+				"display_name": "超载咏唱",
+				"effects": [
+					{
+						"timing": "during_strike",
+						"effect_type": "speedup",
+						"amount": -1
+					},
+					{
+						"timing": "during_strike",
+						"effect_type": "powerup",
+						"amount": 3
+					}
+				]
+			}
+		},
+		{
+			"id": "noelle_whirlwindslash",
+			"type": "special",
+			"display_name": "旋风斩击",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 1,
+			"range_max": 2,
+			"power": 4,
+			"speed": 4,
+			"armor": 0,
+			"guard": 0,
+			"effects": [
+				{
+					"timing": "before",
+					"effect_type": "advance",
+					"amount": 3,
+					"use_semicolon_for_and": true,
+					"and": {
+						"effect_type": "dodge_attacks",
+						"condition": "advanced_through"
+					},
+					"override_description": "前置：前进3，如果穿过对手，对手无法击中你。"
+				},
+				{
+					"timing": "hit",
+					"effect_type": "choice",
+					"choice": [
+						{
+							"_choice_text": "前进1格",
+							"effect_type": "advance",
+							"amount": 1
+						},
+						{
+							"_choice_text": "后退1格",
+							"effect_type": "retreat",
+							"amount": 1
+						},
+						{
+							"_choice_text": "不移动",
+							"effect_type": "pass"
+						}
+					],
+					"override_description": "击中：移动1。"
+				}
+			],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": 1,
+				"display_name": "长法杖",
+				"effects": [
+					{
+						"timing": "now",
+						"effect_type": "draw",
+						"amount": 1
+					},
+					{
+						"timing": "during_strike",
+						"effect_type": "rangeup",
+						"amount": 0,
+						"amount2": 1
+					}
+				]
+			}
+		},
+		{
+			"id": "noelle_cometdive",
+			"type": "special",
+			"display_name": "彗星俯冲",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 1,
+			"range_max": 1,
+			"power": 2,
+			"speed": 7,
+			"armor": 0,
+			"guard": 0,
+			"effects": [
+				{
+					"timing": "hit",
+					"effect_type": "choice",
+					"choice": [
+						{
+							"_choice_text": "从手牌打出一张加成",
+							"effect_type": "boost_then_sustain",
+							"valid_zones": [
+								"hand"
+							],
+							"limitation": "",
+							"sustain": false,
+							"ignore_costs": true
+						},
+						{
+							"_choice_text": "不打加成",
+							"effect_type": "pass"
+						}
+					],
+					"override_description": "击中：你可以从手牌中打出一张加成。（不能取消，不会获得额外行动。）"
+				}
+			],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": 1,
+				"display_name": "护盾冲击",
+				"effects": [
+					{
+						"timing": "now",
+						"condition": "range",
+						"condition_amount": 1,
+						"effect_type": "push",
+						"amount": 2,
+						"override_description": "立即，距离1：击退2。"
+					},
+					{
+						"timing": "hit",
+						"effect_type": "add_to_gauge_immediately",
+						"override_description": "击中：将这张卡加入怒气。"
+					}
+				]
+			}
+		},
+		{
+			"id": "noelle_holylightburst",
+			"type": "ultra",
+			"display_name": "圣光爆发",
+			"force_cost": 0,
+			"gauge_cost": 2,
+			"range_min": 1,
+			"range_max": 3,
+			"power": 4,
+			"speed": 2,
+			"armor": 2,
+			"guard": 0,
+			"effects": [
+				{
+					"timing": "during_strike",
+					"effect_type": "stun_immunity",
+					"override_description": "击晕免疫。"
+				},
+				{
+					"timing": "hit",
+					"effect_type": "push",
+					"amount": 3,
+					"override_description": "击中：击退3。"
+				}
+			],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": 1,
+				"display_name": "双重闪避",
+				"effects": [
+					{
+						"timing": "after",
+						"effect_type": "choice",
+						"choice": [
+							{
+								"_choice_text": "前进3格",
+								"effect_type": "advance",
+								"amount": 3
+							},
+							{
+								"_choice_text": "后退3格",
+								"effect_type": "retreat",
+								"amount": 3
+							}
+						],
+						"override_description": "后置：移动3。"
+					}
+				]
+			}
+		},
+		{
+			"id": "noelle_orbitalshield",
+			"type": "ultra",
+			"display_name": "环轨护盾",
+			"force_cost": 0,
+			"gauge_cost": 2,
+			"range_min": 2,
+			"range_max": 5,
+			"power": 0,
+			"speed": 4,
+			"armor": 4,
+			"guard": 0,
+			"effects": [
+				{
+					"timing": "during_strike",
+					"effect_type": "dodge_at_range",
+					"range_min": 4,
+					"range_max": 9,
+					"override_description": "距离4+的攻击无法击中你。"
+				},
+				{
+					"timing": "hit",
+					"effect_type": "powerup_per_armor",
+					"amount": 1,
+					"and": {
+						"effect_type": "lose_all_armor"
+					},
+					"override_description": "击中：失去所有护甲，增加等量威力。"
+				}
+			],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": 1,
+				"display_name": "过充插槽",
+				"effects": [
+					{
+						"timing": "during_strike",
+						"effect_type": "powerup",
+						"amount": 1
+					},
+					{
+						"timing": "during_strike",
+						"effect_type": "speedup",
+						"amount": 1
+					},
+					{
+						"timing": "hit",
+						"effect_type": "draw",
+						"amount": 1,
+						"override_description": "击中：摸1张牌。"
+					}
+				]
+			}
+		}
+	]
+}

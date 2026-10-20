@@ -1,0 +1,240 @@
+{
+	"id": "gordeau",
+	"season": 6,
+	"display_name": "Gordeau",
+	"exceed_cost": 1,
+	"character_action_default": [{
+		"gauge_cost": 0,
+		"force_cost": 0,
+		"shortcut_effect_type": "strike",
+		"effect": {
+			"effect_type": "strike"
+		}
+	}],
+	"character_action_exceeded": [
+		{
+			"gauge_cost": 1,
+			"force_cost": 0,
+			"effect": {
+				"effect_type": "take_bonus_actions",
+				"amount": 1,
+				"and": {
+					"effect_type": "force_for_effect",
+					"other_player": true,
+					"continuation_switch_player_control": true,
+					"per_force_effect": null,
+					"required": true,
+					"overall_effect": {
+						"effect_type": "nothing",
+						"description": "suffering"
+					},
+					"force_max": 1
+				}
+			}
+		},
+		{
+			"gauge_cost": 0,
+			"force_cost": 0,
+			"min_hand_size": 1,
+			"action_name": "Revert",
+			"shortcut_effect_type": "gauge_from_hand",
+			"effect": {
+				"effect_type": "gauge_from_hand",
+				"min_amount": 1,
+				"max_amount": 1,
+				"and": {
+					"effect_type": "revert",
+					"and": {
+						"effect_type": "take_bonus_actions",
+						"amount": 1
+					}
+				}
+			}
+		}
+	],
+	"ability_effects": [
+		{
+			"character_effect": true,
+			"timing": "set_strike",
+			"condition": "used_character_action",
+			"condition_details": ["default", 0],
+			"effect_type": "add_attack_effect",
+			"added_effect": {
+				"timing": "hit",
+				"effect_type": "opponent_discard_choose",
+				"amount": 1
+			}
+		}
+	],
+	"exceed_ability_effects": [
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://i.imgur.com/v0xz0uH.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://i.imgur.com/yBcoxYs.jpeg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://i.imgur.com/qlN4UaJ.jpg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://i.imgur.com/gnlJbET.jpeg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://i.imgur.com/ATF1pkD.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"definition_id": "gordeau_soulexodus",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "gordeau_rustynail",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "gordeau_rustynail",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "gordeau_turbulence",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "gordeau_turbulence",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "gordeau_mortalglide",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "gordeau_mortalglide",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "gordeau_preciseaim",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "gordeau_preciseaim",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "gordeau_mortalslide",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "gordeau_mortalslide",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "gordeau_grimreaper",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "gordeau_grimreaper",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "uni_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "uni_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "uni_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "uni_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "uni_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "uni_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "uni_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "uni_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "uni_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "uni_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "uni_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "uni_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "uni_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "uni_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "uni_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "uni_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

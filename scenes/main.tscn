@@ -1,0 +1,102 @@
+[gd_scene load_steps=3 format=3 uid="uid://375moew37k4r"]
+
+[ext_resource type="Script" uid="uid://bg7ur65h7yytk" path="res://scenes/main.gd" id="1_28q6k"]
+[ext_resource type="PackedScene" uid="uid://o8vjxrpicjsm" path="res://scenes/menu/main_menu.tscn" id="2_x1b8u"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_28q6k")
+
+[node name="MainMenu" parent="." instance=ExtResource("2_x1b8u")]
+
+[node name="MemoryUsageLayer" type="CanvasLayer" parent="."]
+layer = 1000
+
+[node name="MemoryUsageLabel" type="Label" parent="MemoryUsageLayer"]
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -220.0
+offset_top = -10.0
+offset_right = -4.0
+offset_bottom = 10.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.2, 1, 0.35, 0.95)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.8)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 12
+text = "资源预算: 0.0MB/50MB"
+horizontal_alignment = 2
+
+[node name="ReconnectOverlay" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+
+[node name="CloseBlocker" type="ColorRect" parent="ReconnectOverlay"]
+layout_mode = 0
+color = Color(0, 0, 0, 0.45)
+
+[node name="PanelContainer" type="PanelContainer" parent="ReconnectOverlay"]
+custom_minimum_size = Vector2(584, 180)
+layout_mode = 0
+offset_left = 348.0
+offset_top = 270.0
+offset_right = 932.0
+offset_bottom = 450.0
+
+[node name="MarginContainer" type="MarginContainer" parent="ReconnectOverlay/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 18
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ReconnectOverlay/PanelContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MessageLabel" type="Label" parent="ReconnectOverlay/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "正在尝试重新连接"
+
+[node name="TimerLabel" type="Label" parent="ReconnectOverlay/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "1"
+
+[node name="ButtonRow" type="HBoxContainer" parent="ReconnectOverlay/PanelContainer/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="ReconnectButton" type="Button" parent="ReconnectOverlay/PanelContainer/MarginContainer/VBoxContainer/ButtonRow"]
+visible = false
+custom_minimum_size = Vector2(280, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "重新连接"
+
+[node name="SaveReplayButton" type="Button" parent="ReconnectOverlay/PanelContainer/MarginContainer/VBoxContainer/ButtonRow"]
+visible = false
+custom_minimum_size = Vector2(240, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "保存回放"
+
+[node name="CancelButton" type="Button" parent="ReconnectOverlay/PanelContainer/MarginContainer/VBoxContainer/ButtonRow"]
+custom_minimum_size = Vector2(240, 72)
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "取消"
+
+[connection signal="start_game" from="MainMenu" to="." method="_on_main_menu_start_game"]
+[connection signal="start_remote_game" from="MainMenu" to="." method="_on_main_menu_start_remote_game"]
+[connection signal="pressed" from="ReconnectOverlay/PanelContainer/MarginContainer/VBoxContainer/ButtonRow/ReconnectButton" to="." method="_on_reconnect_button_pressed"]
+[connection signal="pressed" from="ReconnectOverlay/PanelContainer/MarginContainer/VBoxContainer/ButtonRow/SaveReplayButton" to="." method="_on_reconnect_save_replay_button_pressed"]
+[connection signal="pressed" from="ReconnectOverlay/PanelContainer/MarginContainer/VBoxContainer/ButtonRow/CancelButton" to="." method="_on_reconnect_cancel_button_pressed"]

@@ -1,0 +1,222 @@
+{
+    "id": "tinker",
+    "season": 4,
+    "display_name": "Tinker Knight",
+    "exceed_cost": -1,
+    "wide_animation": "tinker_tank",
+    "starting_life": 20,
+    "on_death": {
+        "condition": "not_exceeded",
+        "effect_type": "exceed_now"
+    },
+    "on_exceed": {
+        "effect_type": "set_life_per_gauge",
+        "amount": 4,
+        "maximum": 20,
+        "and": {
+            "effect_type": "set_used_character_bonus"
+        }
+    },
+    "ability_effects": [],
+    "exceed_ability_effects": [
+        {
+            "NOTE": "If it happened on our turn",
+            "timing": "end_of_turn",
+            "condition": "used_character_bonus",
+            "effect_type": "reset_character_positions",
+            "and": {
+                "effect_type": "become_wide",
+                "description": "Tinker Tank"
+            }
+        },
+        {
+            "NOTE": "If it happened on the opponent's strike",
+            "timing": "cleanup",
+            "condition": "used_character_bonus",
+            "effect_type": "pass",
+            "and": {
+                "NOTE": "avoids double-counting",
+                "condition": "not_initiated_strike",
+                "effect_type": "reset_character_positions",
+                "and": {
+                    "effect_type": "become_wide",
+                    "description": "Tinker Tank"
+                }
+            }
+        }
+    ],
+    "image_resources": {
+        "character_default": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/tinker/character_default.jpg",
+            "multiple_cards": false
+        },
+        "character_exceeded": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/tinker/character_exceeded.jpg",
+            "multiple_cards": false
+        },
+        "cardback": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/tinker/cardback.jpg",
+            "multiple_cards": false
+        },
+        "specials": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/tinker/normals_specials.jpg",
+            "multiple_cards": true
+        },
+        "normals": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/tinker/normals_specials.jpg",
+            "multiple_cards": true
+        }
+    },
+    "cards": [
+        {
+            "definition_id": "tinker_mechcharge",
+            "image_name": "specials",
+            "image_index": 13
+        },
+        {
+            "definition_id": "tinker_mechcharge",
+            "image_name": "specials",
+            "image_index": 13
+        },
+        {
+            "definition_id": "tinker_bombbounce",
+            "image_name": "specials",
+            "image_index": 14
+        },
+        {
+            "definition_id": "tinker_bombbounce",
+            "image_name": "specials",
+            "image_index": 14
+        },
+        {
+            "definition_id": "tinker_flail",
+            "image_name": "specials",
+            "image_index": 8
+        },
+        {
+            "definition_id": "tinker_flail",
+            "image_name": "specials",
+            "image_index": 8
+        },
+        {
+            "definition_id": "tinker_mobilegear",
+            "image_name": "specials",
+            "image_index": 9
+        },
+        {
+            "definition_id": "tinker_mobilegear",
+            "image_name": "specials",
+            "image_index": 9
+        },
+        {
+            "definition_id": "tinker_wrenchtoss",
+            "image_name": "specials",
+            "image_index": 10
+        },
+        {
+            "definition_id": "tinker_wrenchtoss",
+            "image_name": "specials",
+            "image_index": 10
+        },
+        {
+            "definition_id": "tinker_drillarm",
+            "image_name": "specials",
+            "image_index": 11
+        },
+        {
+            "definition_id": "tinker_drillarm",
+            "image_name": "specials",
+            "image_index": 11
+        },
+        {
+            "definition_id": "tinker_missiles",
+            "image_name": "specials",
+            "image_index": 12
+        },
+        {
+            "definition_id": "tinker_missiles",
+            "image_name": "specials",
+            "image_index": 12
+        },
+        {
+            "definition_id": "standard_normal_grasp",
+            "image_name": "normals",
+            "image_index": 0
+        },
+        {
+            "definition_id": "standard_normal_grasp",
+            "image_name": "normals",
+            "image_index": 0
+        },
+        {
+            "definition_id": "standard_normal_cross",
+            "image_name": "normals",
+            "image_index": 1
+        },
+        {
+            "definition_id": "standard_normal_cross",
+            "image_name": "normals",
+            "image_index": 1
+        },
+        {
+            "definition_id": "standard_normal_assault",
+            "image_name": "normals",
+            "image_index": 2
+        },
+        {
+            "definition_id": "standard_normal_assault",
+            "image_name": "normals",
+            "image_index": 2
+        },
+        {
+            "definition_id": "standard_normal_dive",
+            "image_name": "normals",
+            "image_index": 3
+        },
+        {
+            "definition_id": "standard_normal_dive",
+            "image_name": "normals",
+            "image_index": 3
+        },
+        {
+            "definition_id": "standard_normal_spike",
+            "image_name": "normals",
+            "image_index": 4
+        },
+        {
+            "definition_id": "standard_normal_spike",
+            "image_name": "normals",
+            "image_index": 4
+        },
+        {
+            "definition_id": "standard_normal_sweep",
+            "image_name": "normals",
+            "image_index": 5
+        },
+        {
+            "definition_id": "standard_normal_sweep",
+            "image_name": "normals",
+            "image_index": 5
+        },
+        {
+            "definition_id": "standard_normal_focus",
+            "image_name": "normals",
+            "image_index": 6
+        },
+        {
+            "definition_id": "standard_normal_focus",
+            "image_name": "normals",
+            "image_index": 6
+        },
+        {
+            "definition_id": "standard_normal_block",
+            "image_name": "normals",
+            "image_index": 7
+        },
+        {
+            "definition_id": "standard_normal_block",
+            "image_name": "normals",
+            "image_index": 7
+        }
+    ]
+}

@@ -1,0 +1,261 @@
+{
+	"id": "shovelshield",
+	"season": 4,
+	"display_name": "Shovel & Shield Knight",
+	"exceed_cost": 3,
+	"buddy_card": "shieldknight",
+	"buddy_display_name": "Shield Knight",
+	"buddy_exceeds": true,
+	"buddy_starting_offset": 0,
+	"on_exceed": {
+		"effect_type": "place_buddy_in_any_space",
+		"buddy_name": "Shield Knight"
+	},
+	"character_action_default": [{
+		"gauge_cost": 0,
+		"force_cost": 0,
+		"shortcut_effect_type": "choice",
+		"effect": {
+			"effect_type": "choice",
+			"choice": [
+				{
+					"effect_type": "place_buddy_onto_self",
+					"buddy_name": "Shield Knight"
+				},
+				{
+					"effect_type": "move_buddy",
+					"buddy_name": "Shield Knight",
+					"amount": 1,
+					"amount2": 1
+				}
+			]
+		}
+	}],
+	"character_action_exceeded": [{
+		"gauge_cost": 0,
+		"force_cost": 0,
+		"shortcut_effect_type": "place_buddy_in_any_space",
+		"effect": {
+			"effect_type": "place_buddy_in_any_space",
+			"buddy_name": "Shield Knight"
+		}
+	}],
+	"ability_effects": [
+		{
+			"timing": "on_advance_or_close",
+			"condition": "during_strike",
+			"effect_type": "pass",
+			"and": {
+				"condition": "on_buddy_space",
+				"condition_detail": "Shield Knight",
+				"character_effect": true,
+				"effect_type": "may_advance_bonus_spaces",
+				"amount": 1
+			}
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"timing": "on_advance_or_close",
+			"condition": "during_strike",
+			"effect_type": "pass",
+			"and": {
+				"condition": "on_buddy_space",
+				"condition_detail": "Shield Knight",
+				"character_effect": true,
+				"effect_type": "may_advance_bonus_spaces",
+				"amount": 1
+			}
+		},
+		{
+			"timing": "when_hit",
+			"condition": "buddy_between_attack_source",
+			"condition_detail": "Shield Knight",
+			"character_effect": true,
+			"effect_type": "armorup",
+			"amount": 2
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://i.imgur.com/zvQSKLv.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://i.imgur.com/oIOeUy0.jpeg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://i.imgur.com/Y2m5n5K.jpg",
+			"multiple_cards": false
+		},
+		"shieldknight": {
+			"url": "https://i.imgur.com/8VTxxbZ.jpeg",
+			"multiple_cards": false
+		},
+		"shieldknight_exceeded": {
+			"url": "https://i.imgur.com/aMGfRhv.jpeg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://i.imgur.com/pHmyjXD.jpeg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://i.imgur.com/TuFOJVQ.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"definition_id": "shovelshield_tandemattack",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "shovelshield_tandemattack",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "shovelshield_shieldboomerang",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "shovelshield_shieldboomerang",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "shovelshield_bucklerblow",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "shovelshield_bucklerblow",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "shovelshield_discovery",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "shovelshield_discovery",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "shovelshield_shoveldrop",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "shovelshield_shoveldrop",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "shovelshield_shieldgong",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "shovelshield_shieldgong",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "shovelshield_chargeslash",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "shovelshield_chargeslash",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

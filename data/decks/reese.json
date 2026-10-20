@@ -1,0 +1,210 @@
+{
+	"id": "reese",
+	"season": 1,
+	"display_name": "里斯",
+	"exceed_cost": 3,
+	"ability_effects": [
+		{
+			"timing": "on_stunned",
+			"effect_type": "gauge_for_effect",
+			"gauge_max": 1,
+			"per_gauge_effect": null,
+			"overall_effect": {
+				"effect_type": "gain_advantage",
+				"character_effect": true
+			}
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"timing": "on_stunned",
+			"effect_type": "gain_advantage",
+			"character_effect": true
+		},
+		{
+			"timing": "set_strike",
+			"condition": "last_turn_was_strike",
+			"effect_type": "pass",
+			"and": {
+				"condition": "initiated_strike",
+				"effect_type": "powerup",
+				"amount": 2,
+				"character_effect": true
+			}
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://cdn.exceedcntyd.com/decks_official/reese/character_default.jpg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://cdn.exceedcntyd.com/decks_official/reese/character_exceeded.jpg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://cdn.exceedcntyd.com/decks_official/reese/cardback.jpg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://cdn.exceedcntyd.com/decks_official/reese/specials.png",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://cdn.exceedcntyd.com/decks_official/reese/normals.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"definition_id": "reese_crossdance",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "reese_crossdance",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "reese_knightshockwave",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "reese_knightshockwave",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "reese_ballista",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "reese_ballista",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "reese_chivalry",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "reese_chivalry",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "reese_valiantguardian",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "reese_valiantguardian",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "reese_supremeglory",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "reese_supremeglory",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "reese_checkmate",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "reese_checkmate",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

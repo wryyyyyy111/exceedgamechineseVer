@@ -1,0 +1,307 @@
+extends GutTest
+
+
+var game_logic : LocalGame
+var image_loader : CardImageLoader
+var default_deck = CardDataManager.get_deck_from_str_id("jin")
+const TestCardId1 = 50001
+const TestCardId2 = 50002
+const TestCardId3 = 50003
+const TestCardId4 = 50004
+const TestCardId5 = 50005
+
+var player1 : Player
+var player2 : Player
+
+func default_game_setup():
+	image_loader = CardImageLoader.new(true)
+	game_logic = LocalGame.new(image_loader)
+	var seed_value = randi()
+	game_logic.initialize_game(default_deck, default_deck, "p1", "p2", Enums.PlayerId.PlayerId_Player, seed_value)
+	game_logic.draw_starting_hands_and_begin()
+	game_logic.do_mulligan(game_logic.player, [])
+	game_logic.do_mulligan(game_logic.opponent, [])
+	player1 = game_logic.player
+	player2 = game_logic.opponent
+	game_logic.get_latest_events()
+
+func give_player_specific_card(player, def_id, card_id):
+	var card_def = CardDataManager.get_card(def_id)
+	var card = GameCard.new(card_id, card_def, player.my_id)
+	var card_db = game_logic.get_card_database()
+	card_db._test_insert_card(card)
+	player.hand.append(card)
+
+func give_specific_cards(p1, id1, p2, id2):
+	if p1:
+		give_player_specific_card(p1, id1, TestCardId1)
+	if p2:
+		give_player_specific_card(p2, id2, TestCardId2)
+
+func position_players(p1, loc1, p2, loc2):
+	p1.arena_location = loc1
+	p2.arena_location = loc2
+
+func give_gauge(player, amount):
+	for i in range(amount):
+		player.add_to_gauge(player.deck[0])
+		player.deck.remove_at(0)
+
+func validate_has_event(events, event_type, target_player, number = null):
+	for event in events:
+		if event['event_type'] == event_type:
+			if event['event_player'] == target_player.my_id:
+				if number != null and event['number'] == number:
+					return
+				elif number == null:
+					return
+	fail_test("Event not found: %s" % event_type)
+
+func before_each():
+	default_game_setup()
+
+	gut.p("ran setup", 2)
+
+func after_each():
+	game_logic.teardown()
+	game_logic.free()
+	gut.p("ran teardown", 2)
+
+func before_all():
+	gut.p("ran run setup", 2)
+
+func after_all():
+	gut.p("ran run teardown", 2)
+
+func do_and_validate_strike(player, card_id, ex_card_id = -1):
+	assert_true(game_logic.can_do_strike(player))
+	assert_true(game_logic.do_strike(player, card_id, false, ex_card_id))
+	var events = game_logic.get_latest_events()
+	validate_has_event(events, Enums.EventType.EventType_Strike_Started, player, card_id)
+	if game_logic.game_state == Enums.GameState.GameState_Strike_Opponent_Response or game_logic.game_state == Enums.GameState.GameState_PlayerDecision:
+		pass
+	else:
+		fail_test("Unexpected game state after strike")
+
+func do_strike_response(player, card_id, ex_card = -1):
+	assert_true(game_logic.do_strike(player, card_id, false, ex_card))
+	var events = game_logic.get_latest_events()
+	return events
+
+func advance_turn(player):
+	assert_true(game_logic.do_prepare(player))
+	if player.hand.size() > 7:
+		var cards = []
+		var to_discard = player.hand.size() - 7
+		for i in range(to_discard):
+			cards.append(player.hand[i].id)
+		assert_true(game_logic.do_discard_to_max(player, cards))
+
+func validate_gauge(player, amount, id):
+	assert_eq(len(player.gauge), amount)
+	if len(player.gauge) != amount: return
+	if amount == 0: return
+	for card in player.gauge:
+		if card.id == id:
+			return
+	fail_test("Didn't have required card in gauge.")
+
+func validate_discard(player, amount, id):
+	assert_eq(len(player.discards), amount)
+	if len(player.discards) != amount: return
+	if amount == 0: return
+	for card in player.discards:
+		if card.id == id:
+			return
+	fail_test("Didn't have required card in discard.")
+
+func handle_simultaneous_effects(initiator, defender):
+	while game_logic.game_state == Enums.GameState.GameState_PlayerDecision and game_logic.decision_info.type == Enums.DecisionType.DecisionType_ChooseSimultaneousEffect:
+		var decider = initiator
+		if game_logic.decision_info.player == defender.my_id:
+			decider = defender
+		assert_true(game_logic.do_choice(decider, 0), "Failed simuleffect choice")
+
+func execute_strike(initiator, defender, init_card : String, def_card : String, init_choices, def_choices, init_ex = false, def_ex = false, init_gauge_discard = [], def_gauge_discard = [], init_extra_cost = 0):
+	var all_events = []
+	give_specific_cards(initiator, init_card, defender, def_card)
+	if init_ex:
+		give_player_specific_card(initiator, init_card, TestCardId3)
+		do_and_validate_strike(initiator, TestCardId1, TestCardId3)
+	else:
+		do_and_validate_strike(initiator, TestCardId1)
+
+	if game_logic.game_state == Enums.GameState.GameState_PlayerDecision and game_logic.active_strike.strike_state == game_logic.StrikeState.StrikeState_Initiator_SetEffects:
+		game_logic.do_gauge_for_effect(initiator, init_gauge_discard)
+
+	if def_ex:
+		give_player_specific_card(defender, def_card, TestCardId4)
+		all_events += do_strike_response(defender, TestCardId2, TestCardId4)
+	elif def_card:
+		all_events += do_strike_response(defender, TestCardId2)
+
+	if game_logic.game_state == Enums.GameState.GameState_PlayerDecision and game_logic.active_strike.strike_state == game_logic.StrikeState.StrikeState_Defender_SetEffects:
+		game_logic.do_gauge_for_effect(defender, def_gauge_discard)
+
+	# Pay any costs from gauge
+	if game_logic.active_strike and game_logic.active_strike.strike_state == game_logic.StrikeState.StrikeState_Initiator_PayCosts:
+		var cost = game_logic.active_strike.initiator_card.definition['gauge_cost'] + init_extra_cost
+		var cards = []
+		for i in range(cost):
+			cards.append(initiator.gauge[i].id)
+		game_logic.do_pay_strike_cost(initiator, cards, false)
+
+	# Pay any costs from gauge
+	if game_logic.active_strike and game_logic.active_strike.strike_state == game_logic.StrikeState.StrikeState_Defender_PayCosts:
+		var cost = game_logic.active_strike.defender_card.definition['gauge_cost']
+		var cards = []
+		for i in range(cost):
+			cards.append(defender.gauge[i].id)
+		game_logic.do_pay_strike_cost(defender, cards, false)
+
+	handle_simultaneous_effects(initiator, defender)
+
+	for i in range(init_choices.size()):
+		assert_eq(game_logic.game_state, Enums.GameState.GameState_PlayerDecision)
+		assert_true(game_logic.do_choice(initiator, init_choices[i]))
+		handle_simultaneous_effects(initiator, defender)
+	handle_simultaneous_effects(initiator, defender)
+
+	for i in range(def_choices.size()):
+		assert_eq(game_logic.game_state, Enums.GameState.GameState_PlayerDecision)
+		assert_true(game_logic.do_choice(defender, def_choices[i]))
+		handle_simultaneous_effects(initiator, defender)
+
+	var events = game_logic.get_latest_events()
+	all_events += events
+	return all_events
+
+func validate_positions(p1, l1, p2, l2):
+	assert_eq(p1.arena_location, l1)
+	assert_eq(p2.arena_location, l2)
+
+func validate_life(p1, l1, p2, l2):
+	assert_eq(p1.life, l1)
+	assert_eq(p2.life, l2)
+
+##
+## Tests start here
+##
+
+func test_jin_front_ability():
+	position_players(player1, 1, player2, 9)
+	give_gauge(player1, 1)
+	give_gauge(player2, 1)
+	var id = player1.gauge[0].id
+	var id2 = player2.gauge[0].id
+	execute_strike(player1, player2, "standard_normal_assault","standard_normal_assault", [], [], false, false, [id], [id2])
+	validate_life(player1, 30, player2, 30)
+	assert_eq(player1.hand.size(), 7)
+	assert_eq(player2.hand.size(), 8)
+
+
+func test_jin_front_ability_not_when_stunned():
+	position_players(player1, 3, player2, 5)
+	give_gauge(player1, 1)
+	give_gauge(player2, 1)
+	var id = player1.gauge[0].id
+	var id2 = player2.gauge[0].id
+	execute_strike(player1, player2, "standard_normal_assault","standard_normal_assault", [], [], false, false, [id], [id2])
+	validate_life(player1, 30, player2, 26)
+	assert_eq(player1.hand.size(), 7)
+	assert_eq(player2.hand.size(), 6)
+
+func test_jin_permafrost_no_bonus():
+	position_players(player1, 3, player2, 5)
+	assert_eq(player1.hand.size(), 5)
+	assert_eq(player2.hand.size(), 6)
+	# This function gives them cards, so doesn't change hand size.
+	execute_strike(player1, player2, "jin_permafrost","jin_permafrost", [], [], false, false, [], [])
+	validate_life(player1, 30, player2, 25)
+
+func test_jin_permafrost_no_bonus_equal():
+	position_players(player1, 3, player2, 5)
+	assert_eq(player1.hand.size(), 5)
+	player2.discard([player2.hand[0].id])
+	assert_eq(player2.hand.size(), 5)
+	# This function gives them cards, so doesn't change hand size.
+	execute_strike(player1, player2, "jin_permafrost","jin_permafrost", [], [], false, false, [], [])
+	validate_life(player1, 30, player2, 25)
+
+func test_jin_permafrost_bonus_get():
+	position_players(player1, 3, player2, 5)
+	assert_eq(player1.hand.size(), 5)
+	player2.discard([player2.hand[0].id, player2.hand[1].id])
+	assert_eq(player2.hand.size(), 4)
+	# This function gives them cards, so doesn't change hand size.
+	execute_strike(player1, player2, "jin_permafrost","jin_permafrost", [], [], false, false, [], [])
+	validate_life(player1, 30, player2, 23)
+
+func test_jin_dualice_adv():
+	position_players(player1, 4, player2, 2)
+	execute_strike(player1, player2, "jin_dualicestrike","standard_normal_grasp", [], [], false, false, [], [])
+	validate_positions(player1, 4, player2, 1)
+	validate_life(player1, 30, player2, 27)
+	assert_eq(game_logic.active_turn_player, player1.my_id)
+
+func test_jin_dualice_no_adv():
+	position_players(player1, 6, player2, 4)
+	execute_strike(player1, player2, "jin_dualicestrike","standard_normal_grasp", [], [], false, false, [], [])
+	validate_positions(player1, 6, player2, 2)
+	validate_life(player1, 30, player2, 27)
+	assert_eq(game_logic.active_turn_player, player2.my_id)
+
+func test_jin_arctic():
+	position_players(player1, 3, player2, 4)
+	give_gauge(player1, 4)
+	player1.discard([player1.hand[0].id])
+	assert_eq(player1.hand.size(), 4)
+	execute_strike(player1, player2, "jin_arcticdungeon","standard_normal_assault", [], [], false, false, [], [])
+	validate_positions(player1, 3, player2, 4)
+	validate_life(player1, 26, player2, 22)
+
+func test_jin_arctic_stunned():
+	position_players(player1, 3, player2, 4)
+	give_gauge(player1, 4)
+	player1.discard([player1.hand[0].id, player1.hand[1].id])
+	assert_eq(player1.hand.size(), 3)
+	execute_strike(player1, player2, "jin_arcticdungeon","standard_normal_assault", [], [], false, false, [], [])
+	validate_positions(player1, 3, player2, 4)
+	validate_life(player1, 26, player2, 30)
+
+## 回归：两张 Flying Ice Strike（两个独立来源）叠加时，其中一张离场不应解除另一张的
+## 「对手不能移动」。原实现用单个 bool，第一张离开加成区（discarded → remove_block_opponent_move）
+## 就把标记整个清掉，AI 于是照样弃牌移动（用户实战日志里的 bug）。
+## 回归：「对手不能移动」按来源卡记账。
+## 打出第二张 Flying Ice Strike 时，第一张会被顶替离场（其 end_of_turn 延迟效果把它置入怒气），
+## 此时第二张的阻止必须仍然有效 —— 用户实战日志里 AI 照样弃牌移动，
+## 根因是原实现用单个 bool：第一张的 discarded → remove_block_opponent_move 把标记整个清掉。
+func test_jin_block_move_survives_first_boost_leaving_play():
+	default_game_setup()
+	position_players(player1, 3, player2, 7)
+	player1.skip_end_of_turn_draw = true
+	player2.skip_end_of_turn_draw = true
+	give_player_specific_card(player1, "jin_dualicestrike", TestCardId1)
+	give_player_specific_card(player1, "jin_dualicestrike", TestCardId2)
+	give_player_specific_card(player1, "standard_normal_assault", TestCardId3)
+	give_player_specific_card(player1, "standard_normal_assault", TestCardId4)
+	# 第一张：对手被阻止移动（因 set_end_of_turn_boost_delay，它会留到玩家下个回合之后）
+	assert_true(game_logic.do_boost(player1, TestCardId1, [TestCardId3]))
+	assert_true(player2.cannot_move, "第一张加成：对手不能移动")
+	advance_turn(player2)
+	assert_eq(player1.continuous_boosts.size(), 1, "第一张加成仍在场（回合末延迟）")
+	assert_true(player2.cannot_move, "玩家回合内仍被阻止移动")
+	# 第二张：打出时第一张被顶替离场（进入怒气），第二张的阻止必须保留
+	assert_true(game_logic.do_boost(player1, TestCardId2, [TestCardId4]))
+	assert_true(player1.is_card_in_gauge(TestCardId1), "第一张加成应已进入怒气（离场）")
+	assert_true(player1.is_card_in_continuous_boosts(TestCardId2), "第二张加成应在场")
+	assert_true(player2.cannot_move, "第一张离场后，第二张的阻止仍然有效")
+	# 第二张也离场后才恢复可移动
+	var second_card : GameCard = null
+	for c in player1.continuous_boosts:
+		if c.id == TestCardId2:
+			second_card = c
+	assert_true(second_card != null, "第二张加成应在场上")
+	player1.remove_from_continuous_boosts(second_card, "gauge")
+	assert_false(player2.cannot_move, "两个来源都离场后恢复可移动")
+	assert_true(player2.can_move_to(4, true))

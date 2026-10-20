@@ -1,0 +1,232 @@
+{
+	"id": "pooky",
+	"exceed_animation": "pooky_exceed",
+	"season": 2,
+	"display_name": "Pooky",
+	"exceed_cost": 3,
+	"exceed_cost_reduced_by": [
+		{
+			"reduction_type": "transform_discount"
+		}
+	],
+	"replacement_boost_definition": null,
+	"exceeded_replacement_boost_definition": null,
+	"ability_effects": [
+		{
+			"timing": "during_strike",
+			"character_effect": true,
+			"condition": "has_continuous_boost_attack",
+			"effect_type": "speedup",
+			"amount": 1,
+			"override_description": "你的特殊技和必杀技具有：若你场上有持续性加成，+1速度。"
+		},
+		{
+			"timing": "during_strike",
+			"character_effect": true,
+			"condition": "pooky_gambling_normals",
+			"effect_type": "speedup",
+			"amount": 1,
+			"hide_effect": true
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"timing": "during_strike",
+			"character_effect": true,
+			"condition": "min_continuous_boosts_attack",
+			"condition_amount": 2,
+			"effect_type": "powerup",
+			"amount": 3,
+			"and": {
+				"effect_type": "armorup",
+				"amount": 1
+			},
+			"override_description": "你的特殊技和必杀技具有：若你场上有两个或更多持续性加成，+3威力且+1护甲。"
+		},
+		{
+			"timing": "on_stunned",
+			"first_time_only": true,
+			"character_effect": true,
+			"effect_type": "pooky_stunned_draw",
+			"override_description": "每当你被击晕时，你可以抽一张牌。"
+		}
+	],
+	"on_exceed": {
+		"effect_type": "pass",
+		"hide_effect": true
+	},
+	"image_resources": {
+        "character_default": {
+            "url": "https://cdn.exceedcntyd.com/character_skin/pooky_2/character_default.png",
+            "multiple_cards": false
+        },
+        "character_exceeded": {
+            "url": "https://cdn.exceedcntyd.com/character_skin/pooky_2/character_exceeded.png",
+            "multiple_cards": false
+        },
+        "cardback": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/pooky/cardback.png",
+            "multiple_cards": false
+        },
+		"specials": {
+			"url": "https://cdn.exceedcntyd.com/character_skin/pooky_2/specials.jpg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://cdn.exceedcntyd.com/character_skin/pooky_2/normals.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"definition_id": "pooky_gamblingimin",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "pooky_gamblingimin",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "pooky_snackattack",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "pooky_snackattack",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "pooky_pookycheats",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "pooky_pookycheats",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "pooky_longintooth",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "pooky_longintooth",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "pooky_pookydrinks",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "pooky_pookydrinks",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "pooky_hattrick",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "pooky_hattrick",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "pooky_drunkenrampage",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "pooky_drunkenrampage",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

@@ -1,0 +1,245 @@
+{
+  "path_rules": [
+    {
+      "path_begins_with": "character_skin/",
+      "contains": "normal",
+      "grid_w": 4,
+      "grid_h": 2
+    },
+    {
+      "path_begins_with": "character_skin/",
+      "contains": "special",
+      "grid_w": 4,
+      "grid_h": 2
+    },
+    {
+      "path_begins_with": "decks_skin/",
+      "contains": "normal",
+      "grid_w": 4,
+      "grid_h": 2
+    },
+    {
+      "path_begins_with": "decks_skin/",
+      "contains": "special",
+      "grid_w": 4,
+      "grid_h": 2
+    }
+  ],
+  "seasons": {
+    "0": {
+      "default": {
+        "grid_w": 4,
+        "grid_h": 2
+      }
+    },
+    "1": {
+      "default": {
+        "grid_w": 4,
+        "grid_h": 2
+      },
+      "deck_overrides": {
+        "devis": {
+          "grid_w": 4,
+          "grid_h": 4
+        },
+        "devis_1": {
+          "grid_w": 4,
+          "grid_h": 2
+        }
+      }
+    },
+    "2": {
+      "default": {
+        "grid_w": 4,
+        "grid_h": 2
+      },
+      "file_rules": [
+        {
+          "contains": "normals",
+          "not_contains": "special",
+          "grid_w": 4,
+          "grid_h": 2
+        }
+      ],
+      "deck_overrides": {
+        "pooky_3": {
+          "grid_w": 4,
+          "grid_h": 2
+        },
+        "carlswangee": {
+          "grid_w": 4,
+          "grid_h": 4
+        },
+        "shovelknight": {
+          "grid_w": 4,
+          "grid_h": 4
+        },
+        "pooky": {
+          "file_rules": [
+            {
+              "image_name": "specials",
+              "grid_w": 4,
+              "grid_h": 4
+            },
+            {
+              "image_name": "normals",
+              "grid_w": 4,
+              "grid_h": 4
+            }
+          ]
+        },
+        "pooky_1": {
+          "file_rules": [
+            {
+              "image_name": "specials",
+              "grid_w": 4,
+              "grid_h": 4
+            },
+            {
+              "image_name": "normals",
+              "grid_w": 4,
+              "grid_h": 4
+            }
+          ]
+        },
+        "celinka": {
+          "file_rules": [
+            {
+              "contains": "normals",
+              "not_contains": "special",
+              "grid_h": 3
+            }
+          ]
+        },
+        "djanette": {
+          "file_rules": [
+            {
+              "contains": "normals",
+              "not_contains": "special",
+              "grid_h": 3
+            }
+          ]
+        },
+        "emogine": {
+          "file_rules": [
+            {
+              "contains": "normals",
+              "not_contains": "special",
+              "grid_h": 3
+            }
+          ]
+        },
+        "galdred": {
+          "file_rules": [
+            {
+              "contains": "normals",
+              "not_contains": "special",
+              "grid_h": 3
+            }
+          ]
+        },
+        "geoffrey": {
+          "file_rules": [
+            {
+              "contains": "normals",
+              "not_contains": "special",
+              "grid_h": 3
+            }
+          ]
+        },
+        "iaquis": {
+          "file_rules": [
+            {
+              "contains": "normals",
+              "not_contains": "special",
+              "grid_h": 3
+            }
+          ]
+        },
+        "remiliss": {
+          "file_rules": [
+            {
+              "contains": "normals",
+              "not_contains": "special",
+              "grid_h": 3
+            }
+          ]
+        },
+        "seijun": {
+          "file_rules": [
+            {
+              "contains": "normals",
+              "not_contains": "special",
+              "grid_h": 3
+            }
+          ]
+        },
+        "sydney": {
+          "file_rules": [
+            {
+              "contains": "normals",
+              "not_contains": "special",
+              "grid_h": 3
+            }
+          ]
+        },
+        "taisei": {
+          "file_rules": [
+            {
+              "contains": "normals",
+              "not_contains": "special",
+              "grid_h": 3
+            }
+          ]
+        }
+      }
+    },
+    "3": {
+      "default": {
+        "grid_w": 4,
+        "grid_h": 2
+      }
+    },
+    "4": {
+      "default": {
+        "grid_w": 4,
+        "grid_h": 4
+      }
+    },
+    "5": {
+      "default": {
+        "grid_w": 4,
+        "grid_h": 5
+      }
+    },
+    "6": {
+      "default": {
+        "grid_w": 4,
+        "grid_h": 2
+      }
+    },
+    "7": {
+      "default": {
+        "grid_w": 6,
+        "grid_h": 4
+      },
+      "deck_overrides": {
+        "happychaos": {
+          "grid_h": 3
+        },
+        "jacko": {
+          "grid_h": 3
+        },
+        "may": {
+          "grid_h": 3
+        },
+        "nago": {
+          "grid_h": 3
+        },
+        "testament": {
+          "grid_h": 3
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,219 @@
+{
+	"id": "solbadguy",
+	"season": 7,
+	"display_name": "Sol Badguy",
+	"exceed_cost": 3,
+	"on_exceed": {
+		"effect_type": "strike"
+	},
+	"ability_effects": [
+		{
+			"character_effect": true,
+			"timing": "set_strike",
+			"condition": "canceled_this_turn",
+			"effect_type": "add_attack_effect",
+			"added_effect": {
+				"timing": "during_strike",
+				"effect_type": "powerup",
+				"amount": 1
+			}
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"character_effect": true,
+			"timing": "set_strike",
+			"condition": "canceled_this_turn",
+			"effect_type": "add_attack_effect",
+			"added_effect": {
+				"timing": "during_strike",
+				"effect_type": "powerup",
+				"amount": 2
+			}
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://i.imgur.com/SMbtQ4g.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://i.imgur.com/Z71s4RA.jpeg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://i.imgur.com/XkijP6t.jpg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://i.imgur.com/QdBFWxG.jpeg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://i.imgur.com/LCaCpyQ.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"definition_id": "solbadguy_heavymobcemetery",
+			"image_name": "specials",
+			"image_index": 7
+		},
+		{
+			"definition_id": "solbadguy_heavymobcemetery",
+			"image_name": "specials",
+			"image_index": 7
+		},
+		{
+			"definition_id": "solbadguy_tyrantrave",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "solbadguy_tyrantrave",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "solbadguy_wildthrow",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "solbadguy_wildthrow",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "solbadguy_gunflame",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "solbadguy_gunflame",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "solbadguy_fafnir",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "solbadguy_fafnir",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "solbadguy_nightraidvortex",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "solbadguy_nightraidvortex",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "solbadguy_banditbringer",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "solbadguy_banditbringer",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "solbadguy_volcanicviper",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "solbadguy_volcanicviper",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "gg_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "gg_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "gg_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "gg_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "gg_normal_slash",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "gg_normal_slash",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "gg_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "gg_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "gg_normal_dust",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "gg_normal_dust",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "gg_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "gg_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "gg_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "gg_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "gg_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "gg_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

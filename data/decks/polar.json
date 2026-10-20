@@ -1,0 +1,294 @@
+{
+    "id": "polar",
+    "season": 4,
+    "display_name": "Polar Knight",
+    "exceed_cost": 3,
+    "on_exceed": {
+        "effect_type": "place_next_buddy",
+        "buddy_name": "Ice Spike",
+        "require_unoccupied": false,
+        "destination": "anywhere",
+        "amount": 3
+    },
+    "buddy_cards": [
+        "icespike1",
+        "icespike2",
+        "icespike3",
+        "icespike4",
+        "icespike5"
+    ],
+    "buddy_card_graphic_override": [
+        "icespike",
+        "icespike",
+        "icespike",
+        "icespike",
+        "icespike"
+    ],
+    "buddy_card_graphics_id": [
+        "icespike",
+        "icespike",
+        "icespike",
+        "icespike",
+        "icespike"
+    ],
+    "buddy_display_names": [
+        "Ice Spike",
+        "Ice Spike",
+        "Ice Spike",
+        "Ice Spike",
+        "Ice Spike"
+    ],
+    "ability_effects": [
+        {
+            "timing": "after",
+            "character_effect": true,
+            "effect_type": "place_next_buddy",
+            "buddy_name": "Ice Spike",
+            "require_unoccupied": true,
+            "destination": "attack_range",
+            "amount": 1
+        },
+        {
+            "timing": "hit",
+            "condition": "any_buddy_in_opponent_space",
+            "condition_detail": "Ice Spike",
+            "effect_type": "choice",
+            "choice": [
+                {
+                    "effect_type": "remove_buddy_near_opponent",
+                    "offset_allowed": 0,
+                    "same_space_allowed": true,
+                    "buddy_name": "Ice Spike",
+                    "and": {
+                        "character_effect": true,
+                        "effect_type": "powerup",
+                        "amount": 2
+                    }
+                },
+                {
+                    "effect_type": "pass"
+                }
+            ]
+        }
+    ],
+    "exceed_ability_effects": [
+        {
+            "timing": "after",
+            "effect_type": "choice",
+            "choice": [
+                {
+                    "character_effect": true,
+                    "effect_type": "place_next_buddy",
+                    "buddy_name": "Ice Spike",
+                    "UI_skip_summary": true,
+                    "require_unoccupied": true,
+                    "destination": "attack_range",
+                    "amount": 1
+                },
+                {
+                    "effect_type": "pass"
+                }
+            ]
+        },
+        {
+            "timing": "hit",
+            "condition": "any_buddy_in_opponent_space",
+            "condition_detail": "Ice Spike",
+            "effect_type": "choice",
+            "choice": [
+                {
+                    "effect_type": "remove_buddy_near_opponent",
+                    "offset_allowed": 0,
+                    "same_space_allowed": true,
+                    "buddy_name": "Ice Spike",
+                    "and": {
+                        "character_effect": true,
+                        "effect_type": "powerup",
+                        "amount": 3
+                    }
+                },
+                {
+                    "effect_type": "pass"
+                }
+            ]
+        }
+    ],
+    "image_resources": {
+        "character_default": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/polar/character_default.jpg",
+            "multiple_cards": false
+        },
+        "character_exceeded": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/polar/character_exceeded.jpg",
+            "multiple_cards": false
+        },
+        "cardback": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/polar/cardback.jpg",
+            "multiple_cards": false
+        },
+        "icespike": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/polar/other1.jpg",
+            "multiple_cards": false
+        },
+        "specials": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/polar/normals_specials.jpg",
+            "multiple_cards": true
+        },
+        "normals": {
+            "url": "https://cdn.exceedcntyd.com/decks_official/polar/normals_specials.jpg",
+            "multiple_cards": true
+        }
+    },
+    "cards": [
+        {
+            "definition_id": "polar_icicledrop",
+            "image_name": "specials",
+            "image_index": 13
+        },
+        {
+            "definition_id": "polar_icicledrop",
+            "image_name": "specials",
+            "image_index": 13
+        },
+        {
+            "definition_id": "polar_snowslash",
+            "image_name": "specials",
+            "image_index": 14
+        },
+        {
+            "definition_id": "polar_snowslash",
+            "image_name": "specials",
+            "image_index": 14
+        },
+        {
+            "definition_id": "polar_stomp",
+            "image_name": "specials",
+            "image_index": 8
+        },
+        {
+            "definition_id": "polar_stomp",
+            "image_name": "specials",
+            "image_index": 8
+        },
+        {
+            "definition_id": "polar_shovelcharge",
+            "image_name": "specials",
+            "image_index": 9
+        },
+        {
+            "definition_id": "polar_shovelcharge",
+            "image_name": "specials",
+            "image_index": 9
+        },
+        {
+            "definition_id": "polar_shovelslam",
+            "image_name": "specials",
+            "image_index": 10
+        },
+        {
+            "definition_id": "polar_shovelslam",
+            "image_name": "specials",
+            "image_index": 10
+        },
+        {
+            "definition_id": "polar_polarplow",
+            "image_name": "specials",
+            "image_index": 11
+        },
+        {
+            "definition_id": "polar_polarplow",
+            "image_name": "specials",
+            "image_index": 11
+        },
+        {
+            "definition_id": "polar_shoveldrop",
+            "image_name": "specials",
+            "image_index": 12
+        },
+        {
+            "definition_id": "polar_shoveldrop",
+            "image_name": "specials",
+            "image_index": 12
+        },
+        {
+            "definition_id": "standard_normal_grasp",
+            "image_name": "normals",
+            "image_index": 0
+        },
+        {
+            "definition_id": "standard_normal_grasp",
+            "image_name": "normals",
+            "image_index": 0
+        },
+        {
+            "definition_id": "standard_normal_cross",
+            "image_name": "normals",
+            "image_index": 1
+        },
+        {
+            "definition_id": "standard_normal_cross",
+            "image_name": "normals",
+            "image_index": 1
+        },
+        {
+            "definition_id": "standard_normal_assault",
+            "image_name": "normals",
+            "image_index": 2
+        },
+        {
+            "definition_id": "standard_normal_assault",
+            "image_name": "normals",
+            "image_index": 2
+        },
+        {
+            "definition_id": "standard_normal_dive",
+            "image_name": "normals",
+            "image_index": 3
+        },
+        {
+            "definition_id": "standard_normal_dive",
+            "image_name": "normals",
+            "image_index": 3
+        },
+        {
+            "definition_id": "standard_normal_spike",
+            "image_name": "normals",
+            "image_index": 4
+        },
+        {
+            "definition_id": "standard_normal_spike",
+            "image_name": "normals",
+            "image_index": 4
+        },
+        {
+            "definition_id": "standard_normal_sweep",
+            "image_name": "normals",
+            "image_index": 5
+        },
+        {
+            "definition_id": "standard_normal_sweep",
+            "image_name": "normals",
+            "image_index": 5
+        },
+        {
+            "definition_id": "standard_normal_focus",
+            "image_name": "normals",
+            "image_index": 6
+        },
+        {
+            "definition_id": "standard_normal_focus",
+            "image_name": "normals",
+            "image_index": 6
+        },
+        {
+            "definition_id": "standard_normal_block",
+            "image_name": "normals",
+            "image_index": 7
+        },
+        {
+            "definition_id": "standard_normal_block",
+            "image_name": "normals",
+            "image_index": 7
+        }
+    ]
+}

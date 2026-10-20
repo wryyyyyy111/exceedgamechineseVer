@@ -1,0 +1,87 @@
+[gd_scene load_steps=5 format=3 uid="uid://dy60rn4avbtbt"]
+
+[ext_resource type="Script" uid="uid://ctort7v4cx13v" path="res://scenes/menu/match_queue_item.gd" id="1_emp6n"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_available_normal"]
+bg_color = Color(0.12, 0.025, 0.03, 0.82)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.9, 0.2, 0.12, 0.95)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_available_hover"]
+bg_color = Color(0.72, 0.12, 0.08, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.78, 0.3, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_available_pressed"]
+bg_color = Color(0.48, 0.055, 0.04, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.88, 0.5, 1)
+
+[node name="QueueItem" type="MarginContainer"]
+script = ExtResource("1_emp6n")
+
+[node name="QueueVBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="QueueLabel" type="Label" parent="QueueVBox"]
+custom_minimum_size = Vector2(108, 64)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.15, 1, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "全部季度"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="JoinButton" type="Button" parent="QueueVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(1, 1, 0, 1)
+text = "进入
+队列"
+
+[node name="PlayContainer" type="MarginContainer" parent="QueueVBox"]
+visible = false
+layout_mode = 2
+
+[node name="PlayButton" type="Button" parent="QueueVBox/PlayContainer"]
+custom_minimum_size = Vector2(108, 52)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.72, 0.72, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("StyleBox_available_normal")
+theme_override_styles/hover = SubResource("StyleBox_available_hover")
+theme_override_styles/pressed = SubResource("StyleBox_available_pressed")
+text = "立即开始"
+
+[node name="WaitingCharacterLabel" type="Label" parent="QueueVBox"]
+visible = false
+custom_minimum_size = Vector2(108, 28)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.965, 0.757, 0.831, 1)
+theme_override_font_sizes/font_size = 13
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[connection signal="pressed" from="QueueVBox/JoinButton" to="." method="_on_join_button_pressed"]
+[connection signal="pressed" from="QueueVBox/PlayContainer/PlayButton" to="." method="_on_play_button_pressed"]

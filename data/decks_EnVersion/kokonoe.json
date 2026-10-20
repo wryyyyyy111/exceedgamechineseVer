@@ -1,0 +1,295 @@
+{
+	"id": "kokonoe",
+	"season": 5,
+	"display_name": "Kokonoe Mercury",
+	"buddy_card": "gravitron",
+	"buddy_display_name": "Gravitron",
+	"buddy_cards_foreground": [
+		true
+	],
+	"exceed_cost": 2,
+	"exceed_to_overdrive": true,
+	"on_exceed": {
+		"effect_type": "take_bonus_actions",
+		"amount": 1,
+		"and": {
+			"effect_type": "may_generate_gauge_with_force",
+			"and": {
+				"effect_type": "may_invalidate_ultras",
+				"and": {
+					"effect_type": "place_buddy_in_any_space",
+					"buddy_name": "Gravitron"
+				}
+			}
+		}
+	},
+	"overdrive_effect": {
+		"effect_type": "place_buddy_in_any_space",
+		"buddy_name": "Gravitron",
+		"optional": true
+	},
+	"ability_effects": [
+		{
+			"timing": "on_reshuffle",
+			"condition": "manual_reshuffle",
+			"effect_type": "add_set_aside_card_to_deck",
+			"id": "kokonoe_ultimateimpact"
+		},
+		{
+			"timing": "on_continuous_boost",
+			"effect_type": "place_buddy_in_any_space",
+			"buddy_name": "Gravitron",
+			"optional": true
+		},
+		{
+			"NOTE": "Gravitron effect",
+			"timing": "set_strike",
+			"condition": "buddy_in_play",
+			"effect_type": "force_for_effect",
+			"per_force_effect": null,
+			"overall_effect": {
+				"character_effect": true,
+				"effect_type": "add_attack_effect",
+				"added_effect": {
+					"timing": "before",
+					"effect_type": "pull_to_buddy",
+					"buddy_name": "Gravitron",
+					"amount": 1
+				}
+			},
+			"force_max": 1
+		},
+		{
+			"timing": "cleanup",
+			"condition": "buddy_in_play",
+			"effect_type": "remove_buddy",
+			"buddy_name": "Gravitron"
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"timing": "on_reshuffle",
+			"condition": "manual_reshuffle",
+			"effect_type": "add_set_aside_card_to_deck",
+			"id": "kokonoe_ultimateimpact"
+		},
+		{
+			"timing": "on_strike_reveal",
+			"resolve_before_simultaneous_effects": true,
+			"effect_type": "may_generate_gauge_with_force"
+		},
+		{
+			"timing": "on_strike_reveal",
+			"resolve_before_simultaneous_effects": true,
+			"effect_type": "may_invalidate_ultras"
+		},
+		{
+			"NOTE": "Gravitron effect",
+			"timing": "set_strike",
+			"condition": "buddy_in_play",
+			"effect_type": "force_for_effect",
+			"per_force_effect": null,
+			"overall_effect": {
+				"character_effect": true,
+				"effect_type": "add_attack_effect",
+				"added_effect": {
+					"timing": "before",
+					"effect_type": "pull_to_buddy",
+					"buddy_name": "Gravitron",
+					"amount": 1
+				}
+			},
+			"force_max": 1
+		},
+		{
+			"timing": "cleanup",
+			"condition": "buddy_in_play",
+			"effect_type": "remove_buddy",
+			"buddy_name": "Gravitron"
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://i.imgur.com/CzUrtZW.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://i.imgur.com/vuuDyGJ.jpeg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://i.imgur.com/ylDqXky.jpg",
+			"multiple_cards": false
+		},
+		"gravitron": {
+			"url": "https://i.imgur.com/LCApYi6.jpeg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://i.imgur.com/ASKoXk8.jpeg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://i.imgur.com/NCQEwcO.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"set_aside": true,
+			"definition_id": "kokonoe_ultimateimpact",
+			"image_name": "specials",
+			"image_index": 7
+		},
+		{
+			"definition_id": "kokonoe_dreadnoughtexterminator",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "kokonoe_dreadnoughtexterminator",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "kokonoe_flamingbelobog",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "kokonoe_flamingbelobog",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "kokonoe_absolutezero",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "kokonoe_absolutezero",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "kokonoe_brokenbunkerassault",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "kokonoe_brokenbunkerassault",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "kokonoe_flamecage",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "kokonoe_flamecage",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "kokonoe_banishingrays",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "kokonoe_banishingrays",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "kokonoe_solidwheel",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "kokonoe_solidwheel",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

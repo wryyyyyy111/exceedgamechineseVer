@@ -1,0 +1,452 @@
+extends ExceedGutTest
+
+func who_am_i():
+	return "shafathi"
+
+##
+## Tests start here
+##
+
+## Dematerialize - 1-2/3/4; Ignore Guard. Before: Activate one of your After effects.
+
+## Shafathi Ability: After: If you hit, you may spend 1 Force to return an Ultra from discard to hand.
+
+func test_shafathi_dematerialize_character_after():
+	position_players(player1, 3, player2, 5)
+	var ultra1 = give_player_specific_card(player1, "shafathi_flashback")
+	var ultra2 = give_player_specific_card(player1, "shafathi_timetwist")
+	player1.discard([ultra1, ultra2])
+	
+	execute_strike(player1, player2, "shafathi_dematerialize", "standard_normal_sweep",
+		false, false, [
+			0, 					# Choose to duplicate character ability; no longer does anything because you haven't hit yet
+			[player1.hand[1].id],	# On after, pay 1 Force
+			ultra2])			# To return second ultra to hand
+		
+	validate_positions(player1, 3, player2, 5)
+	validate_life(player1, 30, player2, 27)
+	assert_true(player1.is_card_in_discards(ultra1))
+	assert_true(player1.is_card_in_hand(ultra2))
+
+	advance_turn(player2)
+
+# using scheme to move 1 on before
+
+func test_shafathi_dematerialize_boost_after():
+	position_players(player1, 3, player2, 6)
+	var scheme_boost = give_player_specific_card(player1, "shafathi_penumbra")
+	
+	assert_true(game_logic.do_boost(player1, scheme_boost, []))
+	assert_true(game_logic.do_choice(player1, get_choice_index_for_position(6)))
+	advance_turn(player2)
+	
+	
+	execute_strike(player1, player2, "shafathi_dematerialize", "standard_normal_sweep",
+		false, false, [
+			0, 					# Choose to duplicate boost's after effect
+			0,					# On before, advance 1 to hit opponent
+			0,					# Resolve boost on after; does nothing since it's no longer at range 3
+			[]])				# Decline to pay for ability
+		
+	validate_positions(player1, 4, player2, 6)
+	validate_life(player1, 30, player2, 27)
+
+	advance_turn(player2)
+	
+## Walk The Worlds (Dematerialize boost): (1F) At the start of your turn,
+##			discard this and return an Ultra from your discard pile to your hand.
+##			Now: Advance up to 3.
+
+# Case where no cards can be returned
+
+func test_shafathi_walk_the_world_no_ultras():
+	position_players(player1, 3, player2, 6)
+	var walkworld_boost = give_player_specific_card(player1, "shafathi_dematerialize")
+	var forcecard1 = give_player_specific_card(player1, "standard_normal_grasp")
+	var forcecard2 = give_player_specific_card(player1, "standard_normal_grasp")
+	
+	assert_true(game_logic.do_boost(player1, walkworld_boost, [forcecard1, forcecard2]))
+	assert_true(game_logic.do_choice(player1, 1)) # advance 2
+	advance_turn(player2)
+	
+	# Choice is skipped because there are no ultras in discard
+	assert_true(player1.is_card_in_discards(walkworld_boost))
+	validate_positions(player1, 5, player2, 6)
+	advance_turn(player1)
+
+func test_shafathi_walk_the_world_decline():
+	position_players(player1, 3, player2, 6)
+	var walkworld_boost = give_player_specific_card(player1, "shafathi_dematerialize")
+	var test_ultra = give_player_specific_card(player1, "shafathi_flashback")
+	
+	assert_true(game_logic.do_boost(player1, walkworld_boost, [test_ultra]))
+	assert_true(game_logic.do_choice(player1, 3)) # don't move
+	assert_true(player1.is_card_in_discards(test_ultra))
+	advance_turn(player2)
+	
+	# start of turn; choose ultra to return
+	assert_true(game_logic.do_choose_from_discard(player1, [test_ultra]))
+	assert_true(player1.is_card_in_hand(test_ultra))
+	
+	validate_positions(player1, 3, player2, 6)
+	advance_turn(player1)
+
+## Scheme (Penumbra boost): Now: Place this in any space. Draw 1.
+##		After: If this is at exactly Range 3 from you, Draw 1, then Move up to 1.
+
+func test_shafathi_scheme_range_3():
+	position_players(player1, 3, player2, 6)
+	var scheme_boost = give_player_specific_card(player1, "shafathi_penumbra")
+	
+	assert_true(game_logic.do_boost(player1, scheme_boost, []))
+	assert_true(game_logic.do_choice(player1, get_choice_index_for_position(4)))
+	advance_turn(player2)
+	
+	
+	var p1_handsize = len(player1.hand)
+	execute_strike(player1, player2, "standard_normal_dive", "standard_normal_sweep",
+		false, false, [
+			0, 					# Choose to resolve boost after first
+			1,					# Retreat 1
+			[]])			# Decline to pay for ability (for both players)
+		
+	assert_eq(len(player1.hand), p1_handsize + 1)
+	validate_positions(player1, 8, player2, 6)
+	validate_life(player1, 30, player2, 25)
+
+	advance_turn(player2)
+
+func test_shafathi_scheme_not_range_3():
+	position_players(player1, 3, player2, 6)
+	var scheme_boost = give_player_specific_card(player1, "shafathi_penumbra")
+	
+	assert_true(game_logic.do_boost(player1, scheme_boost, []))
+	assert_true(game_logic.do_choice(player1, get_choice_index_for_position(6)))
+	advance_turn(player2)
+	
+	
+	var p1_handsize = len(player1.hand)
+	execute_strike(player1, player2, "standard_normal_dive", "standard_normal_sweep",
+		false, false, [
+			0, 				# Choose to resolve boost after first; should fail
+			[]])			# Decline to pay for ability (for both players)
+		
+	assert_eq(len(player1.hand), p1_handsize)
+	validate_positions(player1, 7, player2, 6)
+	validate_life(player1, 30, player2, 25)
+
+	advance_turn(player2)
+
+## Stasis: 0/0/1/0/4; Before: You may Reveal an attack from your hand to gain its
+##			printed Range, Power, and effects.
+##			After: You may spend 1 Gauge to Move 1.
+
+func test_shafathi_stasis_no_reveal():
+	position_players(player1, 4, player2, 5)
+	
+	var strike_cards = execute_strike(player1, player2, "shafathi_stasis", "standard_normal_focus",
+		false, false, [
+			[] 				# Do not reveal a card
+			], [0, []])			# Decline to pay for ability (for both players; p1 has no choice b/c didn't hit)
+		
+	validate_positions(player1, 4, player2, 5)
+	validate_life(player1, 26, player2, 30)
+	assert_true(player1.is_card_in_discards(strike_cards[0]))
+
+	advance_turn(player2)
+
+func test_shafathi_stasis_reveal_attack():
+	position_players(player1, 4, player2, 5)
+	var reveal_card = give_player_specific_card(player1, "standard_normal_cross")
+	
+	var strike_cards = execute_strike(player1, player2, "shafathi_stasis", "standard_normal_focus",
+		false, false, [
+			[reveal_card], 		# Reveal Cross
+			0,					# Resolve After: Retreat 3
+			0,					# Resolve Gauge to Move; skips since gauge is empty
+			[]])			# Decline to pay for ability (for both players; p2 has no choice b/c didn't hit)
+		
+	validate_positions(player1, 1, player2, 5)
+	validate_life(player1, 30, player2, 29)
+	
+	assert_true(player1.is_card_in_gauge(strike_cards[0]))
+	assert_true(player1.is_card_in_hand(reveal_card))
+	assert_true("standard_normal_cross" in player1.public_hand)
+
+	advance_turn(player2)
+
+func test_shafathi_stasis_reveal_spike():
+	position_players(player1, 4, player2, 6)
+	var reveal_card = give_player_specific_card(player1, "standard_normal_spike")
+	
+	var strike_cards = execute_strike(player1, player2, "shafathi_stasis", "standard_normal_focus",
+		false, false, [
+			[reveal_card], 		# Reveal Spike; gain IA/IG
+			0,					# Resolve Gauge to Move; skips since gauge is empty
+			[]])				# Decline to pay for ability (opponent is stunned)
+		
+	validate_positions(player1, 4, player2, 6)
+	validate_life(player1, 30, player2, 25)
+	
+	assert_true(player1.is_card_in_gauge(strike_cards[0]))
+	assert_true(player1.is_card_in_hand(reveal_card))
+	assert_true("standard_normal_spike" in player1.public_hand)
+
+	advance_turn(player2)
+
+func test_shafathi_stasis_reveal_block():
+	position_players(player1, 4, player2, 5)
+	var reveal_card = give_player_specific_card(player1, "standard_normal_block")
+	var force_card = give_player_specific_card(player1, "standard_normal_grasp")
+	
+	var strike_cards = execute_strike(player1, player2, "shafathi_stasis", "standard_normal_focus",
+		false, false, [
+			[reveal_card], 		# Reveal Block
+			0,					# Resolve After: Add to Gauge thing
+			[force_card]		# When hit, spend to block
+			], [0, []])
+		
+	validate_positions(player1, 4, player2, 5)
+	validate_life(player1, 28, player2, 30)
+	
+	assert_true(player1.is_card_in_gauge(strike_cards[0]))
+	assert_true(player1.is_card_in_hand(reveal_card))
+	assert_true("standard_normal_block" in player1.public_hand)
+
+	advance_turn(player2)
+
+
+func test_shafathi_stasis_reveal_timetwist():
+	position_players(player1, 3, player2, 8)
+	var reveal_card = give_player_specific_card(player1, "shafathi_timetwist")
+	
+	var strike_cards = execute_strike(player1, player2, "shafathi_stasis", "standard_normal_focus",
+		false, false, [
+			[reveal_card], 		# Reveal Time Twist
+			0,					# Choose to resolve Stasis After on Before, skips because no gauge
+			0,					# Resolve Gauge to Move; skips since gauge is empty
+			0,					# Resolve Time Twist R4 thing, skips
+			[]					# Decline to pay for ability
+			])
+		
+	validate_positions(player1, 3, player2, 8)
+	validate_life(player1, 30, player2, 27)
+	
+	assert_true(player1.is_card_in_gauge(strike_cards[0]))
+	assert_true(player1.is_card_in_hand(reveal_card))
+	assert_true("shafathi_timetwist" in player1.public_hand)
+
+	advance_turn(player2)
+
+
+## Monologue (Split Second boost): (2F) Search your deck for up to 2 cards
+##		and add them to your hand.
+
+# note - should look similar to consumption tests, just not mid-strike
+
+func test_shafathi_monologue_pass():
+	position_players(player1, 3, player2, 6)
+	var monologue_boost = give_player_specific_card(player1, "shafathi_splitsecond")
+	
+	assert_true(game_logic.do_boost(player1, monologue_boost, [player1.hand[0].id, player1.hand[1].id]))
+	var deck_size_before_pass = player1.deck.size()
+	game_logic.get_latest_events()
+	assert_true(game_logic.do_choose_from_topdeck(player1, -1, "pass"))
+	var pass_events = game_logic.get_latest_events()
+	assert_eq(player1.deck.size(), deck_size_before_pass - 1)
+	assert_eq(pass_events.filter(func(event): return event["event_type"] == Enums.EventType.EventType_Draw).size(), 1)
+	# Does not ask for further selections
+	
+	advance_turn(player2)
+
+func test_shafathi_monologue_single_card():
+	position_players(player1, 3, player2, 6)
+	var monologue_boost = give_player_specific_card(player1, "shafathi_splitsecond")
+	
+	var return_card = give_player_specific_card(player1, "standard_normal_grasp")
+	player1.shuffle_card_from_hand_to_deck(return_card)
+	
+	assert_true(game_logic.do_boost(player1, monologue_boost, [player1.hand[0].id, player1.hand[1].id]))
+	game_logic.get_latest_events()
+	assert_true(game_logic.do_choose_from_topdeck(player1, return_card, "add_to_hand"))
+	var search_events = game_logic.get_latest_events()
+	assert_eq(search_events.filter(func(event): return event["event_type"] == Enums.EventType.EventType_AddToHand).size(), 1)
+	assert_eq(search_events.filter(func(event): return event["event_type"] == Enums.EventType.EventType_Draw).size(), 0)
+	assert_true(game_logic.do_choose_from_topdeck(player1, -1, "pass"))
+	
+	assert_true(player1.is_card_in_hand(return_card))
+	
+	advance_turn(player2)
+
+func test_shafathi_monologue_two_cards():
+	position_players(player1, 3, player2, 6)
+	var monologue_boost = give_player_specific_card(player1, "shafathi_splitsecond")
+	
+	var return_card1 = give_player_specific_card(player1, "standard_normal_grasp")
+	var return_card2 = give_player_specific_card(player1, "standard_normal_cross")
+	player1.shuffle_card_from_hand_to_deck(return_card1)
+	player1.shuffle_card_from_hand_to_deck(return_card2)
+	
+	assert_true(game_logic.do_boost(player1, monologue_boost, [player1.hand[0].id, player1.hand[1].id]))
+	assert_true(game_logic.do_choose_from_topdeck(player1, return_card1, "add_to_hand"))
+	assert_true(game_logic.do_choose_from_topdeck(player1, return_card2, "add_to_hand"))
+	
+	assert_true(player1.is_card_in_hand(return_card1))
+	assert_true(player1.is_card_in_hand(return_card2))
+	
+	advance_turn(player2)
+
+## Flashback - [2G] 2-3/2/7; Before: Discard any number of your Boosts from play.
+##		+2 Power for each Boost discarded.
+##		After: Advance 3.
+
+func test_shafathi_flashback_effect_order_description():
+	var flashback_id = give_player_specific_card(player1, "shafathi_flashback")
+	var before_effect = game_logic.card_db.get_card(flashback_id).definition.effects[0]
+
+	assert_eq(
+		GameStrings.get_effect_text(before_effect, false, true),
+		"弃置你的加成区牌，每张+2威力"
+	)
+
+func test_shafathi_flashback_no_boosts():
+	position_players(player1, 3, player2, 5)
+	var gauge_cards = give_gauge(player1, 2)
+	
+	execute_strike(player1, player2, "shafathi_flashback", "standard_normal_sweep",
+		false, false, [
+			[],					# Decline infusion
+			gauge_cards,		# Validate ultra
+			[],					# No boosts discarded
+			0,					# Resolve Advance 3 first
+			[]], [[]])			# Decline to pay for ability (for both players)
+		
+	validate_positions(player1, 7, player2, 5)
+	validate_life(player1, 24, player2, 28)
+
+	advance_turn(player2)
+
+func test_shafathi_flashback_some_boosts():
+	position_players(player1, 3, player2, 5)
+	var gauge_cards = give_gauge(player1, 2)
+	player1.discard_hand()
+	
+	var fierce_boost = give_player_specific_card(player1, "standard_normal_grasp")
+	assert_true(game_logic.do_boost(player1, fierce_boost, []))
+	advance_turn(player2)
+	
+	var light_boost = give_player_specific_card(player1, "standard_normal_sweep")
+	assert_true(game_logic.do_boost(player1, light_boost, []))
+	advance_turn(player2)
+	
+	var defend_boost = give_player_specific_card(player1, "standard_normal_spike")
+	assert_true(game_logic.do_boost(player1, defend_boost, []))
+	advance_turn(player2)
+	
+	execute_strike(player1, player2, "shafathi_flashback", "standard_normal_sweep",
+		false, false, [
+			[],					# Decline infusion
+			gauge_cards,		# Validate ultra
+			[fierce_boost, light_boost, defend_boost],		# Many boosts discarded
+			0,					# Resolve Advance 3 first
+			[]])			# Decline to pay for ability (for both players)
+		
+	validate_positions(player1, 7, player2, 5)
+	validate_life(player1, 30, player2, 22)
+
+	advance_turn(player2)
+
+func test_shafathi_flashback_chooses_up_to_current_boosts_only():
+	position_players(player1, 3, player2, 5)
+	var gauge_cards = give_gauge(player1, 2)
+	player1.discard_hand()
+
+	var first_boost = give_player_specific_card(player1, "standard_normal_grasp")
+	assert_true(game_logic.do_boost(player1, first_boost, []))
+	advance_turn(player2)
+	var second_boost = give_player_specific_card(player1, "standard_normal_sweep")
+	assert_true(game_logic.do_boost(player1, second_boost, []))
+	advance_turn(player2)
+	var hand_card = give_player_specific_card(player1, "standard_normal_spike")
+
+	execute_strike(player1, player2, "shafathi_flashback", "standard_normal_sweep",
+		false, false, [[], gauge_cards], [], true)
+
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ChooseToDiscard)
+	assert_eq(game_logic.decision_info.source, "boosts")
+	assert_eq(game_logic.decision_info.amount_min, 0)
+	assert_eq(game_logic.decision_info.amount, 2)
+	assert_false(game_logic.do_choose_to_discard(player1, [hand_card]))
+	assert_true(game_logic.do_choose_to_discard(player1, [first_boost]))
+	assert_true(player1.is_card_in_discards(first_boost))
+	assert_true(player1.is_card_in_continuous_boosts(second_boost))
+	assert_eq(player1.strike_stat_boosts.power, 2)
+
+## Shadow Over Space (Flashback boost) - (1F) Now: Place this in any space. Draw 1.
+##		After: If this is unoccupied, you may Move here or you may spend 1 Gauge to return this to your hand.
+
+func test_shafathi_shadow_over_space_occupied():
+	position_players(player1, 3, player2, 6)
+	give_gauge(player1, 1)
+	var shadow_boost = give_player_specific_card(player1, "shafathi_flashback")
+	
+	assert_true(game_logic.do_boost(player1, shadow_boost, [player1.hand[0].id]))
+	assert_true(game_logic.do_choice(player1, get_choice_index_for_position(5)))
+	advance_turn(player2)
+	
+	execute_strike(player1, player2, "standard_normal_assault", "standard_normal_focus",
+		false, false, [
+			[],					# Decline to infuse
+			0, 					# Choose to resolve boost after first, but should give no choices because it's occupied
+			[]], [0, []])		# Decline to pay for ability (for both players)
+		
+	validate_positions(player1, 5, player2, 6)
+	validate_life(player1, 26, player2, 28)
+	assert_true(player1.is_card_in_discards(shadow_boost))
+	
+	advance_turn(player1)
+
+func test_shafathi_shadow_over_space_move_there():
+	position_players(player1, 3, player2, 6)
+	give_gauge(player1, 1)
+	var shadow_boost = give_player_specific_card(player1, "shafathi_flashback")
+	
+	assert_true(game_logic.do_boost(player1, shadow_boost, [player1.hand[0].id]))
+	assert_true(game_logic.do_choice(player1, get_choice_index_for_position(1)))
+	advance_turn(player2)
+	
+	execute_strike(player1, player2, "standard_normal_assault", "standard_normal_sweep",
+		false, false, [
+			[],					# Decline Infuse
+			0, 					# Choose to resolve boost after first
+			0,					# Choose to move to its space
+			[]])			# Decline to pay for ability (for both players)
+		
+	validate_positions(player1, 1, player2, 6)
+	validate_life(player1, 30, player2, 26)
+	assert_true(player1.is_card_in_discards(shadow_boost))
+	
+	advance_turn(player1)
+	
+func test_shafathi_shadow_over_space_return_to_hand():
+	position_players(player1, 3, player2, 6)
+	var gauge_ids = give_gauge(player1, 1)
+	var shadow_boost = give_player_specific_card(player1, "shafathi_flashback")
+	
+	assert_true(game_logic.do_boost(player1, shadow_boost, [player1.hand[0].id]))
+	assert_true(game_logic.do_choice(player1, get_choice_index_for_position(1)))
+	advance_turn(player2)
+	
+	execute_strike(player1, player2, "standard_normal_assault", "standard_normal_assault",
+		false, false, [
+			[],					# Decline Infuse
+			0, 					# Choose to resolve boost after first
+			1,					# Choose to return to hand
+			gauge_ids,			# Spend to do so
+			[]])				# Decline to pay for ability
+		
+	validate_positions(player1, 5, player2, 6)
+	validate_life(player1, 30, player2, 26)
+	assert_true(player1.is_card_in_hand(shadow_boost))
+	
+	advance_turn(player1)

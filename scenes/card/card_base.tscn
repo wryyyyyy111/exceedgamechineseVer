@@ -1,0 +1,372 @@
+[gd_scene load_steps=12 format=3 uid="uid://cl8i21571i4qa"]
+
+[ext_resource type="Script" uid="uid://bmcxh4ijwd638" path="res://scenes/card/card_base.gd" id="1_o734l"]
+[ext_resource type="Texture2D" uid="uid://cj7nvglef8cu" path="res://assets/cards/normal_grasp.tres" id="4_krtfi"]
+[ext_resource type="Texture2D" uid="uid://cpolsw2tyi4m" path="res://assets/cards/cardback_blue.svg" id="4_pvdi7"]
+[ext_resource type="Texture2D" uid="uid://cy0pcorknc8op" path="res://assets/cards/border_thin_pressed.png" id="6_h5u6x"]
+[ext_resource type="Texture2D" uid="uid://kl32dakt7bnv" path="res://assets/icons/hand.png" id="7_vbrtw"]
+[ext_resource type="Texture2D" uid="uid://xusjesyfjald" path="res://assets/icons/x.png" id="8_wk1ir"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_as8ve"]
+bg_color = Color(1, 0.905882, 0.133333, 0.815686)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yky1r"]
+bg_color = Color(0.105882, 0.105882, 0.105882, 0.862745)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_0ooqv"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nclye"]
+bg_color = Color(0.0901961, 0.0901961, 0.0901961, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_btcod"]
+bg_color = Color(0.164706, 0.164706, 0.164706, 1)
+
+[node name="CardBase" type="Node2D"]
+script = ExtResource("1_o734l")
+
+[node name="CardFocusFeatures" type="Node2D" parent="."]
+
+[node name="Backlight" type="Panel" parent="CardFocusFeatures"]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -137.5
+offset_top = -187.5
+offset_right = 137.5
+offset_bottom = 187.5
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_as8ve")
+
+[node name="CardContainer" type="MarginContainer" parent="CardFocusFeatures"]
+custom_minimum_size = Vector2(250, 350)
+offset_left = -125.0
+offset_top = -175.0
+offset_right = 125.0
+offset_bottom = 184.0
+pivot_offset = Vector2(125, 175)
+mouse_filter = 2
+
+[node name="Background" type="ColorRect" parent="CardFocusFeatures/CardContainer"]
+layout_mode = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="CardFront" type="MarginContainer" parent="CardFocusFeatures/CardContainer"]
+layout_mode = 2
+
+[node name="FancyCard" type="TextureRect" parent="CardFocusFeatures/CardContainer/CardFront"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_krtfi")
+expand_mode = 1
+
+[node name="BackupLabel" type="MarginContainer" parent="CardFocusFeatures/CardContainer/CardFront"]
+visible = false
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="CardNameText" type="RichTextLabel" parent="CardFocusFeatures/CardContainer/CardFront/BackupLabel"]
+layout_mode = 2
+bbcode_enabled = true
+text = "[center]攻击：示例文字[/center]
+[center]加成：示例文字[/center]"
+fit_content = true
+scroll_active = false
+
+[node name="CardBack" type="TextureRect" parent="CardFocusFeatures/CardContainer"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("4_pvdi7")
+expand_mode = 5
+
+[node name="SelectedBorder" type="TextureRect" parent="CardFocusFeatures/CardContainer"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("6_h5u6x")
+
+[node name="RemainingCount" type="Node2D" parent="CardFocusFeatures"]
+position = Vector2(0, -110)
+
+[node name="PanelContainer" type="PanelContainer" parent="CardFocusFeatures/RemainingCount"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_yky1r")
+
+[node name="MarginContainer" type="MarginContainer" parent="CardFocusFeatures/RemainingCount/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_right = 10
+
+[node name="RemainingCountLabel" type="Label" parent="CardFocusFeatures/RemainingCount/PanelContainer/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 28
+text = "还剩 2 张"
+horizontal_alignment = 1
+
+[node name="HandIcons" type="Node2D" parent="CardFocusFeatures"]
+position = Vector2(0, -90)
+
+[node name="HandPanel" type="PanelContainer" parent="CardFocusFeatures/HandIcons"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -55.0
+offset_right = 55.0
+offset_bottom = 152.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_0ooqv")
+
+[node name="HandMargin" type="MarginContainer" parent="CardFocusFeatures/HandIcons/HandPanel"]
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="HandVBox" type="VBoxContainer" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin"]
+layout_mode = 2
+
+[node name="Row1" type="HBoxContainer" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="IconPanel1" type="PanelContainer" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox/Row1"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_nclye")
+
+[node name="Icon" type="TextureRect" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox/Row1/IconPanel1"]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+texture = ExtResource("7_vbrtw")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="IconPanel2" type="PanelContainer" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox/Row1"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_nclye")
+
+[node name="Icon" type="TextureRect" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox/Row1/IconPanel2"]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+texture = ExtResource("7_vbrtw")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="Row2" type="HBoxContainer" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="IconPanel1" type="PanelContainer" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox/Row2"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_nclye")
+
+[node name="Icon" type="TextureRect" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox/Row2/IconPanel1"]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+texture = ExtResource("7_vbrtw")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="IconPanel2" type="PanelContainer" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox/Row2"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_nclye")
+
+[node name="Icon" type="TextureRect" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox/Row2/IconPanel2"]
+visible = false
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+texture = ExtResource("7_vbrtw")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="Row3" type="HBoxContainer" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="IconPanel1" type="PanelContainer" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox/Row3"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_nclye")
+
+[node name="Icon" type="TextureRect" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox/Row3/IconPanel1"]
+visible = false
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+texture = ExtResource("7_vbrtw")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="IconPanel2" type="PanelContainer" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox/Row3"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_nclye")
+
+[node name="Icon" type="TextureRect" parent="CardFocusFeatures/HandIcons/HandPanel/HandMargin/HandVBox/Row3/IconPanel2"]
+visible = false
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+texture = ExtResource("7_vbrtw")
+expand_mode = 1
+stretch_mode = 4
+
+[node name="BonusEffects" type="Node2D" parent="CardFocusFeatures"]
+position = Vector2(120, -130)
+
+[node name="BonusPanel" type="PanelContainer" parent="CardFocusFeatures/BonusEffects"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -110.0
+offset_bottom = 152.0
+grow_horizontal = 0
+theme_override_styles/panel = SubResource("StyleBoxEmpty_0ooqv")
+
+[node name="BonusMargins" type="MarginContainer" parent="CardFocusFeatures/BonusEffects/BonusPanel"]
+layout_mode = 2
+size_flags_horizontal = 8
+
+[node name="HandVBox" type="VBoxContainer" parent="CardFocusFeatures/BonusEffects/BonusPanel/BonusMargins"]
+layout_mode = 2
+
+[node name="ExLabel" type="RichTextLabel" parent="CardFocusFeatures/BonusEffects/BonusPanel/BonusMargins/HandVBox"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_outline_color = Color(0.886275, 0.733333, 1, 1)
+theme_override_colors/font_shadow_color = Color(0.713726, 0.0470588, 1, 1)
+theme_override_constants/outline_size = 5
+theme_override_constants/shadow_offset_y = 1
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_outline_size = 12
+theme_override_font_sizes/bold_italics_font_size = 42
+bbcode_enabled = true
+text = "[right][color=blue][b][i]EX  [/i][/b][/color][/right]"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[node name="WildLabel" type="RichTextLabel" parent="CardFocusFeatures/BonusEffects/BonusPanel/BonusMargins/HandVBox"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_outline_color = Color(0, 0.278431, 0.133333, 1)
+theme_override_colors/font_shadow_color = Color(0, 0.921569, 0.85098, 1)
+theme_override_constants/outline_size = 5
+theme_override_constants/shadow_offset_y = 1
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_outline_size = 12
+theme_override_font_sizes/bold_italics_font_size = 41
+bbcode_enabled = true
+text = "[right][color=yellow][b][i]疯狂攻击 [/i][/b][/color][/right]"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[node name="CritLabel" type="RichTextLabel" parent="CardFocusFeatures/BonusEffects/BonusPanel/BonusMargins/HandVBox"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_outline_color = Color(0.243137, 0.0901961, 0, 1)
+theme_override_colors/font_shadow_color = Color(0.717647, 0.317647, 0, 1)
+theme_override_constants/outline_size = 5
+theme_override_constants/shadow_offset_y = 1
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_outline_size = 12
+theme_override_font_sizes/bold_italics_font_size = 42
+bbcode_enabled = true
+text = "[right][color=red][b][i]爆气 [/i][/b][/color][/right]"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[node name="InfuseLabel" type="RichTextLabel" parent="CardFocusFeatures/BonusEffects/BonusPanel/BonusMargins/HandVBox"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_outline_color = Color(3.60981e-07, 0.157452, 0.223786, 1)
+theme_override_colors/font_shadow_color = Color(0.408184, 0.28585, 1, 1)
+theme_override_constants/outline_size = 5
+theme_override_constants/shadow_offset_y = 1
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_outline_size = 12
+theme_override_font_sizes/bold_italics_font_size = 42
+bbcode_enabled = true
+text = "[right][color=skyblue][b][i]灌注 [/i][/b][/color][/right]"
+fit_content = true
+scroll_active = false
+autowrap_mode = 0
+shortcut_keys_enabled = false
+
+[node name="StunIndicator" type="Node2D" parent="CardFocusFeatures"]
+visible = false
+
+[node name="XOut" type="TextureRect" parent="CardFocusFeatures/StunIndicator"]
+modulate = Color(1, 0, 0, 1)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -135.0
+offset_top = -195.0
+offset_right = 135.0
+offset_bottom = 195.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("8_wk1ir")
+
+[node name="StunPanel" type="PanelContainer" parent="CardFocusFeatures/StunIndicator"]
+offset_left = -91.5
+offset_top = -220.0
+offset_right = 91.5
+offset_bottom = -168.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_btcod")
+
+[node name="StunMargin" type="MarginContainer" parent="CardFocusFeatures/StunIndicator/StunPanel"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_right = 5
+
+[node name="StunLabel" type="Label" parent="CardFocusFeatures/StunIndicator/StunPanel/StunMargin"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 38
+text = "已昏厥"
+
+[node name="FocusFeatures" type="Node2D" parent="."]
+
+[node name="Focus" type="TextureButton" parent="FocusFeatures"]
+offset_left = -125.0
+offset_top = -175.0
+offset_right = 125.0
+offset_bottom = 184.0
+stretch_mode = 0
+
+[connection signal="button_down" from="FocusFeatures/Focus" to="." method="_on_focus_button_down"]
+[connection signal="button_up" from="FocusFeatures/Focus" to="." method="_on_focus_button_up"]
+[connection signal="mouse_entered" from="FocusFeatures/Focus" to="." method="_on_focus_mouse_entered"]
+[connection signal="mouse_exited" from="FocusFeatures/Focus" to="." method="_on_focus_mouse_exited"]
+[connection signal="pressed" from="FocusFeatures/Focus" to="." method="_on_focus_pressed"]

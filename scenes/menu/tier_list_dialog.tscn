@@ -1,0 +1,107 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scenes/menu/tier_list_dialog.gd" id="1_script"]
+[ext_resource type="Theme" path="res://scenes/menu/main_menu_theme.tres" id="2_theme"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_bg"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dialog"]
+bg_color = Color(0.015, 0.016, 0.02, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.72, 0.72, 0.68, 0.9)
+
+[node name="TierListDialog" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 0
+theme = ExtResource("2_theme")
+script = ExtResource("1_script")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 2
+color = Color(0, 0, 0, 0.72)
+
+[node name="Panel" type="Panel" parent="."]
+visible = false
+custom_minimum_size = Vector2(1280, 720)
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+
+[node name="BackgroundButton" type="Button" parent="."]
+visible = false
+modulate = Color(1, 1, 1, 0)
+custom_minimum_size = Vector2(1280, 720)
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+theme_override_styles/normal = SubResource("StyleBoxEmpty_bg")
+theme_override_styles/hover = SubResource("StyleBoxEmpty_bg")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_bg")
+theme_override_styles/focus = SubResource("StyleBoxEmpty_bg")
+
+[node name="DialogPanel" type="Panel" parent="."]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_dialog")
+
+[node name="AccentLine" type="ColorRect" parent="DialogPanel"]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 62.0
+offset_right = 1262.0
+offset_bottom = 66.0
+mouse_filter = 2
+color = Color(0.9, 0.035, 0.055, 1)
+
+[node name="Title" type="Label" parent="DialogPanel"]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 14.0
+offset_right = 730.0
+offset_bottom = 58.0
+theme_override_colors/font_color = Color(0.92, 0.9, 0.84, 1)
+theme_override_font_sizes/font_size = 28
+text = "TIER LIST  //  角色梯度榜"
+
+[node name="CloseButton" type="Button" parent="DialogPanel"]
+layout_mode = 0
+offset_left = 1148.0
+offset_top = 10.0
+offset_right = 1256.0
+offset_bottom = 54.0
+theme_override_font_sizes/font_size = 20
+text = "关闭"
+
+[node name="SourceLabel" type="Label" parent="DialogPanel"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 72.0
+offset_right = 1264.0
+offset_bottom = 98.0
+theme_override_colors/font_color = Color(0.72, 0.72, 0.68, 1)
+theme_override_font_sizes/font_size = 18
+text = "TierList_S1-8_from_ChineseCommunity 梯度S1-8来自中国社区"
+horizontal_alignment = 1
+
+[node name="ImageView" type="TextureRect" parent="DialogPanel"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 104.0
+offset_right = 1264.0
+offset_bottom = 704.0
+expand_mode = 1
+stretch_mode = 5
+
+[connection signal="pressed" from="BackgroundButton" to="." method="_on_background_button_pressed"]
+[connection signal="pressed" from="DialogPanel/CloseButton" to="." method="_on_close_button_pressed"]

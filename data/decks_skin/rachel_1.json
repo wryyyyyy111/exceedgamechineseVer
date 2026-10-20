@@ -1,0 +1,349 @@
+{
+    "id": "rachel",
+    "season": 5,
+    "display_name": "Rachel Alucard",
+    "exceed_cost": 3,
+    "exceed_to_overdrive": true,
+    "buddy_cards": [
+        "ivyblossom1",
+        "ivyblossom2",
+        "georgexiii1",
+        "georgexiii2",
+        "impishgypsophila1",
+        "impishgypsophila2"
+    ],
+    "hide_buddy_reference": true,
+    "buddy_card_graphic_override": [
+        "",
+        "",
+        "",
+        "",
+        "",
+        ""
+    ],
+    "buddy_card_graphics_id": [
+        "rachel_ivyblossom_1",
+        "rachel_ivyblossom_1",
+        "rachel_georgexiii_1",
+        "rachel_georgexiii_1",
+        "rachel_impishgypsophila_1",
+        "rachel_impishgypsophila_1"
+    ],
+    "buddy_display_names": [
+        "Ivy Blossom",
+        "Ivy Blossom",
+        "George XIII",
+        "George XIII",
+        "Impish Gypsophila",
+        "Impish Gypsophila"
+    ],
+    "buddy_cards_foreground": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+    ],
+    "overdrive_effect": {
+        "effect_type": "boost_as_overdrive",
+        "limitation": "continuous",
+        "valid_zones": [
+            "hand"
+        ]
+    },
+    "character_action_default": [
+        {
+            "NOTE": "Once per turn force to close/retreat",
+            "gauge_cost": 0,
+            "force_cost": 0,
+            "shortcut_effect_type": "choice",
+            "per_turn_limit": 1,
+            "effect": {
+                "effect_type": "take_bonus_actions",
+                "silent_effect": true,
+                "amount": 1,
+                "and": {
+                    "effect_type": "choice",
+                    "choice": [
+                        {
+                            "effect_type": "force_for_effect",
+                            "per_force_effect": {
+                                "combine_multiple_into_one": true,
+                                "effect_type": "close",
+                                "amount": 1
+                            },
+                            "overall_effect": null,
+                            "force_max": 2
+                        },
+                        {
+                            "effect_type": "force_for_effect",
+                            "per_force_effect": {
+                                "combine_multiple_into_one": true,
+                                "effect_type": "retreat",
+                                "amount": 1
+                            },
+                            "overall_effect": null,
+                            "force_max": 2
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "character_action_exceeded": [
+        {
+            "NOTE": "Once per turn force to close/retreat/push/pull",
+            "gauge_cost": 0,
+            "force_cost": 0,
+            "per_turn_limit": 1,
+            "shortcut_effect_type": "choice",
+            "effect": {
+                "effect_type": "take_bonus_actions",
+                "silent_effect": true,
+                "amount": 1,
+                "and": {
+                    "effect_type": "choice",
+                    "choice": [
+                        {
+                            "effect_type": "force_for_effect",
+                            "per_force_effect": {
+                                "combine_multiple_into_one": true,
+                                "effect_type": "close",
+                                "amount": 1
+                            },
+                            "overall_effect": null,
+                            "force_max": 2
+                        },
+                        {
+                            "effect_type": "force_for_effect",
+                            "per_force_effect": {
+                                "combine_multiple_into_one": true,
+                                "effect_type": "retreat",
+                                "amount": 1
+                            },
+                            "overall_effect": null,
+                            "force_max": 2
+                        },
+                        {
+                            "effect_type": "force_for_effect",
+                            "per_force_effect": {
+                                "combine_multiple_into_one": true,
+                                "effect_type": "push",
+                                "amount": 1
+                            },
+                            "overall_effect": null,
+                            "force_max": 2
+                        },
+                        {
+                            "effect_type": "force_for_effect",
+                            "per_force_effect": {
+                                "combine_multiple_into_one": true,
+                                "effect_type": "pull",
+                                "amount": 1
+                            },
+                            "overall_effect": null,
+                            "force_max": 2
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "ability_effects": [
+        {
+            "timing": "on_reshuffle",
+            "condition": "manual_reshuffle",
+            "effect_type": "add_set_aside_card_to_deck",
+            "id": "rachel_clownishcalendula"
+        }
+    ],
+    "exceed_ability_effects": [
+        {
+            "timing": "on_reshuffle",
+            "condition": "manual_reshuffle",
+            "effect_type": "add_set_aside_card_to_deck",
+            "id": "rachel_clownishcalendula"
+        }
+    ],
+    "image_resources": {
+        "character_default": {
+            "url": "https://cdn.exceedcntyd.com/character_skin/rachel_1/character_default.png",
+            "multiple_cards": false
+        },
+        "character_exceeded": {
+            "url": "https://cdn.exceedcntyd.com/character_skin/rachel_1/character_exceeded.png",
+            "multiple_cards": false
+        },
+        "cardback": {
+            "url": "https://cdn.exceedcntyd.com/character_skin/rachel_1/cardback.png",
+            "multiple_cards": false
+        },
+        "specials": {
+            "url": "https://cdn.exceedcntyd.com/character_skin/rachel_1/specials.jpg",
+            "multiple_cards": true
+        },
+        "normals": {
+            "url": "https://cdn.exceedcntyd.com/character_skin/rachel_1/normals.jpg",
+            "multiple_cards": true
+        }
+    },
+    "cards": [
+        {
+            "set_aside": true,
+            "definition_id": "rachel_clownishcalendula",
+            "image_name": "specials",
+            "image_index": 7
+        },
+        {
+            "definition_id": "rachel_tempestdahlia",
+            "image_name": "specials",
+            "image_index": 0
+        },
+        {
+            "definition_id": "rachel_tempestdahlia",
+            "image_name": "specials",
+            "image_index": 0
+        },
+        {
+            "definition_id": "rachel_badenbadenlily",
+            "image_name": "specials",
+            "image_index": 1
+        },
+        {
+            "definition_id": "rachel_badenbadenlily",
+            "image_name": "specials",
+            "image_index": 1
+        },
+        {
+            "definition_id": "rachel_whirlwind",
+            "image_name": "specials",
+            "image_index": 4
+        },
+        {
+            "definition_id": "rachel_whirlwind",
+            "image_name": "specials",
+            "image_index": 4
+        },
+        {
+            "definition_id": "rachel_flyinglobelia",
+            "image_name": "specials",
+            "image_index": 2
+        },
+        {
+            "definition_id": "rachel_flyinglobelia",
+            "image_name": "specials",
+            "image_index": 2
+        },
+        {
+            "definition_id": "rachel_spikedrop",
+            "image_name": "specials",
+            "image_index": 6
+        },
+        {
+            "definition_id": "rachel_spikedrop",
+            "image_name": "specials",
+            "image_index": 6
+        },
+        {
+            "definition_id": "rachel_tinylobelia",
+            "image_name": "specials",
+            "image_index": 3
+        },
+        {
+            "definition_id": "rachel_tinylobelia",
+            "image_name": "specials",
+            "image_index": 3
+        },
+        {
+            "definition_id": "rachel_electricchair",
+            "image_name": "specials",
+            "image_index": 5
+        },
+        {
+            "definition_id": "rachel_electricchair",
+            "image_name": "specials",
+            "image_index": 5
+        },
+        {
+            "definition_id": "standard_normal_grasp",
+            "image_name": "normals",
+            "image_index": 0
+        },
+        {
+            "definition_id": "standard_normal_grasp",
+            "image_name": "normals",
+            "image_index": 0
+        },
+        {
+            "definition_id": "standard_normal_cross",
+            "image_name": "normals",
+            "image_index": 1
+        },
+        {
+            "definition_id": "standard_normal_cross",
+            "image_name": "normals",
+            "image_index": 1
+        },
+        {
+            "definition_id": "standard_normal_assault",
+            "image_name": "normals",
+            "image_index": 2
+        },
+        {
+            "definition_id": "standard_normal_assault",
+            "image_name": "normals",
+            "image_index": 2
+        },
+        {
+            "definition_id": "standard_normal_dive",
+            "image_name": "normals",
+            "image_index": 3
+        },
+        {
+            "definition_id": "standard_normal_dive",
+            "image_name": "normals",
+            "image_index": 3
+        },
+        {
+            "definition_id": "standard_normal_spike",
+            "image_name": "normals",
+            "image_index": 4
+        },
+        {
+            "definition_id": "standard_normal_spike",
+            "image_name": "normals",
+            "image_index": 4
+        },
+        {
+            "definition_id": "standard_normal_sweep",
+            "image_name": "normals",
+            "image_index": 5
+        },
+        {
+            "definition_id": "standard_normal_sweep",
+            "image_name": "normals",
+            "image_index": 5
+        },
+        {
+            "definition_id": "standard_normal_focus",
+            "image_name": "normals",
+            "image_index": 6
+        },
+        {
+            "definition_id": "standard_normal_focus",
+            "image_name": "normals",
+            "image_index": 6
+        },
+        {
+            "definition_id": "standard_normal_block",
+            "image_name": "normals",
+            "image_index": 7
+        },
+        {
+            "definition_id": "standard_normal_block",
+            "image_name": "normals",
+            "image_index": 7
+        }
+    ]
+}

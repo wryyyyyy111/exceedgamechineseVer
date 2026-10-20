@@ -1,0 +1,255 @@
+{
+	"id": "taokaka",
+	"season": 5,
+	"display_name": "Taokaka",
+	"exceed_cost": 3,
+	"exceed_to_overdrive": true,
+	"on_exceed": {
+		"effect_type": "pass"
+	},
+	"overdrive_effect": {
+		"effect_type": "choice",
+		"choice": [
+			{ "effect_type": "advance", "amount": 2 },
+			{ "effect_type": "retreat", "amount": 2 }
+		]
+	},
+	"ability_effects": [
+		{
+			"timing": "on_reshuffle",
+			"condition": "manual_reshuffle",
+			"effect_type": "add_set_aside_card_to_deck",
+			"id": "taokaka_attackmeowpow"
+		},
+		{
+			"timing": "set_strike",
+			"condition": "initiated_strike",
+			"effect_type": "pass",
+			"and": {
+				"condition": "was_wild_swing",
+				"effect_type": "add_attack_effect",
+				"character_effect": true,
+				"added_effect": {
+					"timing": "before",
+					"effect_type": "advance",
+					"amount": 2,
+					"and": {
+						"effect_type": "force_for_effect",
+						"per_force_effect": null,
+						"overall_effect": {
+							"effect_type": "retreat",
+							"amount": 2
+						},
+						"force_max": 1
+					}
+				}
+			}
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"timing": "on_reshuffle",
+			"condition": "manual_reshuffle",
+			"effect_type": "add_set_aside_card_to_deck",
+			"id": "taokaka_attackmeowpow"
+		},
+		{
+			"timing": "set_strike",
+			"condition": "initiated_strike",
+			"effect_type": "add_attack_effect",
+			"character_effect": true,
+			"added_effect": {
+				"timing": "before",
+				"effect_type": "advance",
+				"amount": 2,
+				"and": {
+					"effect_type": "choice",
+					"choice": [
+						{ "effect_type": "retreat", "amount": 2 },
+						{ "effect_type": "pass" }
+					]
+				}
+			}
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://i.imgur.com/ipSpJeW.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://i.imgur.com/JjSuY2N.jpeg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://i.imgur.com/CDi8p96.jpg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://i.imgur.com/KT0MIo1.jpeg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://i.imgur.com/IdQWUeN.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"set_aside": true,
+			"definition_id": "taokaka_attackmeowpow",
+			"image_name": "specials",
+			"image_index": 7
+		},
+		{
+			"definition_id": "taokaka_hexaedge",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "taokaka_hexaedge",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "taokaka_immabeatthecrapouttayou",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "taokaka_immabeatthecrapouttayou",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "taokaka_catspiritone",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "taokaka_catspiritone",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "taokaka_kittylitterspecial",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "taokaka_kittylitterspecial",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "taokaka_doublepawstrike",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "taokaka_doublepawstrike",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "taokaka_slashyslashy",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "taokaka_slashyslashy",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "taokaka_trickedge",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "taokaka_trickedge",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

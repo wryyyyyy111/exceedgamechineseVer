@@ -1,0 +1,392 @@
+{
+	"id": "litchi",
+	"season": 5,
+	"display_name": "Litchi Faye Ling",
+	"has_sealed_area": true,
+	"buddy_card": "mantenbo",
+	"buddy_display_name": "Mantenbo",
+	"exceed_cost": 3,
+	"exceed_to_overdrive": true,
+	"on_exceed": {
+		"effect_type": "pass"
+	},
+	"overdrive_effect": {
+		"effect_type": "choice",
+		"choice": [
+			{
+				"effect_type": "place_buddy_in_any_space",
+				"buddy_name": "Mantenbo",
+				"optional": true
+			},
+			{
+				"condition": "buddy_in_play",
+				"condition_detail": "Mantenbo",
+				"buddy_name": "Mantenbo",
+				"effect_type": "pass",
+				"silent_effect": true,
+				"and": {
+					"condition": "buddy_space_unoccupied",
+					"condition_detail": "Mantenbo",
+					"effect_type": "move_to_buddy",
+					"buddy_name": "Mantenbo"
+				}
+			},
+			{
+				"effect_type": "pass"
+			}
+		]
+
+	},
+	"character_action_default": [
+		{
+			"NOTE": "Mantenbo action to move 1-2 spaces",
+			"gauge_cost": 0,
+			"force_cost": 0,
+			"action_name": "Move Mantenbo",
+			"requires_buddy_in_play": "true",
+			"shortcut_effect_type": "move_buddy",
+			"effect": {
+				"condition": "buddy_in_play",
+				"condition_detail": "Mantenbo",
+				"effect_type": "move_buddy",
+				"buddy_name": "Mantenbo",
+				"amount": 1,
+				"amount2": 2
+			}
+		},
+		{
+			"NOTE": "Once per turn remove or place Mantenbo",
+			"gauge_cost": 0,
+			"force_cost": 0,
+			"action_name": "Summon/Remove Mantenbo",
+			"per_turn_limit": 1,
+			"shortcut_effect_type": "choice",
+			"effect": {
+				"effect_type": "choice",
+				"choice": [
+					{
+						"effect_type": "place_buddy_onto_self",
+						"buddy_name": "Mantenbo",
+						"and": {
+							"effect_type": "take_bonus_actions",
+							"use_simple_description": true,
+							"amount": 1
+						}
+					},
+					{
+						"effect_type": "remove_buddy",
+						"buddy_name": "Mantenbo",
+						"and": {
+							"effect_type": "take_bonus_actions",
+							"use_simple_description": true,
+							"amount": 1
+						}
+					}
+				]
+			}
+		}
+	],
+	"character_action_exceeded": [
+		{
+			"NOTE": "Mantenbo action to move 1-2 spaces",
+			"gauge_cost": 0,
+			"force_cost": 0,
+			"action_name": "Move Mantenbo",
+			"requires_buddy_in_play": "true",
+			"shortcut_effect_type": "move_buddy",
+			"effect": {
+				"condition": "buddy_in_play",
+				"condition_detail": "Mantenbo",
+				"effect_type": "move_buddy",
+				"buddy_name": "Mantenbo",
+				"amount": 1,
+				"amount2": 2
+			}
+		}
+	],
+	"ability_effects": [
+		{
+			"timing": "on_reshuffle",
+			"condition": "manual_reshuffle",
+			"effect_type": "add_set_aside_card_to_deck",
+			"id": "litchi_ninegatesofheaven"
+		},
+		{
+			"NOTE": "Mantenbo speed/range when in play",
+			"timing": "during_strike",
+			"condition": "not_buddy_in_play",
+			"condition_detail": "Mantenbo",
+			"character_effect": true,
+			"effect_type": "speedup",
+			"amount": -1,
+			"and": {
+				"effect_type": "rangeup",
+				"amount": 0,
+				"amount2": 1
+			}
+		},
+		{
+			"NOTE": "Mantenbo hit bonus",
+			"timing": "hit",
+			"condition": "buddy_in_opponent_space",
+			"condition_detail": "Mantenbo",
+			"effect_type": "choice",
+			"choice": [
+				{
+					"effect_type": "remove_buddy",
+					"buddy_name": "Mantenbo",
+					"and": {
+						"character_effect": true,
+						"effect_type": "powerup",
+						"amount": 1,
+						"and": {
+							"effect_type": "gain_advantage"
+						}
+					}
+				},
+				{
+					"effect_type": "pass"
+				}
+			]
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"timing": "on_reshuffle",
+			"condition": "manual_reshuffle",
+			"effect_type": "add_set_aside_card_to_deck",
+			"id": "litchi_ninegatesofheaven"
+		},
+		{
+			"NOTE": "Exceeded ability text",
+			"character_effect": true,
+			"timing": "set_strike",
+			"condition": "on_buddy_space",
+			"condition_detail": "Mantenbo",
+			"effect_type": "speedup",
+			"amount": 1
+		},
+		{
+			"NOTE": "Mantenbo speed/range when in play",
+			"timing": "during_strike",
+			"condition": "not_buddy_in_play",
+			"condition_detail": "Mantenbo",
+			"character_effect": true,
+			"effect_type": "speedup",
+			"amount": -1,
+			"and": {
+				"effect_type": "rangeup",
+				"amount": 0,
+				"amount2": 1
+			}
+		},
+		{
+			"NOTE": "Mantenbo hit bonus",
+			"timing": "hit",
+			"condition": "buddy_in_opponent_space",
+			"condition_detail": "Mantenbo",
+			"effect_type": "choice",
+			"choice": [
+				{
+					"effect_type": "remove_buddy",
+					"buddy_name": "Mantenbo",
+					"and": {
+						"character_effect": true,
+						"effect_type": "powerup",
+						"amount": 1,
+						"and": {
+							"effect_type": "gain_advantage"
+						}
+					}
+				},
+				{
+					"effect_type": "pass"
+				}
+			]
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://i.imgur.com/XiyOFwg.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://i.imgur.com/akpX1ss.jpeg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://i.imgur.com/mt9uLDV.jpg",
+			"multiple_cards": false
+		},
+		"mantenbo": {
+			"url": "https://i.imgur.com/GWHtkaY.jpeg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://i.imgur.com/94QdEQs.jpeg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://i.imgur.com/iRJcciC.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"set_aside": true,
+			"definition_id": "litchi_ninegatesofheaven",
+			"image_name": "specials",
+			"image_index": 7
+		},
+		{
+			"definition_id": "litchi_allgreen",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "litchi_allgreen",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "litchi_thirteenorphans",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "litchi_thirteenorphans",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "litchi_tsubamegaeshi",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "litchi_tsubamegaeshi",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "litchi_reachrobbingthekong",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "litchi_reachrobbingthekong",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "litchi_renchan",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "litchi_renchan",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "litchi_fourwinds",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "litchi_fourwinds",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "litchi_unarmedlunge",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "litchi_unarmedlunge",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

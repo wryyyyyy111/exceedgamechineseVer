@@ -1,0 +1,266 @@
+{
+	"id": "carcass",
+	"season": 0,
+	"display_name": "特遣队员",
+	"exceed_cost": 4,
+	"on_exceed": {
+		"effect_type": "draw",
+		"amount": 2
+	},
+	"ability_effects": [
+		{
+			"character_effect": true,
+			"timing": "set_strike",
+			"effect_type": "add_attack_effect",
+			"added_effect": {
+				"timing": "hit",
+				"condition": "headshot",
+				"effect_type": "powerup",
+				"amount": 1,
+				"override_description": "爆头：威力+1。"
+			},
+			"override_description": "你的卡牌获得 爆头：威力+1。击中：如果你的手牌数等于距离，触发爆头。"
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"character_effect": true,
+			"timing": "set_strike",
+			"effect_type": "add_attack_effect",
+			"added_effect": {
+				"timing": "hit",
+				"condition": "headshot",
+				"effect_type": "powerup",
+				"amount": 2,
+				"and": {
+					"effect_type": "draw",
+					"amount": 1
+				},
+				"override_description": "爆头：威力+2，抽1张牌。"
+			},
+			"override_description": "你的卡牌获得 爆头：威力+2，抽1张牌。击中：如果你的手牌数等于距离，触发爆头。"
+		}
+	],
+	"character_action_default": [
+		{
+			"gauge_cost": 0,
+			"force_cost": 1,
+			"action_name": "枪斗术",
+			"shortcut_effect_type": "strike",
+			"effect": {
+				"effect_type": "push",
+				"amount": 1,
+				"condition": "at_distance",
+				"condition_amount": 1,
+				"negative_condition_effect": {
+					"effect_type": "strike"
+				},
+				"and": {
+					"effect_type": "strike"
+				},
+				"override_description": "消耗1能量，如果敌人在距离1则击退1然后发起战斗。"
+			}
+		}
+	],
+	"character_action_exceeded": [
+		{
+			"gauge_cost": 0,
+			"force_cost": 1,
+			"action_name": "子弹呼啸",
+			"shortcut_effect_type": "strike",
+			"effect": {
+				"effect_type": "choice",
+				"choice": [
+					{
+						"_choice_text": "前进1格",
+						"effect_type": "advance",
+						"amount": 1
+					},
+					{
+						"_choice_text": "后退1格",
+						"effect_type": "retreat",
+						"amount": 1
+					}
+				],
+				"and": {
+					"effect_type": "strike"
+				},
+				"override_description": "消耗1能量，前进或后退1，然后发起战斗。"
+			}
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/carcass/character_default1.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/carcass/character_exceeded.jpg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/carcass/cardback.jpg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/carcass/specials1.jpg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/carcass/normals.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"definition_id": "carcass_gunfire",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "carcass_gunfire",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "carcass_watch",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "carcass_watch",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "carcass_grenade_jump",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "carcass_grenade_jump",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "carcass_living_cannon",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "carcass_living_cannon",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "carcass_tube",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "carcass_tube",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "carcass_dual_wield",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "carcass_dual_wield",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "carcass_sg88",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "carcass_sg88",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		}
+	]
+}

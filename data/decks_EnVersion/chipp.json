@@ -1,0 +1,212 @@
+{
+	"id": "chipp",
+	"season": 7,
+	"display_name": "Chipp Zanuff",
+	"exceed_cost": 2,
+	"ability_effects": [
+		{
+			"timing": "after",
+			"character_effect": true,
+			"effect_type": "choice",
+			"choice": [
+				{ "effect_type": "advance", "amount": 1 },
+				{ "effect_type": "retreat", "amount": 1 },
+				{ "effect_type": "pass" }
+			]
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"timing": "after",
+			"character_effect": true,
+			"effect_type": "choice",
+			"choice": [
+				{ "effect_type": "advance", "amount": 1 },
+				{ "effect_type": "retreat", "amount": 1 },
+				{ "effect_type": "pass" }
+			]
+		},
+		{
+			"timing": "on_cancel_boost",
+			"effect_type": "choice",
+			"choice": [
+				{ "effect_type": "draw", "amount": 1 },
+				{ "effect_type": "pass" }
+			]
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://i.imgur.com/kGWq8zo.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://i.imgur.com/wGQ5no4.jpeg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://i.imgur.com/wVe2FRl.jpg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://i.imgur.com/jGcFFQQ.jpeg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://i.imgur.com/K5vdRY9.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"definition_id": "chipp_zanseirouga",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "chipp_zanseirouga",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "chipp_bankimessai",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "chipp_bankimessai",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "chipp_betablade",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "chipp_betablade",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "chipp_alphablade",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "chipp_alphablade",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "chipp_resshou",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "chipp_resshou",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "chipp_gammablade",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "chipp_gammablade",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "chipp_genrouzan",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "chipp_genrouzan",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "gg_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "gg_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "gg_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "gg_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "gg_normal_slash",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "gg_normal_slash",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "gg_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "gg_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "gg_normal_dust",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "gg_normal_dust",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "gg_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "gg_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "gg_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "gg_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "gg_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "gg_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

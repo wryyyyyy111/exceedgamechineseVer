@@ -1,0 +1,411 @@
+[gd_scene load_steps=3 format=3 uid="uid://dxtsdthw5sxbc"]
+
+[ext_resource type="Script" uid="uid://b7wr43jbn5iwj" path="res://scenes/game/card_popout.gd" id="1_n2e25"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_r26q8"]
+bg_color = Color(0.227451, 0.227451, 0.227451, 1)
+
+[node name="CardPopout" type="Control"]
+z_index = 5
+custom_minimum_size = Vector2(1280, 720)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 685.0
+offset_bottom = 350.0
+mouse_filter = 2
+script = ExtResource("1_n2e25")
+
+[node name="PopoutContainer" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(685, 0)
+layout_mode = 0
+offset_right = 685.0
+offset_bottom = 215.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_r26q8")
+
+[node name="PopoutVBox" type="VBoxContainer" parent="PopoutContainer"]
+layout_mode = 2
+theme_override_constants/separation = -3
+
+[node name="CloseWindowRow" type="HBoxContainer" parent="PopoutContainer/PopoutVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LeftSpacer" type="MarginContainer" parent="PopoutContainer/PopoutVBox/CloseWindowRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CloseWindowButton" type="Button" parent="PopoutContainer/PopoutVBox/CloseWindowRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "关闭视窗"
+
+[node name="RightSpacer" type="MarginContainer" parent="PopoutContainer/PopoutVBox/CloseWindowRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PopoutContainer/PopoutVBox"]
+layout_mode = 2
+
+[node name="LeftMargin" type="MarginContainer" parent="PopoutContainer/PopoutVBox/HBoxContainer"]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="PopoutContainer/PopoutVBox/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+text = "怒"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Buffer" type="MarginContainer" parent="PopoutContainer/PopoutVBox/HBoxContainer"]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+
+[node name="TitleAmount" type="Label" parent="PopoutContainer/PopoutVBox/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+text = "##"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Buffer2" type="MarginContainer" parent="PopoutContainer/PopoutVBox/HBoxContainer"]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+
+[node name="RestOfThing" type="HBoxContainer" parent="PopoutContainer/PopoutVBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+
+[node name="InstructionLabel" type="Label" parent="PopoutContainer/PopoutVBox/RestOfThing"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+text = "命名一张牌。"
+
+[node name="InstructionButtonOk" type="Button" parent="PopoutContainer/PopoutVBox/RestOfThing"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 38
+text = "确定"
+
+[node name="InstructionButtonOk2" type="Button" parent="PopoutContainer/PopoutVBox/RestOfThing"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 38
+text = "选项2"
+
+[node name="InstructionButtonOk3" type="Button" parent="PopoutContainer/PopoutVBox/RestOfThing"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 38
+text = "选项3"
+
+[node name="InstructionButtonCancel" type="Button" parent="PopoutContainer/PopoutVBox/RestOfThing"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 38
+text = "取消"
+
+[node name="Buffer2" type="MarginContainer" parent="PopoutContainer/PopoutVBox/RestOfThing"]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+theme_override_constants/margin_right = 20
+
+[node name="Margin" type="MarginContainer" parent="PopoutContainer/PopoutVBox"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 10
+
+[node name="Rows" type="VBoxContainer" parent="PopoutContainer/PopoutVBox/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Row0" type="HBoxContainer" parent="PopoutContainer/PopoutVBox/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = -300
+
+[node name="Col0" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col1" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col2" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col3" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col4" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col5" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col6" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col7" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col8" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col9" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col10" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col11" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col12" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col13" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col14" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col15" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col16" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col17" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col18" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col19" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row0"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Row1" type="HBoxContainer" parent="PopoutContainer/PopoutVBox/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/separation = -300
+
+[node name="Col0" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col1" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col2" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col3" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col4" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col5" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col6" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col7" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col8" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col9" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col10" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col11" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col12" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col13" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col14" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col15" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col16" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col17" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col18" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="Col19" type="TextureRect" parent="PopoutContainer/PopoutVBox/Margin/Rows/Row1"]
+visible = false
+custom_minimum_size = Vector2(150, 210)
+layout_mode = 2
+expand_mode = 1
+
+[node name="BottomMargin" type="MarginContainer" parent="PopoutContainer/PopoutVBox"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
+[node name="ToggleContainer" type="VBoxContainer" parent="PopoutContainer/PopoutVBox"]
+layout_mode = 2
+
+[node name="WithBuffer" type="HBoxContainer" parent="PopoutContainer/PopoutVBox/ToggleContainer"]
+layout_mode = 2
+
+[node name="LeftBuffer" type="MarginContainer" parent="PopoutContainer/PopoutVBox/ToggleContainer/WithBuffer"]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_right = 20
+
+[node name="ReshuffleToggle" type="Button" parent="PopoutContainer/PopoutVBox/ToggleContainer/WithBuffer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "查看洗牌重组前的卡牌"
+
+[node name="RightBuffer" type="MarginContainer" parent="PopoutContainer/PopoutVBox/ToggleContainer/WithBuffer"]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 7.0
+theme_override_constants/margin_right = 20
+
+[node name="BottomerMargin" type="MarginContainer" parent="PopoutContainer/PopoutVBox/ToggleContainer"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
+[connection signal="pressed" from="PopoutContainer/PopoutVBox/CloseWindowRow/CloseWindowButton" to="." method="_on_close_window_button_pressed"]
+[connection signal="pressed" from="PopoutContainer/PopoutVBox/RestOfThing/InstructionButtonOk" to="." method="_on_instruction_button_ok_pressed"]
+[connection signal="pressed" from="PopoutContainer/PopoutVBox/RestOfThing/InstructionButtonOk2" to="." method="_on_instruction_button_ok2_pressed"]
+[connection signal="pressed" from="PopoutContainer/PopoutVBox/RestOfThing/InstructionButtonOk3" to="." method="_on_instruction_button_ok3_pressed"]
+[connection signal="pressed" from="PopoutContainer/PopoutVBox/RestOfThing/InstructionButtonCancel" to="." method="_on_instruction_button_cancel_pressed"]
+[connection signal="pressed" from="PopoutContainer/PopoutVBox/ToggleContainer/WithBuffer/ReshuffleToggle" to="." method="_on_reshuffle_toggle_pressed"]

@@ -1,0 +1,271 @@
+{
+	"id": "mole",
+	"season": 4,
+	"display_name": "Mole Knight",
+	"exceed_cost": 4,
+	"buddy_card": "burrow",
+	"buddy_display_name": "Burrow",
+	"buddy_exceeds": true,
+	"buddy_starting_offset": 0,
+	"character_action_default": [{
+		"gauge_cost": 0,
+		"force_cost": 0,
+		"shortcut_effect_type": "place_buddy_at_range",
+		"effect": {
+			"effect_type": "place_buddy_at_range",
+			"buddy_name": "Burrow",
+			"range_min": 3,
+			"range_max": 3,
+			"and": {
+				"effect_type": "draw",
+				"amount": 1
+			}
+		}
+	}],
+	"character_action_exceeded": [{
+		"gauge_cost": 0,
+		"force_cost": 0,
+		"shortcut_effect_type": "place_buddy_at_range",
+		"effect": {
+			"effect_type": "place_buddy_at_range",
+			"buddy_name": "Burrow",
+			"range_min": 2,
+			"range_max": 4,
+			"and": {
+				"effect_type": "draw",
+				"amount": 1
+			}
+		}
+	}],
+	"ability_effects": [
+		{
+			"timing": "set_strike",
+			"condition": "initiated_strike",
+			"effect_type": "choice",
+			"choice": [
+				{
+					"effect_type": "add_attack_effect",
+					"character_effect": true,
+					"added_effect": {
+						"timing": "before",
+						"condition": "buddy_space_unoccupied",
+						"condition_detail": "Burrow",
+						"effect_type": "move_to_buddy",
+						"buddy_name": "Burrow"
+					}
+				},
+				{ "effect_type": "pass" }
+			]
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"timing": "set_strike",
+			"condition": "initiated_strike",
+			"effect_type": "choice",
+			"choice": [
+				{
+					"effect_type": "add_attack_effect",
+					"character_effect": true,
+					"added_effect": {
+						"timing": "before",
+						"condition": "buddy_space_unoccupied",
+						"condition_detail": "Burrow",
+						"effect_type": "move_to_buddy",
+						"buddy_name": "Burrow",
+						"use_semicolon_for_and": true,
+						"and": {
+							"condition": "on_buddy_space",
+							"condition_detail": "Burrow",
+							"effect_type": "powerup",
+							"amount": 2
+						}
+					}
+				},
+				{ "effect_type": "pass" }
+			]
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://i.imgur.com/FjUlTmd.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://i.imgur.com/AcvNFft.jpeg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://i.imgur.com/djfLNqb.jpg",
+			"multiple_cards": false
+		},
+		"burrow": {
+			"url": "https://i.imgur.com/ttr2T9I.jpeg",
+			"multiple_cards": false
+		},
+		"burrow_exceeded": {
+			"url": "https://i.imgur.com/ZNNT5EY.jpeg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://i.imgur.com/7YiXZD1.jpeg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://i.imgur.com/bqXMzQr.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"definition_id": "mole_erupt",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "mole_erupt",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "mole_cavein",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "mole_cavein",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "mole_burrowdig",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "mole_burrowdig",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "mole_headbutt",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "mole_headbutt",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "mole_divingdig",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "mole_divingdig",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "mole_blockpush",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "mole_blockpush",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "mole_bellyslide",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "mole_bellyslide",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}

@@ -1,0 +1,37 @@
+override_description entries under data/
+Source file: data/card_definitions.json
+Match count: 33
+
+3615: End of Strike: If you hit, you may seal attack to draw 2 and discard 1
+3654: +3 Guard if a copy of opponent's attack is in your sealed area
+3699: If copy of attack is sealed/transformed, +1 Power/+1 Armor
+6849: After boost or +DA, spend 1F to Strike
+6896: Change Cards: May draw 1 more
+6975: Discard in range: 1 non-lethal Damage, Draw 1
+7557: WS: +1 Life
+7566: Opponent WS: +1 Power
+7614: WS: Hit: May spend 1 Gauge for +2 Power
+7654: Spend Gauge: +1 Life
+7753: WS: Hit: If less Life, +2 Life
+11134: After: You may add attack to Gauge
+11171: End of Strike: If attack did not hit, you may draw 1
+11214: If attacks match printed speed, Stun Immunity and +2 Power
+11399: Can boost from gauge, then add top deck to gauge
+11444: On set, spend 1F for +1 SPD
+11483: Can spend 1 life for 1 Force
+11522: Can name card & strike; card invalid for both players
+11569: After action, if hand is empty, can Strike
+19283: Discard up to 3 random cards, +1 Power and opponent discards 1 for each.
+19443: Discard up to 3 random cards, Close 1 for each.
+23505: Search deck for up to 3 cards to add to hand.
+23683: Change Cards: May draw 1 more
+23729: If copy of attack is in Gauge/Transform, attack is EX
+26439: After prepare, spend 1F to move 1
+26490: On opponent boost, discard copy to negate
+26534: On set, spend 2F for +0~1 RNG
+26571: On set EX, spend up to 2F for +1 PWR each
+27142: Discard Troupple Chalice
+27153: Discard a different Continuous Boost you have in play
+28911: End of Strike: If not stunned and spent Gauge, Push/Pull up to 1
+29064: When setting Special/Ultra: Spend up to 2 gauge for +1 Armor each
+29118: Special/Ultra Hit: Spend 1 Life, add 1 from Hand to Gauge

@@ -1,0 +1,222 @@
+{
+	"id": "fight",
+	"season": 4,
+	"display_name": "Fight",
+	"exceed_cost": 3,
+	"on_exceed": {
+		"effect_type": "choice",
+		"choice": [
+			{
+				"effect_type": "boost_multiple",
+				"limitation": "continuous",
+				"amount": 2,
+				"valid_zones": ["hand", "discard", "gauge"],
+				"ignore_costs": true,
+				"shuffle_discard_after": true
+			},
+			{ "effect_type": "pass" }
+		]
+	},
+	"ability_effects": [
+		{
+			"timing": "set_strike",
+			"effect_type": "force_for_effect",
+			"per_force_effect": {
+				"character_effect": true,
+				"combine_multiple_into_one": true,
+				"effect_type": "powerup",
+				"amount": 1
+			},
+			"overall_effect": null,
+			"force_max": 2
+		}
+	],
+	"exceed_ability_effects": [
+		{
+			"timing": "set_strike",
+			"effect_type": "force_for_effect",
+			"per_force_effect": {
+				"character_effect": true,
+				"combine_multiple_into_one": true,
+				"effect_type": "powerup",
+				"amount": 1
+			},
+			"overall_effect": null,
+			"force_max": 3
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://i.imgur.com/XsuCKKZ.jpeg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://i.imgur.com/a8IG6c6.jpeg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://i.imgur.com/Ep5ma7U.jpg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://i.imgur.com/l4P9sfU.jpeg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://i.imgur.com/VZubP6z.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"definition_id": "fight_lightninggun",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "fight_lightninggun",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "fight_railgun",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "fight_railgun",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "fight_flamethrower",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "fight_flamethrower",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "fight_explosiveshot",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "fight_explosiveshot",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "fight_retreatingbolts",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "fight_retreatingbolts",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "fight_powerjump",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "fight_powerjump",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "fight_electrocharge",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "fight_electrocharge",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_grasp",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_cross",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_assault",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_dive",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_spike",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_sweep",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_focus",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "standard_normal_block",
+			"image_name": "normals",
+			"image_index": 7
+		}
+	]
+}
