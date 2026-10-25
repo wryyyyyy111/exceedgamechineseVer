@@ -404,6 +404,8 @@ func can_card_hit(card_id: int, ex_card_id: int, ai_game_state: AIPlayer.AIGameS
 
 ## Score a strike action. Higher = better.
 func _score_strike(action, ai_game_state: AIPlayer.AIGameState) -> float:
+	if action.card_id == -1 and not action.wild_swing:
+		return 25.0  # Pre-set guardian declaration; no attack has been selected.
 	if action.wild_swing:
 		return 25.0  # Wild swing — decent fallback
 

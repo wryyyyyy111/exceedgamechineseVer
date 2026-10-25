@@ -1,0 +1,801 @@
+{
+	"id": "dongshilang",
+	"season": 0,
+	"display_name": "日番谷冬狮郎",
+	"exceed_cost": 2,
+	"exceed_animation": "dongshilang_exceed",
+	"buddy_cards": [
+		"dongshilang_冰刃",
+		"dongshilang_冰之虚像",
+		"dongshilang_滑翔",
+		"dongshilang_绝空",
+		"dongshilang_棱形冰壁"
+	],
+	"no_buddy_card_graphics": true,
+	"show_buddy_cards_in_extra_popout": true,
+	"link_extra_cards_to_buddies": true,
+	"hide_bleach_cards_in_match": true,
+	"hide_buddy_card_in_match": true,
+	"hide_ice_boost_until_exceeded": false,
+	"stored_bleach_info": {
+		"name": "冰晶区",
+		"facedown": false
+	},
+	"character_action_default": [
+		{
+			"gauge_cost": 0,
+			"force_cost": 0,
+			"per_turn_limit": 1,
+			"action_name": "冰晶主行动",
+			"effect": {
+				"effect_type": "pass",
+				"amount": 1,
+				"valid_zones": ["bleach"],
+				"limitation": "ice_crystal",
+				"override_description": "从冰晶区选择1张冰晶作为加成打出；打出后可按取消规则支付1怒气并获得额外一动。"
+			}
+		}
+	],
+	"character_action_exceeded": [
+		{
+			"gauge_cost": 0,
+			"force_cost": 0,
+			"per_turn_limit": 1,
+			"action_name": "冰晶主行动",
+			"effect": {
+				"effect_type": "pass",
+				"amount": 2,
+				"valid_zones": ["bleach"],
+				"limitation": "ice_crystal",
+				"override_description": "从冰晶区选择2张冰晶作为加成打出；每次打出后均可按取消规则支付1怒气并获得额外一动。"
+			}
+		}
+	],
+	"ability_effects": [
+		{
+			"timing": "start_of_next_turn",
+			"character_effect": true,
+			"effect_type": "pass",
+			"setup_once": true,
+			"ice_from_set_aside_to_bleach": 2,
+			"override_description": "对局开始时：从5张冰晶中随机抽取2张置入冰晶区。"
+		}
+	],
+	"on_exceed": {
+		"effect_type": "pass",
+		"ice_from_set_aside_to_bleach": 1,
+		"grant_exceed_character_action": true,
+		"override_description": "觉醒时额外置入1张冰晶，并立刻执行一次觉醒角色主行动；该行动打出后可按取消规则支付1怒气并获得额外一动。"
+	},
+	"exceed_ability_effects": [
+		{
+			"timing": "end_of_turn",
+			"character_effect": true,
+			"effect_type": "pass",
+			"required_ice_boost_count": 5,
+			"count_zone": "my_boost_and_bleach",
+			"count_type": "ice_crystal",
+			"override_description": "回合结束时，若你的加成区与冰晶区合计冰晶牌数量不为5，退出觉醒。"
+		}
+	],
+	"image_resources": {
+		"character_default": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/dongshilang/character_default.jpg",
+			"multiple_cards": false
+		},
+		"character_exceeded": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/dongshilang/character_exceeded.jpg",
+			"multiple_cards": false
+		},
+		"cardback": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/dongshilang/cardback.jpg",
+			"multiple_cards": false
+		},
+		"specials": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/dongshilang/specials.jpg",
+			"multiple_cards": true
+		},
+		"normals": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/dongshilang/normals_gg.jpg",
+			"multiple_cards": true
+		},
+		"dongshilang_冰刃": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/dongshilang/other1.jpg",
+			"multiple_cards": true
+		},
+		"dongshilang_冰之虚像": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/dongshilang/other1.jpg",
+			"multiple_cards": true
+		},
+		"dongshilang_滑翔": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/dongshilang/other1.jpg",
+			"multiple_cards": true
+		},
+		"dongshilang_绝空": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/dongshilang/other1.jpg",
+			"multiple_cards": true
+		},
+		"dongshilang_棱形冰壁": {
+			"url": "https://cdn.exceedcntyd.com/decks_custom/dongshilang/other1.jpg",
+			"multiple_cards": true
+		}
+	},
+	"cards": [
+		{
+			"set_aside": true,
+			"hide_from_reference": true,
+			"definition_id": "dongshilang_冰刃",
+			"image_name": "dongshilang_冰刃",
+			"image_index": 0
+		},
+		{
+			"set_aside": true,
+			"hide_from_reference": true,
+			"definition_id": "dongshilang_冰之虚像",
+			"image_name": "dongshilang_冰之虚像",
+			"image_index": 1
+		},
+		{
+			"set_aside": true,
+			"hide_from_reference": true,
+			"definition_id": "dongshilang_滑翔",
+			"image_name": "dongshilang_滑翔",
+			"image_index": 2
+		},
+		{
+			"set_aside": true,
+			"hide_from_reference": true,
+			"definition_id": "dongshilang_绝空",
+			"image_name": "dongshilang_绝空",
+			"image_index": 3
+		},
+		{
+			"set_aside": true,
+			"hide_from_reference": true,
+			"definition_id": "dongshilang_棱形冰壁",
+			"image_name": "dongshilang_棱形冰壁",
+			"image_index": 4
+		},
+		{
+			"definition_id": "dongshilang_冰天百花葬",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "dongshilang_冰天百花葬",
+			"image_name": "specials",
+			"image_index": 0
+		},
+		{
+			"definition_id": "dongshilang_龙霰架",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "dongshilang_龙霰架",
+			"image_name": "specials",
+			"image_index": 1
+		},
+		{
+			"definition_id": "dongshilang_冰华突",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "dongshilang_冰华突",
+			"image_name": "specials",
+			"image_index": 2
+		},
+		{
+			"definition_id": "dongshilang_冰龙旋尾",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "dongshilang_冰龙旋尾",
+			"image_name": "specials",
+			"image_index": 3
+		},
+		{
+			"definition_id": "dongshilang_端坐于霜天",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "dongshilang_端坐于霜天",
+			"image_name": "specials",
+			"image_index": 4
+		},
+		{
+			"definition_id": "dongshilang_群鸟冰柱",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "dongshilang_群鸟冰柱",
+			"image_name": "specials",
+			"image_index": 5
+		},
+		{
+			"definition_id": "dongshilang_真空冰刃",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "dongshilang_真空冰刃",
+			"image_name": "specials",
+			"image_index": 6
+		},
+		{
+			"definition_id": "gg_normal_grasp",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "gg_normal_grasp",
+			"image_name": "normals",
+			"image_index": 3
+		},
+		{
+			"definition_id": "gg_normal_cross",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "gg_normal_cross",
+			"image_name": "normals",
+			"image_index": 5
+		},
+		{
+			"definition_id": "gg_normal_slash",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "gg_normal_slash",
+			"image_name": "normals",
+			"image_index": 4
+		},
+		{
+			"definition_id": "gg_normal_dive",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "gg_normal_dive",
+			"image_name": "normals",
+			"image_index": 6
+		},
+		{
+			"definition_id": "gg_normal_dust",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "gg_normal_dust",
+			"image_name": "normals",
+			"image_index": 0
+		},
+		{
+			"definition_id": "gg_normal_sweep",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "gg_normal_sweep",
+			"image_name": "normals",
+			"image_index": 2
+		},
+		{
+			"definition_id": "gg_normal_focus",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "gg_normal_focus",
+			"image_name": "normals",
+			"image_index": 7
+		},
+		{
+			"definition_id": "gg_normal_block",
+			"image_name": "normals",
+			"image_index": 1
+		},
+		{
+			"definition_id": "gg_normal_block",
+			"image_name": "normals",
+			"image_index": 1
+		}
+	],
+	"custom_card_definitions": [
+		{
+			"id": "dongshilang_冰刃",
+			"type": "ice_crystal",
+			"display_name": "冰刃",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 0,
+			"range_max": 0,
+			"power": 0,
+			"speed": 0,
+			"armor": 0,
+			"guard": 0,
+			"effects": [],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": -1,
+				"display_name": "冰刃",
+				"effects": [
+					{
+						"timing": "during_strike",
+						"condition": "is_special_or_dongshilang_longxianjia_attack",
+						"effect_type": "powerup",
+						"amount": 1
+					},
+					{
+						"timing": "after",
+						"condition": "is_special_or_dongshilang_longxianjia_attack",
+						"effect_type": "dongshilang_iceblade_after_stun_bonus_damage",
+						"override_description": "后置：击晕对手额外造成对手卡面护甲值的伤害。"
+					}
+				]
+			}
+		},
+		{
+			"id": "dongshilang_冰之虚像",
+			"type": "ice_crystal",
+			"display_name": "冰之虚像",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 0,
+			"range_max": 0,
+			"power": 0,
+			"speed": 0,
+			"armor": 0,
+			"guard": 0,
+			"effects": [],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": -1,
+				"display_name": "冰之虚像",
+				"effects": [
+					{
+						"timing": "during_strike",
+						"condition": "is_special_or_dongshilang_longxianjia_attack",
+						"effect_type": "dongshilang_ice_clone_no_gauge_on_hit",
+						"override_description": "对手击中你无法获得怒气。"
+					},
+					{
+						"timing": "hit",
+						"condition": "is_special_or_dongshilang_longxianjia_attack",
+						"effect_type": "dongshilang_ice_clone_hit_power_if_was_hit",
+						"override_description": "击中：如果你被击中，威力+1。"
+					}
+				]
+			}
+		},
+		{
+			"id": "dongshilang_滑翔",
+			"type": "ice_crystal",
+			"display_name": "滑翔",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 0,
+			"range_max": 0,
+			"power": 0,
+			"speed": 0,
+			"armor": 0,
+			"guard": 0,
+			"effects": [],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": -1,
+				"display_name": "滑翔",
+				"effects": [
+					{
+						"timing": "before",
+						"condition": "is_special_or_dongshilang_longxianjia_attack",
+						"effect_type": "advance",
+						"amount": 3
+					}
+				]
+			}
+		},
+		{
+			"id": "dongshilang_绝空",
+			"type": "ice_crystal",
+			"display_name": "绝空",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 0,
+			"range_max": 0,
+			"power": 0,
+			"speed": 0,
+			"armor": 0,
+			"guard": 0,
+			"effects": [],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": -1,
+				"display_name": "绝空",
+				"effects": [
+					{
+						"timing": "after",
+						"condition": "is_special_or_dongshilang_longxianjia_attack",
+						"effect_type": "dongshilang_zekku_after_range_bonus_damage",
+						"override_description": "后置：在你攻击最大距离+1的范围造成1点伤害；若以此法造成伤害，将此特殊技置入怒气区。"
+					}
+				]
+			}
+		},
+		{
+			"id": "dongshilang_棱形冰壁",
+			"type": "ice_crystal",
+			"display_name": "棱形冰壁",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 0,
+			"range_max": 0,
+			"power": 0,
+			"speed": 0,
+			"armor": 0,
+			"guard": 0,
+			"effects": [],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": -1,
+				"display_name": "棱形冰壁",
+				"effects": [
+					{
+						"timing": "during_strike",
+						"condition": "is_special_or_dongshilang_longxianjia_attack",
+						"effect_type": "armorup",
+						"amount": 2
+					},
+					{
+						"timing": "hit",
+						"condition": "is_special_or_dongshilang_longxianjia_attack",
+						"effect_type": "dongshilang_rhombus_hit_powerdown_if_no_armor",
+						"override_description": "击中：若你没有护甲，威力-1。"
+					}
+				]
+			}
+		},
+		{
+			"id": "dongshilang_冰天百花葬",
+			"type": "ultra",
+			"display_name": "冰天百花葬",
+			"force_cost": 0,
+			"gauge_cost": 1,
+			"range_min": 0,
+			"range_max": 0,
+			"power": 0,
+			"speed": 2,
+			"armor": 0,
+			"guard": 0,
+			"effects": [
+				{
+					"timing": "during_strike",
+					"effect_type": "dongshilang_hyoten_scale_by_ice_boost",
+					"override_description": "每有1张冰晶加成，速度+1、威力+2、距离+0~1。"
+				}
+			],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 1,
+				"cancel_cost": -1,
+				"display_name": "摄人寒气",
+				"effects": [
+					{
+						"timing": "during_strike",
+						"effect_type": "powerup",
+						"amount": 2
+					},
+					{
+						"timing": "now",
+						"effect_type": "dongshilang_discard_all_other_boosts",
+						"override_description": "立即：弃置场上除此加成外的所有加成。"
+					}
+				]
+			}
+		},
+		{
+			"id": "dongshilang_龙霰架",
+			"type": "ultra",
+			"display_name": "龙霰架",
+			"force_cost": 0,
+			"gauge_cost": 3,
+			"gauge_cost_reduction": "per_boost_in_play_of_type",
+			"gauge_cost_reduction_boost_type": "ice_crystal",
+			"range_min": 1,
+			"range_max": 1,
+			"power": 3,
+			"speed": 5,
+			"armor": 3,
+			"guard": 0,
+			"effects": [
+				{
+					"timing": "during_strike",
+					"effect_type": "pass",
+					"override_description": "每有1张冰晶加成，怒气消耗-1；此卡享受全部冰晶加成效果。"
+				},
+				{
+					"timing": "during_strike",
+					"effect_type": "convert_advance_to_close"
+				},
+				{
+					"timing": "hit",
+					"effect_type": "push",
+					"amount": 1,
+					"override_description": "击中：击退1格。"
+				}
+			],
+			"boost": {
+				"boost_type": "immediate",
+				"force_cost": 0,
+				"cancel_cost": -1,
+				"display_name": "天象从临",
+				"effects": [
+					{
+						"timing": "immediate",
+						"effect_type": "boost_then_strike",
+					"valid_zones": ["bleach"],
+					"limitation": "ice_crystal",
+					"override_description": "从冰晶区打出1张冰晶加成，然后发起战斗。"
+					}
+				]
+			}
+		},
+		{
+			"id": "dongshilang_冰华突",
+			"type": "special",
+			"display_name": "冰华突",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 1,
+			"range_max": 1,
+			"power": 2,
+			"speed": 6,
+			"armor": 0,
+			"guard": 0,
+			"effects": [
+				{
+					"timing": "before",
+					"effect_type": "advance",
+					"amount": 2,
+					"override_description": "前置：前进2格。"
+				},
+				{
+					"timing": "hit",
+					"effect_type": "dongshilang_binghuatu_hit_powerup_per_cross",
+					"override_description": "击中：每穿越过对手1次，威力+1。"
+				}
+			],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": 1,
+				"display_name": "霜天",
+				"effects": [
+					{
+						"timing": "during_strike",
+						"effect_type": "speedup",
+						"amount": 1
+					},
+					{
+						"timing": "during_strike",
+						"effect_type": "powerup",
+						"amount": -2
+					},
+					{
+						"timing": "hit",
+						"effect_type": "add_to_gauge_immediately",
+						"override_description": "击中：将此卡置入怒气区。"
+					}
+				]
+			}
+		},
+		{
+			"id": "dongshilang_冰龙旋尾",
+			"type": "special",
+			"display_name": "冰龙旋尾",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 1,
+			"range_max": 1,
+			"power": 4,
+			"speed": 5,
+			"armor": 0,
+			"guard": 3,
+			"effects": [
+				{
+					"timing": "before",
+					"effect_type": "advance",
+					"amount": 1,
+					"override_description": "前置：前进1格。"
+				},
+				{
+					"timing": "hit",
+					"effect_type": "push",
+					"amount": 1,
+					"override_description": "击中：击退1格；若击退少于1格，威力+2。",
+					"and": {
+						"effect_type": "powerup",
+						"condition": "not_full_push",
+						"amount": 2,
+						"override_description": "若击退少于1格，威力+2。"
+					}
+				}
+			],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": 1,
+				"display_name": "红莲龙",
+				"effects": [
+					{
+						"timing": "during_strike",
+						"effect_type": "powerup",
+						"amount": 1
+					},
+					{
+						"timing": "now",
+						"condition": "range",
+						"condition_amount": 1,
+						"effect_type": "choice",
+						"choice": [
+							{
+								"_choice_text": "前进1格",
+								"effect_type": "advance",
+								"amount": 1
+							},
+							{
+								"_choice_text": "后退1格",
+								"effect_type": "retreat",
+								"amount": 1
+							}
+						],
+						"and": {
+							"effect_type": "add_to_gauge_boost_play_cleanup"
+						},
+						"override_description": "立即：若距离为1，移动1格，并将此卡置入怒气区。"
+					}
+				]
+			}
+		},
+		{
+			"id": "dongshilang_端坐于霜天",
+			"type": "special",
+			"display_name": "端坐于霜天",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 1,
+			"range_max": 2,
+			"power": 5,
+			"speed": 1,
+			"armor": 2,
+			"guard": 2,
+			"effects": [
+				{
+					"timing": "during_strike",
+					"effect_type": "ignore_push_and_pull",
+					"override_description": "对手无法移动你。"
+				},
+				{
+					"timing": "during_strike",
+					"effect_type": "dongshilang_limit_self_move_to_one_this_strike",
+					"override_description": "你在本次战斗中通过任何效果至多移动1格。"
+				}
+			],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": 1,
+				"display_name": "冰轮丸",
+				"effects": [
+					{
+						"timing": "before",
+						"effect_type": "advance",
+						"amount": 4,
+						"override_description": "前置：前进4格。"
+					}
+				]
+			}
+		},
+		{
+			"id": "dongshilang_群鸟冰柱",
+			"type": "special",
+			"display_name": "群鸟冰柱",
+			"force_cost": 1,
+			"gauge_cost": 0,
+			"range_min": 4,
+			"range_max": 8,
+			"power": 4,
+			"speed": 5,
+			"armor": 0,
+			"guard": 0,
+			"effects": [
+				{
+					"timing": "during_strike",
+					"effect_type": "dongshilang_convert_advance_to_retreat",
+					"override_description": "你的前进效果改为后退。"
+				}
+			],
+			"boost": {
+				"boost_type": "continuous",
+				"force_cost": 0,
+				"cancel_cost": -1,
+				"display_name": "千年冰牢",
+				"effects": [
+					{
+						"timing": "during_strike",
+						"effect_type": "block_opponent_move",
+						"override_description": "战斗中，对手无法移动。"
+					},
+					{
+						"timing": "cleanup",
+						"effect_type": "remove_block_opponent_move",
+						"hide_effect": true
+					},
+					{
+						"timing": "discarded",
+						"effect_type": "remove_block_opponent_move",
+						"hide_effect": true
+					}
+				]
+			}
+		},
+		{
+			"id": "dongshilang_真空冰刃",
+			"type": "special",
+			"display_name": "真空冰刃",
+			"force_cost": 0,
+			"gauge_cost": 0,
+			"range_min": 1,
+			"range_max": 2,
+			"power": 5,
+			"speed": 4,
+			"armor": 0,
+			"guard": 3,
+			"effects": [
+				{
+					"timing": "during_strike",
+					"effect_type": "ignore_armor",
+					"override_description": "无视护甲。"
+				}
+			],
+			"boost": {
+				"boost_type": "immediate",
+				"force_cost": 0,
+				"cancel_cost": 1,
+				"display_name": "铁灰",
+				"effects": [
+					{
+						"timing": "immediate",
+						"effect_type": "retreat",
+						"amount": 1
+					},
+					{
+						"timing": "immediate",
+						"effect_type": "discard_continuous_boost",
+						"required": false,
+						"limitation": "mine",
+						"for_other_player": true,
+						"amount": 1,
+						"override_description": "弃置对手1个加成。"
+					}
+				]
+			}
+		}
+	]
+}
+
+
+
+
+

@@ -24,7 +24,9 @@ func test_axl_bomber_has_hit_advance_and_optional_advantage():
 			var follow = e.get("and", {})
 			assert_eq(follow.get("effect_type"), "gauge_for_effect", "然后可以支付 1 怒气")
 			assert_eq(follow.get("gauge_max"), 1)
-			assert_eq((follow.get("overall_effect") or {}).get("effect_type"), "gain_advantage",
+			var overall = follow.get("overall_effect", {})
+			assert_eq(typeof(overall), TYPE_DICTIONARY)
+			assert_eq(overall.get("effect_type"), "gain_advantage",
 					"支付后获得优势")
 			hit_advance = true
 

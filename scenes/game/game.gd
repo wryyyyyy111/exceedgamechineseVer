@@ -142,6 +142,9 @@ var popout_instruction_info = null
 var ignore_queue_notifications = false
 
 var ChoiceTagRegex = RegEx.new()
+var played_guardian_records: Array = []
+var pending_guardian_display_player: int = -1
+var paid_huhuan_display_players: Array = []
 
 var first_run_done = false
 var first_run_in_progress = false
@@ -2958,12 +2961,7 @@ func setup_characters():
 			buddy.modulate = Color(1, 0.38, 0.55)
 	$PlayerZones/PlayerSealed.visible = 'has_sealed_area' in player_deck and player_deck['has_sealed_area']
 	$OpponentZones/OpponentSealed.visible = 'has_sealed_area' in opponent_deck and opponent_deck['has_sealed_area']
-	$PlayerZones/PlayerBleach.visible = typeof(player_deck.get("stored_bleach_info")) == TYPE_DICTIONARY
-	$OpponentZones/OpponentBleach.visible = typeof(opponent_deck.get("stored_bleach_info")) == TYPE_DICTIONARY
-	if $PlayerZones/PlayerBleach.visible:
-		$PlayerZones/PlayerBleach.set_label(player_deck["stored_bleach_info"].get("name", "特殊区域"))
-	if $OpponentZones/OpponentBleach.visible:
-		$OpponentZones/OpponentBleach.set_label(opponent_deck["stored_bleach_info"].get("name", "特殊区域"))
+	setup_bleach_zones()
 	if 'sealed_area_is_secret' in opponent_deck and opponent_deck['sealed_area_is_secret']:
 		$OpponentZones/OpponentSealed.hidden_sealed()
 	$PlayerZones/PlayerOverdrive.visible = is_player_overdrive_visible(Enums.PlayerId.PlayerId_Player)
@@ -2979,7 +2977,71 @@ func _emit_loading_status(status_text : String):
 	print("[GameLoading] ", status_text)
 	loading_status_changed.emit(status_text)
 
+func setup_bleach_zones():
+	for side in ["Player", "Opponent"]:
+		var deck = player_deck if side == "Player" else opponent_deck
+		var player_id = Enums.PlayerId.PlayerId_Player if side == "Player" else Enums.PlayerId.PlayerId_Opponent
+		var button = get_node("%sZones/%sBleach" % [side, side])
+		button.visible = typeof(deck.get("stored_bleach_info")) == TYPE_DICTIONARY
+		if button.visible:
+			button.set_label(deck["stored_bleach_info"].get("name", "特殊区域"))
+		get_node("AllCards/%sBleach" % side).visible = not _should_hide_bleach_cards_in_match(player_id)
+
+func _should_hide_bleach_cards_in_match(player_id: Enums.PlayerId) -> bool:
+	var deck_def = game_wrapper.get_player_deck_definition(player_id)
+	if typeof(deck_def) == TYPE_DICTIONARY and deck_def.get("hide_bleach_cards_in_match", false):
+		return true
+	if player_id == Enums.PlayerId.PlayerId_Player and typeof(player_deck) == TYPE_DICTIONARY:
+		return player_deck.get("hide_bleach_cards_in_match", false)
+	if player_id == Enums.PlayerId.PlayerId_Opponent and typeof(opponent_deck) == TYPE_DICTIONARY:
+		return opponent_deck.get("hide_bleach_cards_in_match", false)
+	return false
+
+func _should_hide_boost_visual_until_exceeded(player_id: Enums.PlayerId, card_id: int) -> bool:
+	var deck_def = game_wrapper.get_player_deck_definition(player_id)
+	if typeof(deck_def) != TYPE_DICTIONARY or not deck_def.get("hide_ice_boost_until_exceeded", false):
+		return false
+	var player_logic = game_wrapper._get_player(player_id)
+	if player_logic == null or player_logic.exceeded:
+		return false
+	var logic_card = game_wrapper.get_card_database().get_card(card_id)
+	if logic_card == null:
+		return false
+	return logic_card.definition.get("type", "") == "ice_crystal"
+
+func _refresh_hidden_boost_visuals_for_player(player_id: Enums.PlayerId) -> void:
+	var boost_zone = $AllCards/PlayerBoosts
+	if player_id == Enums.PlayerId.PlayerId_Opponent:
+		boost_zone = $AllCards/OpponentBoosts
+	for boost_card in boost_zone.get_children():
+		boost_card.visible = not _should_hide_boost_visual_until_exceeded(player_id, boost_card.card_id)
+
+func _get_buddy_image_atlas_data(deck: Dictionary, buddy_id: String) -> Dictionary:
+	if typeof(deck) != TYPE_DICTIONARY:
+		return {}
+	if not deck.has("cards") or not deck.has("image_resources"):
+		return {}
+	for deck_card in deck["cards"]:
+		if deck_card.get("definition_id", "") != buddy_id:
+			continue
+		var image_name = deck_card.get("image_name", "")
+		if image_name == "":
+			continue
+		if not deck["image_resources"].has(image_name):
+			continue
+		var atlas_data = get_normalized_deck_image_atlas_data(deck["image_resources"][image_name], image_name)
+		atlas_data["index"] = int(deck_card.get("image_index", 0))
+		return atlas_data
+	return {}
+
 func setup_character_card(character_card, deck, buddy_character_card):
+	var hide_buddy_card_in_match = deck.get("hide_buddy_card_in_match", false)
+	var hide_buddy_reference = deck.get("hide_buddy_reference", false)
+	buddy_character_card.get_parent().get_node("ExtraCardsButton").visible = (
+		hide_buddy_card_in_match and not hide_buddy_reference
+		and deck.get("show_buddy_cards_in_extra_popout", false))
+	if hide_buddy_card_in_match:
+		buddy_character_card.hide()
 	character_card.set_name_text(deck['display_name'])
 
 	var loaded_character_image = await image_loader.get_card_image(
@@ -2999,7 +3061,7 @@ func setup_character_card(character_card, deck, buddy_character_card):
 
 	# Setup buddy if they have one.
 	var created_buddy_cards = []
-	if 'hide_buddy_reference' in deck and deck['hide_buddy_reference']:
+	if hide_buddy_reference or hide_buddy_card_in_match:
 		buddy_character_card.visible = false
 	elif 'buddy_card' in deck:
 		# Some buddies (e.g. Wonderland/Briefcase) should only appear after exceed.
@@ -3027,8 +3089,14 @@ func setup_character_card(character_card, deck, buddy_character_card):
 			default_buddy = deck['buddy_card_graphic_override'][0]
 		created_buddy_cards.append(default_buddy)
 
-		var loaded_buddy_image = await image_loader.get_card_image(
-			deck['image_resources'][default_buddy]['url'], 0)
+		var default_buddy_atlas = _get_buddy_image_atlas_data(deck, default_buddy)
+		var loaded_buddy_image = null
+		if not default_buddy_atlas.is_empty() and default_buddy_atlas.has("url"):
+			loaded_buddy_image = await image_loader.get_card_image(
+				default_buddy_atlas['url'], default_buddy_atlas.get("index", 0), default_buddy_atlas)
+		else:
+			loaded_buddy_image = await image_loader.get_card_image(
+				deck['image_resources'][default_buddy]['url'], 0)
 		var loaded_buddy_exceed_image = loaded_buddy_image
 		if 'buddy_exceeds' in deck and deck['buddy_exceeds']:
 			loaded_buddy_exceed_image = await image_loader.get_card_image(
@@ -3048,8 +3116,13 @@ func setup_character_card(character_card, deck, buddy_character_card):
 				continue
 			created_buddy_cards.append(buddy_id)
 
-			loaded_buddy_image = await image_loader.get_card_image(
-				deck['image_resources'][buddy_id]['url'], 0)
+			var buddy_atlas = _get_buddy_image_atlas_data(deck, buddy_id)
+			if not buddy_atlas.is_empty() and buddy_atlas.has("url"):
+				loaded_buddy_image = await image_loader.get_card_image(
+					buddy_atlas['url'], buddy_atlas.get("index", 0), buddy_atlas)
+			else:
+				loaded_buddy_image = await image_loader.get_card_image(
+					deck['image_resources'][buddy_id]['url'], 0)
 			loaded_buddy_exceed_image = loaded_buddy_image
 			if 'buddy_exceeds' in deck and deck['buddy_exceeds']:
 				loaded_buddy_exceed_image = await image_loader.get_card_image(
@@ -3070,7 +3143,7 @@ func test_init():
 	if Test_StartWithGauge:
 		game_wrapper._test_add_to_gauge(4)
 		var events = game_wrapper.poll_for_events()
-		_handle_events(events)
+		await _handle_events(events)
 		layout_player_hand(true)
 		_update_buttons()
 
@@ -3084,7 +3157,7 @@ func first_run():
 	_update_buttons()
 
 	await finish_initialization()
-	if _fast_forward_restored_game_if_needed():
+	if await _fast_forward_restored_game_if_needed():
 		_sync_ui_state_after_restore()
 	else:
 		change_ui_state(UIState.UIState_WaitForGameServer)
@@ -3103,16 +3176,29 @@ func create_character_reference_card(exceeded : bool, zone, image_resources, dec
 
 func create_buddy_reference_card(buddy_id, exceeded : bool, zone, click_buddy_id, image_resources):
 	var image_url = image_resources[buddy_id]['url']
+	var image_url_index = {}
+	if click_buddy_id >= 0:
+		var buddy_logic_card = game_wrapper.get_card_database().get_card(click_buddy_id)
+		if buddy_logic_card != null and buddy_logic_card.definition.get("id", "") == buddy_id:
+			image_url_index = buddy_logic_card.get_image_url_index_data()
+			if not image_url_index.is_empty() and image_url_index.has("url"):
+				image_url = image_url_index["url"]
 	if exceeded:
 		image_url = image_resources[buddy_id + '_exceeded']['url']
-	await _create_reference_card(image_url, "Extra Card", zone, click_buddy_id)
+		image_url_index = {}
+	await _create_reference_card(image_url, "Extra Card", zone, click_buddy_id, {}, image_url_index)
 
 func _create_reference_card(image_url : String, card_name : String, zone,
-		card_id : int, definition = {}):
+		card_id : int, definition = {}, image_url_index = {}):
 	var new_card : CardBase = CardBaseScene.instantiate()
 	zone.add_child(new_card)
 
-	var url_loaded_image = await image_loader.get_card_image(image_url, 0)
+	var url_loaded_image = null
+	if typeof(image_url_index) == TYPE_DICTIONARY and image_url_index.has("url"):
+		url_loaded_image = await image_loader.get_card_image(
+			image_url_index["url"], image_url_index.get("index", 0), image_url_index)
+	else:
+		url_loaded_image = await image_loader.get_card_image(image_url, 0)
 
 	new_card.initialize_card(
 		card_id,
@@ -3344,6 +3430,8 @@ func spawn_all_cards():
 	for deck_graphic_pair in [[player_deck, player_buddy_graphics], [opponent_deck, opponent_buddy_graphics]]:
 		var deck = deck_graphic_pair[0]
 		var graphic_list = deck_graphic_pair[1]
+		if deck.get("no_buddy_card_graphics", false) and not deck.get("show_buddy_cards_in_extra_popout", false):
+			continue
 		if 'hide_buddy_reference' in deck and deck['hide_buddy_reference']:
 			continue
 		elif 'buddy_card' in deck:
@@ -3456,6 +3544,8 @@ func _process(delta):
 		return
 	_update_runtime_frame_health(delta)
 	_update_network_reconnect_pause()
+	if runtime_event_batch_in_progress:
+		return
 	if hold_match_entry_processing:
 		$OpponentDeck/ThinkingIndicator.visible = false
 		return
@@ -3472,13 +3562,13 @@ func _process(delta):
 			if len(events_to_process) > 0:
 				var temp_events = events_to_process
 				events_to_process = []
-				_handle_events(temp_events)
+				await _handle_events(temp_events)
 			else:
 				change_ui_state(previous_ui_state, previous_ui_sub_state)
 	else:
 		var events = game_wrapper.poll_for_events()
 		if events.size() > 0:
-			_handle_events(events)
+			await _handle_events(events)
 			_refresh_combat_log_if_visible()
 		elif ui_state == UIState.UIState_WaitForGameServer:
 			var game_state = game_wrapper.get_game_state()
@@ -3963,8 +4053,9 @@ func _update_card_counts_now():
 
 	$PlayerZones/PlayerGauge.set_details($AllCards/PlayerGauge.get_child_count())
 	$OpponentZones/OpponentGauge.set_details($AllCards/OpponentGauge.get_child_count())
-	$PlayerZones/PlayerBleach.set_details(game_wrapper.get_player_bleach_size(Enums.PlayerId.PlayerId_Player))
-	$OpponentZones/OpponentBleach.set_details(game_wrapper.get_player_bleach_size(Enums.PlayerId.PlayerId_Opponent))
+	# Follow played zone-movement events, not the already-resolved engine state.
+	$PlayerZones/PlayerBleach.set_details($AllCards/PlayerBleach.get_child_count())
+	$OpponentZones/OpponentBleach.set_details($AllCards/OpponentBleach.get_child_count())
 
 	$PlayerZones/PlayerSealed.set_details(game_wrapper.get_player_sealed_size(Enums.PlayerId.PlayerId_Player))
 	$OpponentZones/OpponentSealed.set_details(game_wrapper.get_player_sealed_size(Enums.PlayerId.PlayerId_Opponent))
@@ -4076,7 +4167,6 @@ func can_select_card(card):
 		return false
 
 	var in_gauge = game_wrapper.is_card_in_gauge(Enums.PlayerId.PlayerId_Player, card.card_id)
-	#todo var in_bleach = game_wrapper.is_card_in_bleach(Enums.PlayerId.PlayerId_Player, card.card_id)
 	var in_opponent_gauge = game_wrapper.is_card_in_gauge(Enums.PlayerId.PlayerId_Opponent, card.card_id)
 	var in_hand = game_wrapper.is_card_in_hand(Enums.PlayerId.PlayerId_Player, card.card_id)
 	var in_discard = game_wrapper.is_card_in_discards(Enums.PlayerId.PlayerId_Player, card.card_id)
@@ -4093,6 +4183,8 @@ func can_select_card(card):
 	var in_opponent_reference = is_card_in_player_reference($AllCards/OpponentAllCopy.get_children(), card.card_id)
 	var in_choice_zone = is_card_in_player_reference(choice_zone_parent.get_children(), card.card_id)
 	var player_logic = game_wrapper._get_player(Enums.PlayerId.PlayerId_Player)
+	var in_gauge_payment = in_gauge or player_logic.is_heiqiyihu_guardian_resource(card.card_id)
+	var in_force_payment = in_hand or in_gauge_payment
 	var stored_zone_info = player_logic.deck_def.get("stored_zone_info")
 	if player_logic.exceeded and player_logic.deck_def.get("stored_zone_info_exceeded"):
 		stored_zone_info = player_logic.deck_def["stored_zone_info_exceeded"]
@@ -4170,15 +4262,15 @@ func can_select_card(card):
 			return in_source and meets_limitation and len(selected_cards) < select_card_require_max
 		UISubState.UISubState_SelectCards_StrikeGauge:
 			var can_use_transforms = game_wrapper.can_player_seal_transform_for_gauge(Enums.PlayerId.PlayerId_Player) or game_wrapper.can_player_seal_transform_for_gauge(Enums.PlayerId.PlayerId_Opponent)
-			return (in_gauge or (can_use_transforms and in_transforms)) and len(selected_cards) < select_card_require_max
+			return (in_gauge_payment or (can_use_transforms and in_transforms)) and len(selected_cards) < select_card_require_max
 		UISubState.UISubState_SelectCards_Exceed, UISubState.UISubState_SelectCards_BoostCancel:
-			return in_gauge and len(selected_cards) < select_card_require_max
+			return in_gauge_payment and len(selected_cards) < select_card_require_max
 		UISubState.UISubState_SelectCards_MoveActionGenerateForce, UISubState.UISubState_SelectCards_ForceForChange, UISubState.UISubState_SelectCards_ForceForArmor:
-			return in_gauge or in_hand
+			return in_force_payment
 		UISubState.UISubState_SelectCards_GaugeForArmor:
-			return in_gauge
+			return in_gauge_payment
 		UISubState.UISubState_SelectCards_StrikeForce:
-			return in_gauge or in_hand
+			return in_force_payment
 		UISubState.UISubState_SelectCards_ChooseBoostsToSustain:
 			if is_tournelouse_transform_zone_choice():
 					return in_player_transforms and not is_tournelouse_ouroboros_paid_card(card.card_id) and len(selected_cards) < select_card_require_max
@@ -4188,9 +4280,9 @@ func can_select_card(card):
 			var force_player = game_wrapper._get_player(Enums.PlayerId.PlayerId_Player)
 			if force_player.is_card_in_gauge(card.card_id):
 				new_force = max(new_force, force_player.get_gauge_card_force_value_for(card.card_id))
-			return (in_gauge or in_hand) and can_selected_cards_pay_force(select_card_require_force, new_force)
+			return in_force_payment and can_selected_cards_pay_force(select_card_require_force, new_force)
 		UISubState.UISubState_SelectCards_CharacterAction_Gauge:
-			return in_gauge and len(selected_cards) < select_card_require_max
+			return in_gauge_payment and len(selected_cards) < select_card_require_max
 		UISubState.UISubState_SelectCards_ForceForEffect:
 			if is_tournelouse_ouroboros_force_choice() and in_hand and game_wrapper.get_player_hand_size(Enums.PlayerId.PlayerId_Player) <= 1:
 				return false
@@ -4201,7 +4293,7 @@ func can_select_card(card):
 				new_force = max(new_force, force_player.get_gauge_card_force_value_for(card.card_id))
 			var total_force = force_selected + new_force
 			var within_force_limit = select_card_up_to_force == -1 or total_force <= select_card_up_to_force
-			return (in_gauge or in_hand) and (within_force_limit or can_selected_cards_pay_force(select_card_up_to_force, new_force))
+			return in_force_payment and (within_force_limit or can_selected_cards_pay_force(select_card_up_to_force, new_force))
 		UISubState.UISubState_SelectCards_GaugeForEffect:
 			var valid_id = true
 			var valid_type = true
@@ -4211,7 +4303,7 @@ func can_select_card(card):
 				valid_id = logic_card.definition['id'] == select_gauge_require_card_id
 			if select_gauge_valid_card_types:
 				valid_type = logic_card.definition['type'] in select_gauge_valid_card_types
-			return in_gauge and valid_id and valid_type and len(selected_cards) < select_card_require_max
+			return in_gauge_payment and valid_id and valid_type and len(selected_cards) < select_card_require_max
 		UISubState.UISubState_SelectCards_StrikeCard, UISubState.UISubState_SelectCards_StrikeResponseCard, UISubState.UISubState_SelectCards_OpponentSetsFirst_StrikeCard, UISubState.UISubState_SelectCards_OpponentSetsFirst_StrikeResponseCard, UISubState.UISubState_SelectCards_Mulligan:
 			if in_player_boosts:
 				var card_db = game_wrapper.get_card_database()
@@ -4249,9 +4341,9 @@ func can_select_card(card):
 				valid_card = game_wrapper.can_player_boost(Enums.PlayerId.PlayerId_Player, card.card_id, select_boost_valid_zones, select_boost_limitation, select_boost_ignore_costs)
 			return valid_amount and valid_card
 		UISubState.UISubState_SelectCards_ForceForBoost:
-			return (in_gauge or in_hand) and selected_boost_to_pay_for != card.card_id
+			return in_force_payment and selected_boost_to_pay_for != card.card_id
 		UISubState.UISubState_SelectCards_GaugeForBoost:
-			return in_gauge and selected_boost_to_pay_for != card.card_id
+			return in_gauge_payment and selected_boost_to_pay_for != card.card_id
 		UISubState.UISubState_SelectCards_DiscardContinuousBoost:
 			var limitation = game_wrapper.get_decision_info().limitation
 			if limitation in ["mine", "in_opponent_space"] and in_opponent_boosts:
@@ -4737,6 +4829,9 @@ func _on_stunned(event):
 	return _stat_notice_event(event)
 
 func _on_end_of_strike():
+	played_guardian_records.clear()
+	pending_guardian_display_player = -1
+	paid_huhuan_display_players.clear()
 	# Iaquis face-up / stun-easter-egg per-strike flags: cleared at strike
 	# end so they never leak into the next fight.
 	iaquis_faceup_this_strike = false
@@ -4825,6 +4920,7 @@ func _on_continuous_boost_added(event):
 		card.flip_card_to_front(false)
 	card.discard_to(pos, CardBase.CardState.CardState_InBoost)
 	reparent_to_zone(card, boost_card_loc)
+	card.visible = not _should_hide_boost_visual_until_exceeded(player, card.card_id)
 	spawn_damage_popup("+ 持续性加成", player)
 	return SmallNoticeDelay
 
@@ -4847,6 +4943,7 @@ func _create_missing_boost_card(card_id : int, player, pos : Vector2) -> void:
 	new_card.change_state(CardBase.CardState.CardState_Offscreen)
 	new_card.flip_card_to_front(true)
 	new_card.discard_to(pos, CardBase.CardState.CardState_InBoost)
+	new_card.visible = not _should_hide_boost_visual_until_exceeded(player, new_card.card_id)
 	spawn_damage_popup("+ 持续性加成", player)
 
 func _on_transform_added(event):
@@ -4935,6 +5032,10 @@ func _on_discard_opponent_gauge(event):
 		ai_discard_opponent_gauge()
 
 func _on_name_opponent_card_begin(event):
+	# Historical choices have no local submission to clear their popout state.
+	# Restore only the still-pending decision after fast-forward completes.
+	if restore_fast_forwarding:
+		return SmallNoticeDelay
 	var player = event['event_player']
 	spawn_damage_popup("命名卡牌", player)
 	var normal_only = event['event_type'] == Enums.EventType.EventType_ReadingNormal or event['event_type'] == Enums.EventType.EventType_Boost_Sidestep
@@ -5354,6 +5455,15 @@ func _on_discard_event(event):
 	var discard_id = event['number']
 	var from_top = event['extra_info']
 	var card = find_card_on_board(discard_id)
+	# Track public played events, not the engine's possibly already-cleaned strike.
+	if pending_guardian_display_player == player:
+		var zone = $AllCards/PlayerBleach if player == Enums.PlayerId.PlayerId_Player else $AllCards/OpponentBleach
+		if card.get_parent() == zone:
+			var definition = game_wrapper.get_card_database().get_card(discard_id).definition
+			played_guardian_records.append({
+				"player": player, "source_id": discard_id, "boost": definition["boost"].duplicate(true)
+			})
+			pending_guardian_display_player = -1
 	if player == Enums.PlayerId.PlayerId_Player:
 		discard_card(card, $PlayerDeck/Discard, $AllCards/PlayerDiscards, true, from_top)
 	else:
@@ -5572,28 +5682,30 @@ func _on_exceed_event(event):
 	var player = event['event_player']
 	if player == Enums.PlayerId.PlayerId_Player:
 		if 'exceed_animation' in player_deck:
-			$PlayerCharacter.set_exceed(true, image_loader, player_deck, player_deck['exceed_animation'])
-			move_character_to_arena_square($PlayerCharacter, game_wrapper.get_player_location(Enums.PlayerId.PlayerId_Player), true, Character.CharacterAnim.CharacterAnim_None)
+			await $PlayerCharacter.set_exceed(true, image_loader, player_deck, player_deck['exceed_animation'])
 		else:
-			$PlayerCharacter.set_exceed(true, image_loader, player_deck)
+			await $PlayerCharacter.set_exceed(true, image_loader, player_deck)
+		move_character_to_arena_square($PlayerCharacter, game_wrapper.get_player_location(Enums.PlayerId.PlayerId_Player), true, Character.CharacterAnim.CharacterAnim_None)
 		player_character_card.exceed(true)
 		player_buddy_character_card.exceed(true)
-		if player_deck.get('buddy_exceeds'):
+		if player_deck.get('buddy_exceeds') and not player_deck.get("hide_buddy_card_in_match", false):
 			player_buddy_character_card.visible = true
+		_refresh_hidden_boost_visuals_for_player(Enums.PlayerId.PlayerId_Player)
 		player_bonus_panel.visible = false
 		# Eugenia awaken closeup: only the local Eugenia player sees it.
 		_play_awaken_entrance()
 
 	else:
 		if 'exceed_animation' in opponent_deck:
-			$OpponentCharacter.set_exceed(true, image_loader, opponent_deck, opponent_deck['exceed_animation'])
-			move_character_to_arena_square($OpponentCharacter, game_wrapper.get_player_location(Enums.PlayerId.PlayerId_Opponent), true, Character.CharacterAnim.CharacterAnim_None)
+			await $OpponentCharacter.set_exceed(true, image_loader, opponent_deck, opponent_deck['exceed_animation'])
 		else:
-			$OpponentCharacter.set_exceed(true, image_loader, opponent_deck)
+			await $OpponentCharacter.set_exceed(true, image_loader, opponent_deck)
+		move_character_to_arena_square($OpponentCharacter, game_wrapper.get_player_location(Enums.PlayerId.PlayerId_Opponent), true, Character.CharacterAnim.CharacterAnim_None)
 		opponent_character_card.exceed(true)
 		opponent_buddy_character_card.exceed(true)
-		if opponent_deck.get('buddy_exceeds'):
+		if opponent_deck.get('buddy_exceeds') and not opponent_deck.get("hide_buddy_card_in_match", false):
 			opponent_buddy_character_card.visible = true
+		_refresh_hidden_boost_visuals_for_player(Enums.PlayerId.PlayerId_Opponent)
 		opponent_bonus_panel.visible = false
 
 	spawn_damage_popup("觉醒！", player)
@@ -5603,25 +5715,27 @@ func _on_exceed_revert_event(event):
 	var player = event['event_player']
 	if player == Enums.PlayerId.PlayerId_Player:
 		if 'exceed_animation' in player_deck:
-			$PlayerCharacter.set_exceed(false, image_loader, player_deck, player_deck['id'])
-			move_character_to_arena_square($PlayerCharacter, game_wrapper.get_player_location(Enums.PlayerId.PlayerId_Player), true, Character.CharacterAnim.CharacterAnim_None)
+			await $PlayerCharacter.set_exceed(false, image_loader, player_deck, player_deck['id'])
 		else:
-			$PlayerCharacter.set_exceed(false, image_loader, player_deck)
+			await $PlayerCharacter.set_exceed(false, image_loader, player_deck)
+		move_character_to_arena_square($PlayerCharacter, game_wrapper.get_player_location(Enums.PlayerId.PlayerId_Player), true, Character.CharacterAnim.CharacterAnim_None)
 		player_character_card.exceed(false)
 		player_buddy_character_card.exceed(false)
 		if player_deck.get('buddy_exceeds'):
 			player_buddy_character_card.visible = false
+		_refresh_hidden_boost_visuals_for_player(Enums.PlayerId.PlayerId_Player)
 
 	else:
 		if 'exceed_animation' in opponent_deck:
-			$OpponentCharacter.set_exceed(false, image_loader, opponent_deck, opponent_deck['id'])
-			move_character_to_arena_square($OpponentCharacter, game_wrapper.get_player_location(Enums.PlayerId.PlayerId_Opponent), true, Character.CharacterAnim.CharacterAnim_None)
+			await $OpponentCharacter.set_exceed(false, image_loader, opponent_deck, opponent_deck['id'])
 		else:
-			$OpponentCharacter.set_exceed(false, image_loader, opponent_deck)
+			await $OpponentCharacter.set_exceed(false, image_loader, opponent_deck)
+		move_character_to_arena_square($OpponentCharacter, game_wrapper.get_player_location(Enums.PlayerId.PlayerId_Opponent), true, Character.CharacterAnim.CharacterAnim_None)
 		opponent_character_card.exceed(false)
 		opponent_buddy_character_card.exceed(false)
 		if opponent_deck.get('buddy_exceeds'):
 			opponent_buddy_character_card.visible = false
+		_refresh_hidden_boost_visuals_for_player(Enums.PlayerId.PlayerId_Opponent)
 
 	spawn_damage_popup("退出觉醒！", player)
 	return SmallNoticeDelay
@@ -5639,7 +5753,7 @@ func _on_become_wide(event):
 
 	character_object.is_wide = true
 	if 'wide_animation' in deck_def:
-		character_object.load_character(image_loader, deck_def, deck_def['wide_animation'], false)
+		await character_object.load_character(image_loader, deck_def, deck_def['wide_animation'], false)
 
 		var parent = character_object.get_parent()
 		var target_idx = parent.get_children().find($WideCharacterMarker)
@@ -5696,6 +5810,11 @@ func _on_force_start_strike(event):
 	if not silent_pre_strike:
 		spawn_damage_popup("战斗！", player)
 	if player == Enums.PlayerId.PlayerId_Player and not observer_mode:
+		if game_wrapper.strike_needs_guardian_declaration():
+			if prepared_character_action_data_available('strike'):
+				prepared_character_action_data = {}
+			begin_strike_choosing(false, false, false, disable_wild_swing, disable_ex, require_ex)
+			return 0.0 if silent_pre_strike else SmallNoticeDelay
 		if prepared_character_action_data_available('strike'):
 			var success = false
 			if 'wild_swing' in prepared_character_action_data and prepared_character_action_data['wild_swing']:
@@ -6016,12 +6135,13 @@ func update_gauge_selection_message():
 		# 所以这里直接用选中的合计面值，而不是带需求上限的 get_gauge_generated()。
 		var gauge_generated = get_selected_gauge_payment_value()
 		var force_generated_str = "%s 点怒气已选择。" % [gauge_generated]
-		var damage_after_armor = max(0, force_for_armor_incoming_damage - force_for_armor_amount * gauge_generated)
+		var generated_armor = force_for_armor_amount * gauge_generated
+		var damage_after_armor = max(0, force_for_armor_incoming_damage - generated_armor)
 		var ignore_armor_str = ""
 		if force_for_armor_ignore_armor:
 			damage_after_armor = force_for_armor_incoming_damage
 			ignore_armor_str = "护甲被无视！"
-		set_instructions("每花费 1 点怒气提供 +%s 护甲。\n%s\n%s你将受到 %s 点伤害。" % [force_for_armor_amount, force_generated_str, ignore_armor_str, damage_after_armor])
+		set_instructions("每花费 1 点怒气提供 +%s 护甲。\n%s\n已生成的护甲：%s（不含原有护甲）。\n%s你将受到 %s 点伤害。" % [force_for_armor_amount, force_generated_str, generated_armor, ignore_armor_str, damage_after_armor])
 	else:
 		var gauge_from_life = get_gauge_from_spent_life()
 		var num_remaining = select_card_require_min - get_gauge_generated()
@@ -6159,12 +6279,13 @@ func update_force_generation_message():
 		UISubState.UISubState_SelectCards_ForceForChange:
 			set_instructions("选择牌来产生能量，以抽取新牌。\n%s" % [force_generated_str])
 		UISubState.UISubState_SelectCards_ForceForArmor:
-			var damage_after_armor = max(0, force_for_armor_incoming_damage - force_for_armor_amount * force_selected)
+			var generated_armor = force_for_armor_amount * force_selected
+			var damage_after_armor = max(0, force_for_armor_incoming_damage - generated_armor)
 			var ignore_armor_str = ""
 			if force_for_armor_ignore_armor:
 				damage_after_armor = force_for_armor_incoming_damage
 				ignore_armor_str = "护甲被无视！"
-			set_instructions("选择牌来产生能量，每点提供 +%s 护甲。\n%s\n%s你将受到 %s 点伤害。" % [force_for_armor_amount, force_generated_str, ignore_armor_str, damage_after_armor])
+			set_instructions("选择牌来产生能量，每点提供 +%s 护甲。\n%s\n已生成的护甲：%s（不含原有护甲）。\n%s你将受到 %s 点伤害。" % [force_for_armor_amount, force_generated_str, generated_armor, ignore_armor_str, damage_after_armor])
 		UISubState.UISubState_SelectCards_StrikeForce:
 			set_instructions("选择牌来为此次战斗产生 %s 点能量。\n%s" % [select_card_require_force, force_generated_str])
 		UISubState.UISubState_SelectCards_ForceForEffect:
@@ -6363,6 +6484,11 @@ func begin_strike_choosing(
 	disable_ex : bool = false,
 	require_ex = false
 ):
+	if not strike_response and game_wrapper.strike_needs_guardian_declaration():
+		clear_selected_cards()
+		if game_wrapper.submit_strike(Enums.PlayerId.PlayerId_Player, -1, false, -1):
+			change_ui_state(UIState.UIState_WaitForGameServer)
+		return
 	clear_selected_cards()
 	select_card_require_min = 1
 	select_card_require_max = 1
@@ -6473,6 +6599,8 @@ func begin_boost_choosing(can_cancel : bool, valid_zones : Array, limitation : S
 		_on_player_discard_button_pressed(false)
 	elif 'extra' in valid_zones:
 		_on_player_buddy_button_pressed(true, false)
+	elif 'bleach' in valid_zones:
+		_on_player_bleach_clicked(false)
 	elif 'deck' in valid_zones:
 		var deck_card_ids = game_wrapper.get_player_deck_card_ids_for_boost(Enums.PlayerId.PlayerId_Player, limitation)
 		for card_id in deck_card_ids:
@@ -6706,6 +6834,7 @@ func _move_card_to_strike_area(card, strike_area, new_parent, is_player : bool, 
 	layout_player_hand(is_player)
 
 func _on_strike_started(event, is_ex : bool, is_wild : bool = false):
+	pending_guardian_display_player = -1
 	# Per-strike animation flags reset on every attack-card-set event (both
 	# initiator and responder events pass through here, so reset unconditionally
 	# to preserve the original behavior).
@@ -6838,6 +6967,15 @@ func _on_strike_reveal_one_player(event):
 
 func _on_strike_card_activation(event):
 	var strike_cards = $AllCards/Striking.get_children()
+	# Both attacks have paid before the first activation, including a defender
+	# that will be stunned before it activates. Invalidated attacks have left.
+	for strike_card in strike_cards:
+		var definition = game_wrapper.get_card_database().get_card(strike_card.card_id).definition
+		if definition["id"] == "heiqiyihu_呼唤我的名字吧！":
+			var owner_id = Enums.PlayerId.PlayerId_Player if game_wrapper.does_card_belong_to_player(
+				Enums.PlayerId.PlayerId_Player, strike_card.card_id) else Enums.PlayerId.PlayerId_Opponent
+			if owner_id not in paid_huhuan_display_players:
+				paid_huhuan_display_players.append(owner_id)
 	var card_id = event['number']
 	for card in strike_cards:
 		card.set_backlight_visible(card.card_id == card_id)
@@ -7027,6 +7165,8 @@ func _add_bonus_label_text(player, new_text : String):
 
 func _on_effect_choice(event):
 	var player = event['event_player']
+	if event.get("reason", "") == "双方选牌前：守护":
+		pending_guardian_display_player = player
 	if player == Enums.PlayerId.PlayerId_Player and not observer_mode:
 		if prepared_character_action_data_available("choice"):
 			var choice = prepared_character_action_data['choice']
@@ -7357,7 +7497,7 @@ func add_lightning_rod(rod_parent, rod_tracking, location, card_id, player):
 		var deck_def = player_deck
 		if player == Enums.PlayerId.PlayerId_Opponent:
 			deck_def = opponent_deck
-		new_character.load_character(image_loader, deck_def, "rachel_lightningrod", false)
+		await new_character.load_character(image_loader, deck_def, "rachel_lightningrod", false)
 		rods_at_location['character'] = new_character
 		var immediate = true
 		move_character_to_arena_square(new_character, location, immediate, Character.CharacterAnim.CharacterAnim_WalkForward, -1)
@@ -7394,7 +7534,7 @@ func _on_place_lightningrod(event):
 
 	# Add or remove the rod as appropriate.
 	if place:
-		add_lightning_rod(rod_parent, rod_tracking, location, card_id, player)
+		await add_lightning_rod(rod_parent, rod_tracking, location, card_id, player)
 
 		# Move the card to the set aside zone.
 		var is_player = player == Enums.PlayerId.PlayerId_Player
@@ -7522,7 +7662,7 @@ func _handle_events(events):
 			Enums.EventType.EventType_AdvanceTurn:
 				delay = _on_advance_turn(event)
 			Enums.EventType.EventType_BecomeWide:
-				delay = _on_become_wide(event)
+				delay = await _on_become_wide(event)
 			Enums.EventType.EventType_BlockMovement:
 				delay = _stat_notice_event(event)
 			Enums.EventType.EventType_Boost_ActionAfterBoost:
@@ -7570,9 +7710,9 @@ func _handle_events(events):
 			Enums.EventType.EventType_EndOverdrive:
 				delay = _stat_notice_event(event)
 			Enums.EventType.EventType_Exceed:
-				delay = _on_exceed_event(event)
+				delay = await _on_exceed_event(event)
 			Enums.EventType.EventType_ExceedRevert:
-				delay = _on_exceed_revert_event(event)
+				delay = await _on_exceed_revert_event(event)
 			Enums.EventType.EventType_ForceStartBoost:
 				delay = _on_force_start_boost(event)
 			Enums.EventType.EventType_ForceStartStrike:
@@ -7598,7 +7738,7 @@ func _handle_events(events):
 			Enums.EventType.EventType_PlaceCardUnderBoost:
 				delay = _on_place_underboost(event)
 			Enums.EventType.EventType_PlaceLightningRod:
-				delay = _on_place_lightningrod(event)
+				delay = await _on_place_lightningrod(event)
 			Enums.EventType.EventType_PickNumberFromRange:
 				_on_pick_number_from_range(event)
 			Enums.EventType.EventType_SwapSealedAndDeck:
@@ -7768,7 +7908,7 @@ func _fast_forward_restored_game_if_needed() -> bool:
 	while true:
 		var events = game_wrapper.poll_for_events()
 		if not events.is_empty():
-			_handle_events(events)
+			await _handle_events(events)
 
 		var consumed_observer_message = false
 		var replay_target_reached = replay_mode and replay_seek_target >= 0 \
@@ -7825,11 +7965,19 @@ func _on_observer_jump_to_latest_pressed():
 func _sync_ui_state_after_restore():
 	if ui_state == UIState.UIState_GameOver:
 		return
+	var game_state = game_wrapper.get_game_state()
+	if game_state == Enums.GameState.GameState_PlayerDecision:
+		var decision_info = game_wrapper.get_decision_info()
+		if decision_info.type in [Enums.DecisionType.DecisionType_NameCard_OpponentDiscards, Enums.DecisionType.DecisionType_ReadingNormal, Enums.DecisionType.DecisionType_Sidestep, Enums.DecisionType.DecisionType_ZeroVector]:
+			if decision_info.player == Enums.PlayerId.PlayerId_Player and not observer_mode:
+				_restore_name_card_decision_ui(decision_info)
+			else:
+				change_ui_state(UIState.UIState_WaitingOnOpponent, UISubState.UISubState_None)
+			return
 	if _is_player_interaction_ui_state(ui_state):
 		_update_buttons()
 		return
 
-	var game_state = game_wrapper.get_game_state()
 	if game_state == Enums.GameState.GameState_PickAction:
 		if game_wrapper.get_active_player() == Enums.PlayerId.PlayerId_Player and not observer_mode:
 			change_ui_state(UIState.UIState_PickTurnAction, UISubState.UISubState_None)
@@ -8407,6 +8555,7 @@ func _update_buttons(no_number_picker_update : bool = false):
 	current_action_menu_choices = button_choices
 
 func get_effect_text_with_card_name(effect, current_text, skip_condition : bool = false):
+	effect = game_wrapper.get_guardian_effect_for_display(effect)
 	var card_name = ""
 	var card_text = current_text
 	if 'card_name' in effect:
@@ -8468,6 +8617,8 @@ func update_boost_summary(player_id, boosts_card_holder, boost_box):
 	var card_db = game_wrapper.get_card_database()
 	var summary_player = game_wrapper._get_player(player_id)
 	for card in boosts_card_holder.get_children():
+		if _should_hide_boost_visual_until_exceeded(player_id, card.card_id):
+			continue
 		var nantaca_card_has_left_boosts = summary_player.deck_def.get("id") == "nantaca" and (
 			summary_player.is_card_in_hand(card.card_id)
 			or summary_player.is_card_in_gauge(card.card_id)
@@ -8481,6 +8632,11 @@ func update_boost_summary(player_id, boosts_card_holder, boost_box):
 		card_ids.append(card.card_id)
 	var transform_effects = []
 	var normal_effects = []
+	if not played_guardian_records.is_empty():
+		normal_effects.append_array(game_wrapper.get_played_guardian_summary(
+			player_id, played_guardian_records, paid_huhuan_display_players))
+	if summary_player.strike_stat_boosts.convert_advance_to_close:
+		normal_effects.append({"effect_type": StrikeEffects.ConvertAdvanceToClose})
 	if summary_player.deck_def.get("id") == "minato" and summary_player.exceeded and summary_player.minato_seal_power_bonus > 0:
 		normal_effects.append({
 			"override_description": "觉醒：你的下一次攻击获得+%d威力。" % int(summary_player.minato_seal_power_bonus)
@@ -10154,7 +10310,7 @@ func ai_mulligan_decision():
 		change_ui_state(UIState.UIState_WaitForGameServer)
 	else:
 		print("FAILED AI MULLIGAN")
-	test_init()
+	await test_init()
 
 func ai_choose_to_discard(amount, limitation, can_pass, allow_fewer):
 	change_ui_state(UIState.UIState_WaitForGameServer)
@@ -10323,13 +10479,20 @@ func show_popout(popout_type : CardPopoutType, popout_title : String, card_node,
 
 	# Handling filtering for the extra card popout; checks which cards haven't already been played
 	var check_player = Enums.PlayerId.PlayerId_Unassigned
+	var keep_all_buddy_cards = false
 	if popout_type == CardPopoutType.CardPopoutType_BuddyPlayer:
 		check_player = Enums.PlayerId.PlayerId_Player
+		var player_deck_logic_id = str(player_deck.get("base_id", player_deck.get("id", "")))
+		if player_deck_logic_id == "dongshilang":
+			keep_all_buddy_cards = true
 		# This is used when showing cards that can be played as boosts
 		if extra_only_show_boosts:
 			cards = cards.filter(func(card): return game_wrapper.can_player_boost(Enums.PlayerId.PlayerId_Player, card.card_id, ['extra'], "", true))
 	elif popout_type == CardPopoutType.CardPopoutType_BuddyOpponent:
 		check_player = Enums.PlayerId.PlayerId_Opponent
+		var opponent_deck_logic_id = str(opponent_deck.get("base_id", opponent_deck.get("id", "")))
+		if opponent_deck_logic_id == "dongshilang":
+			keep_all_buddy_cards = true
 
 	if check_player != Enums.PlayerId.PlayerId_Unassigned:
 		# If this was set, then the extra card popout is being opened
@@ -10337,7 +10500,7 @@ func show_popout(popout_type : CardPopoutType, popout_title : String, card_node,
 		#  in the set-aside area
 		var filtered_cards = []
 		for card in cards:
-			if card.card_id != CardBase.BuddyCardReferenceId:
+			if not keep_all_buddy_cards and card.card_id != CardBase.BuddyCardReferenceId:
 				if not game_wrapper.is_card_set_aside(check_player, card.card_id):
 					continue
 			filtered_cards.append(card)
@@ -10768,11 +10931,11 @@ func _show_replay_save_status(message : String):
 func _on_matchlog_upload_finished(success : bool, uploaded : bool, error_message : String):
 	save_replay_button.disabled = false
 	if success and uploaded:
-		_show_replay_save_status("回放已上传到 OSS。\n请在系统分享面板选择‘存储到文件’，或在 UC 下载内容中查看本地文件。")
+		_show_replay_save_status("回放已保存本地且上传OSS。")
 	elif success:
-		_show_replay_save_status("回放上传请求已登记，将在服务器完成对局结算后上传。\n本地文件保存也已触发。")
+		_show_replay_save_status("回放上传请求已登记，\n该局结算后上传。\n本地文件保存触发。")
 	else:
-		var failure_text := "回放本地保存已触发，但上传 OSS 失败。"
+		var failure_text := "回放本地保存已触发，但上传OSS失败。"
 		if not error_message.is_empty():
 			failure_text += "\n" + error_message
 		_show_replay_save_status(failure_text)
@@ -10787,7 +10950,7 @@ func save_current_replay():
 		var local_save_started := _download_web_replay(replay_string, get_replay_filename())
 		if should_upload and upload_requested:
 			save_replay_button.disabled = true
-			_show_replay_save_status("已触发本地回放保存，正在上传到 OSS……")
+			_show_replay_save_status("已触发本地回放保存，正在上传到OSS……")
 		elif should_upload:
 			_show_replay_save_status("已触发本地回放保存，但上传请求发送失败。")
 		elif local_save_started:
@@ -10797,7 +10960,7 @@ func save_current_replay():
 		replay_save_finished.emit()
 	elif _is_android_runtime():
 		if _save_replay_to_android_directory():
-			modal_dialog.set_text_fields("回放已保存到应用本地目录。", "OK", "")
+			modal_dialog.set_text_fields("回放已保存本地。", "OK", "")
 		replay_save_finished.emit()
 	else:
 		file_dialog.current_file = get_replay_filename()

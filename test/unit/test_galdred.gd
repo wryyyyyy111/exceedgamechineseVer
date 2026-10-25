@@ -81,7 +81,9 @@ func test_galdred_exceed_ua_face_attack_returns_to_set_aside():
 	assert_false(player1.is_card_in_discards(face_attack_id))
 	assert_false(player1.is_card_in_gauge(face_attack_id))
 	advance_turn(player2)
-	game_logic.do_choose_to_discard(player2, get_cards_from_hand(player2, 4))
+	assert_eq(player2.hand.size(), 3, "Prepare and Galdred's UA already resolve discarding to 3.")
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PickAction)
+	assert_eq(game_logic.get_active_player(), player1.my_id)
 
 	execute_strike(player1, player2, -1, "standard_normal_cross", false, false,
 		[], [], false, "", "", true, false) # Reuse the same face attack
@@ -89,6 +91,8 @@ func test_galdred_exceed_ua_face_attack_returns_to_set_aside():
 	assert_true(player1.is_card_in_set_aside(face_attack_id))
 	assert_false(player1.is_card_in_discards(face_attack_id))
 	assert_false(player1.is_card_in_gauge(face_attack_id))
+	assert_eq(player1.set_aside_cards.filter(func(card): return card.id == face_attack_id).size(), 1)
+	assert_null(game_logic.active_strike)
 
 func test_galdred_exceed_ua_strike_non_empty_hand():
 	position_players(player1, 3, player2, 5)

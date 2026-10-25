@@ -1,4 +1,4 @@
-[gd_scene load_steps=143 format=3 uid="uid://cqs72exlwm6at"]
+[gd_scene load_steps=146 format=3 uid="uid://cqs72exlwm6at"]
 
 [ext_resource type="Script" uid="uid://ctx04u4b0tnwj" path="res://scenes/menu/char_select.gd" id="1_f3x24"]
 [ext_resource type="Texture2D" uid="uid://dj3a6fhyrmcfp" path="res://assets/portraits/vorhild.png" id="4_rjnbv"]
@@ -135,6 +135,9 @@
 [ext_resource type="Texture2D" path="res://assets/portraits/jinglechunshui.png" id="115_jinglechunshui"]
 [ext_resource type="Texture2D" path="res://assets/portraits/noelle.png" id="124_noelle"]
 [ext_resource type="Texture2D" path="res://assets/portraits/carcass.png" id="125_carcass"]
+[ext_resource type="Texture2D" path="res://assets/portraits/dongshilang.png" id="126_dongshilang"]
+[ext_resource type="Texture2D" path="res://assets/portraits/yuanliuzhai.png" id="127_yuanliuzhai"]
+[ext_resource type="Texture2D" path="res://assets/portraits/heiqiyihu.png" id="128_heiqiyihu"]
 [ext_resource type="Texture2D" path="res://assets/portraits/pooky.png" id="116_pooky"]
 [ext_resource type="Texture2D" path="res://assets/portraits/renea.png" id="117_renea"]
 [ext_resource type="Texture2D" path="res://assets/portraits/umina.png" id="118_umina"]
@@ -1179,6 +1182,21 @@ layout_mode = 2
 char_id = "carcass"
 portrait_texture = ExtResource("125_carcass")
 
+[node name="Dongshilang" parent="CenterContainer/S0CharacterSelect/Rows/Row1" instance=ExtResource("6_3lmwy")]
+layout_mode = 2
+char_id = "dongshilang"
+portrait_texture = ExtResource("126_dongshilang")
+
+[node name="Yuanliuzhai" parent="CenterContainer/S0CharacterSelect/Rows/Row1" instance=ExtResource("6_3lmwy")]
+layout_mode = 2
+char_id = "yuanliuzhai"
+portrait_texture = ExtResource("127_yuanliuzhai")
+
+[node name="Heiqiyihu" parent="CenterContainer/S0CharacterSelect/Rows/Row1" instance=ExtResource("6_3lmwy")]
+layout_mode = 2
+char_id = "heiqiyihu"
+portrait_texture = ExtResource("128_heiqiyihu")
+
 [node name="S1CharacterSelect" type="PanelContainer" parent="CenterContainer"]
 layout_mode = 2
 mouse_filter = 2
@@ -1589,6 +1607,12 @@ portrait_texture = ExtResource("100_dtwln")
 [connection signal="on_pressed" from="CenterContainer/S0CharacterSelect/Rows/Row1/Noelle" to="." method="_on_char_button_on_pressed"]
 [connection signal="on_hover" from="CenterContainer/S0CharacterSelect/Rows/Row1/Carcass" to="." method="_on_char_hover"]
 [connection signal="on_pressed" from="CenterContainer/S0CharacterSelect/Rows/Row1/Carcass" to="." method="_on_char_button_on_pressed"]
+[connection signal="on_hover" from="CenterContainer/S0CharacterSelect/Rows/Row1/Dongshilang" to="." method="_on_char_hover"]
+[connection signal="on_pressed" from="CenterContainer/S0CharacterSelect/Rows/Row1/Dongshilang" to="." method="_on_char_button_on_pressed"]
+[connection signal="on_hover" from="CenterContainer/S0CharacterSelect/Rows/Row1/Yuanliuzhai" to="." method="_on_char_hover"]
+[connection signal="on_pressed" from="CenterContainer/S0CharacterSelect/Rows/Row1/Yuanliuzhai" to="." method="_on_char_button_on_pressed"]
+[connection signal="on_hover" from="CenterContainer/S0CharacterSelect/Rows/Row1/Heiqiyihu" to="." method="_on_char_hover"]
+[connection signal="on_pressed" from="CenterContainer/S0CharacterSelect/Rows/Row1/Heiqiyihu" to="." method="_on_char_button_on_pressed"]
 [connection signal="on_hover" from="CenterContainer/S1CharacterSelect/Rows/Row1/Morathi" to="." method="_on_char_hover"]
 [connection signal="on_pressed" from="CenterContainer/S1CharacterSelect/Rows/Row1/Morathi" to="." method="_on_char_button_on_pressed"]
 [connection signal="on_hover" from="CenterContainer/S1CharacterSelect/Rows/Row1/Nehtali" to="." method="_on_char_hover"]

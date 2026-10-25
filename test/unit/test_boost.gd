@@ -166,6 +166,66 @@ func test_grasp_v_wildthrow():
 	validate_positions(player1, 5, player2, 4)
 	validate_life(player1, 25, player2, 27)
 
+func test_shared_cancel_gate_rechecks_restrictions_without_spending():
+	position_players(player1, 3, player2, 5)
+	give_gauge(player1, 1)
+	var payment = player1.gauge[0].id
+	give_player_specific_card(player1, "gg_normal_cross", TestCardId3)
+	assert_true(game_logic.do_boost(player1, TestCardId3))
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_BoostCancel)
+	var cross = game_logic.card_db.get_card(TestCardId3)
+	for restriction in ["cancel_blocked_this_turn", "strike_on_boost_cleanup", "wild_strike_on_boost_cleanup"]:
+		player1.set(restriction, true)
+		assert_false(player1.can_cancel(cross))
+		assert_eq(game_logic._get_effective_boost_cancel_cost(player1, cross), -1, restriction)
+		assert_false(game_logic.do_boost_cancel(player1, [payment], true), restriction)
+		assert_false(game_logic.do_boost_cancel(player1, [], false), "An obsolete window must not resume a forbidden flow.")
+		assert_true(player1.is_card_in_gauge(payment))
+		assert_false(player1.is_card_in_discards(payment))
+		assert_eq(game_logic.game_state, Enums.GameState.GameState_PlayerDecision)
+		assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_BoostCancel)
+		assert_eq(game_logic.decision_info.player, player1.my_id)
+		player1.set(restriction, false)
+	for restriction in ["strike_after_boost", "boost_negated"]:
+		game_logic.active_boost.set(restriction, true)
+		assert_eq(game_logic._get_effective_boost_cancel_cost(player1, cross), -1, restriction)
+		assert_false(game_logic.do_boost_cancel(player1, [payment], true), restriction)
+		assert_true(player1.is_card_in_gauge(payment))
+		assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_BoostCancel)
+		game_logic.active_boost.set(restriction, false)
+	game_logic.active_boost.boost_negated = true
+	game_logic.active_boost.allow_cancel_after_negate = true
+	assert_eq(game_logic._get_effective_boost_cancel_cost(player1, cross), 1,
+			"An explicitly permitted post-negation cancel keeps its ordinary cost.")
+	game_logic.active_boost.boost_negated = false
+	game_logic.active_boost.allow_cancel_after_negate = false
+	assert_true(player1.can_cancel(cross))
+	assert_eq(game_logic._get_effective_boost_cancel_cost(player1, cross), 1)
+	assert_true(game_logic.do_boost_cancel(player1, [payment], true))
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PickAction)
+	assert_eq(game_logic.get_active_player(), player1.my_id)
+	assert_true(player1.is_card_in_discards(payment))
+
+func test_shared_cancel_gate_blocked_turn_never_offers_window():
+	position_players(player1, 3, player2, 5)
+	give_gauge(player1, 1)
+	var payment = player1.gauge[0].id
+	give_player_specific_card(player1, "gg_normal_cross", TestCardId3)
+	player1.cancel_blocked_this_turn = true
+	assert_true(game_logic.do_boost(player1, TestCardId3))
+	assert_true(game_logic.do_choice(player1, 0))
+	var events = game_logic.get_latest_events()
+	for event in events:
+		assert_ne(event["event_type"], Enums.EventType.EventType_Boost_CancelDecision)
+		assert_ne(event["event_type"], Enums.EventType.EventType_Boost_ActionAfterBoost)
+	assert_true(player1.is_card_in_gauge(payment))
+	assert_true(player1.is_card_in_discards(TestCardId3))
+	assert_eq(player2.arena_location, 7)
+	assert_null(game_logic.active_boost)
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PickAction)
+	assert_eq(game_logic.get_active_player(), player2.my_id)
+
 func test_boost_nr_and_grasp_vs_wildthrow():
 	var initiator = game_logic.player
 	var defender = game_logic.opponent

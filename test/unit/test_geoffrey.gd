@@ -735,10 +735,45 @@ func test_negated_faust_boost_does_not_advance():
 
 	assert_true(game_logic.do_boost(player2, boost_id, []), "Faust 打出 Thrust 的加成")
 	assert_true(game_logic.do_force_for_effect(player1, [f1, f2], false), "Geoffrey 支付并无效化")
-	assert_true(game_logic.active_boost.boost_negated, "前置：加成已被无效化")
+	assert_null(game_logic.active_boost, "No Gauge to cancel: the negated boost has finished.")
+	assert_true(player2.is_card_in_discards(boost_id))
+	assert_false(player2.is_card_in_continuous_boosts(boost_id))
+	assert_true(player1.is_card_in_discards(f1))
+	assert_true(player1.is_card_in_discards(f2))
+	var events = game_logic.get_latest_events()
+	validate_has_event(events, Enums.EventType.EventType_AddToDiscard, player2, boost_id)
+	validate_not_has_event(events, Enums.EventType.EventType_Boost_Continuous_Added, player2)
+	validate_not_has_event(events, Enums.EventType.EventType_Boost_CancelDecision, player2)
+	validate_positions(player1, 4, player2, 6)
+	assert_eq(game_logic.get_active_player(), player1.my_id)
+	advance_turn(player1)
 
 	var start_loc = player2.arena_location
 	execute_strike(player2, player1, "standard_normal_grasp", "standard_normal_spike",
 			false, false, [], [], false, "", "", false, false)
 	assert_eq(player2.arena_location, start_loc,
 			"被无效化的加成不该把「双方前置：前进1」注入战斗")
+	assert_eq(player1.arena_location, 4)
+	assert_null(game_logic.active_strike)
+
+func test_negated_faust_boost_with_gauge_keeps_legal_cancel_after_payment():
+	add_transform(player1, "geoffrey_inquisition")
+	advance_turn(player1)
+	var payment = give_gauge(player2, 1)[0]
+	var f1 = give_player_specific_card(player1, "standard_normal_sweep")
+	var f2 = give_player_specific_card(player1, "standard_normal_cross")
+	var boost_id = give_player_specific_card(player2, "faust_thrust")
+	assert_true(game_logic.do_boost(player2, boost_id))
+	assert_eq(game_logic.decision_info.player, player1.my_id)
+	assert_true(game_logic.do_force_for_effect(player1, [f1, f2], false))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_BoostCancel)
+	assert_eq(game_logic.decision_info.player, player2.my_id)
+	assert_true(game_logic.active_boost.boost_negated)
+	assert_true(game_logic.active_boost.allow_cancel_after_negate)
+	assert_true(player2.is_card_in_discards(boost_id))
+	assert_false(player2.is_card_in_continuous_boosts(boost_id))
+	assert_true(game_logic.do_boost_cancel(player2, [payment], true))
+	assert_true(player2.is_card_in_discards(payment))
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PickAction)
+	assert_eq(game_logic.get_active_player(), player2.my_id)
+	assert_null(game_logic.active_boost)

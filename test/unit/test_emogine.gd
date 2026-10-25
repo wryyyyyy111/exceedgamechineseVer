@@ -112,16 +112,37 @@ func test_emogine_holywarding_transform_payboost_gain_life():
 	validate_life(player1, 21, player2, 30)
 
 func test_emogine_holywarding_transform_block_gauge_gain_life():
+	_assert_holywarding_block_gauge_payment("standard_normal_cross", 1, 19, 2)
+
+func test_emogine_holywarding_transform_block_ultra_gauge_gain_life():
+	_assert_holywarding_block_gauge_payment("emogine_touchofdivinity", 2, 21, 0)
+
+func _assert_holywarding_block_gauge_payment(payment_definition: String, expected_force: int, expected_life: int, expected_damage: int):
 	position_players(player1, 3, player2, 6)
 	add_transform(player1, "emogine_holywarding")
 	player1.life = 20
+	var payment_id = set_player_topdeck(player1, payment_definition)
 	var gauge = give_gauge(player1, 1)
+	assert_eq(gauge, [payment_id])
+	assert_true(player1.is_card_in_gauge(payment_id))
+	assert_eq(game_logic.card_db.get_card_force_value(payment_id), expected_force)
 	var block = give_player_specific_card(player1, "standard_normal_block")
 	var sweep = give_player_specific_card(player2, "standard_normal_sweep")
 	assert_true(game_logic.do_strike(player1, block, false, -1))
 	assert_true(game_logic.do_strike(player2, sweep, false, -1))
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PlayerDecision)
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ForceForArmor)
+	assert_eq(game_logic.decision_info.player, player1.my_id)
+	game_logic.get_latest_events()
 	assert_true(game_logic.do_force_for_armor(player1, gauge))
-	validate_life(player1, 19, player2, 30)
+	assert_false(player1.is_card_in_gauge(payment_id))
+	assert_true(player1.is_card_in_discards(payment_id))
+	var events = game_logic.get_latest_events()
+	assert_eq(validate_has_event(events, Enums.EventType.EventType_Strike_GainLife, player1, 1).size(), 1)
+	validate_has_event(events, Enums.EventType.EventType_Strike_ArmorUp, player1, 2 * expected_force)
+	validate_has_event(events, Enums.EventType.EventType_Strike_TookDamage, player1, expected_damage)
+	validate_life(player1, expected_life, player2, 30)
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PickAction)
 
 func test_emogine_holywarding_transform_guiltypaean_transform_gain_life():
 	position_players(player1, 3, player2, 6)

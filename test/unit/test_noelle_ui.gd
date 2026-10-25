@@ -112,6 +112,13 @@ func _place_ground_bomb_at(player : Player, location : int) -> int:
 	await add_card_ui_to_hand(bomb_id, true)
 	_drain_latest_events()
 	assert_true(get_logic().do_boost(player, bomb_id), "打出地面炸弹失败")
+	# A user cannot submit an arena choice before its event has displayed the decision.
+	_drain_latest_events()
+	assert_eq(get_logic().game_state, Enums.GameState.GameState_PlayerDecision)
+	assert_eq(get_logic().decision_info.player, player.my_id)
+	assert_eq(get_logic().decision_info.type, Enums.DecisionType.DecisionType_ChooseArenaLocationForEffect)
+	assert_eq(game_ui.ui_state, game_ui.UIState.UIState_SelectArenaLocation)
+	assert_true(location in game_ui.arena_locations_clickable)
 	var idx = get_choice_index_for_position(location)
 	assert_true(idx != -1, "应能选到位置 %d" % location)
 	assert_true(get_logic().do_choice(player, idx), "选择位置失败")

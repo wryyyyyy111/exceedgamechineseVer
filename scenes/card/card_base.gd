@@ -103,6 +103,7 @@ var card_attack_name
 var card_boost_name
 
 var selected = false
+var hover_focus_enabled = true
 
 var hand_texture : Texture2D
 var handeye_texture : Texture2D
@@ -236,6 +237,11 @@ func is_front_showing():
 
 func set_hover_visible(hover_visible):
 	focus_feature.visible = hover_visible
+
+func set_hover_focus_enabled(enabled: bool):
+	hover_focus_enabled = enabled
+	if not hover_focus_enabled and state == CardState.CardState_Focusing:
+		unfocus()
 
 func update_visibility():
 	match state:
@@ -644,11 +650,15 @@ func unfocus():
 	emit_signal("lowered_card", self)
 
 func _on_focus_mouse_entered():
+	if not hover_focus_enabled:
+		return
 	match state:
 		CardState.CardState_InHand, CardState.CardState_Unfocusing, CardState.CardState_InStrike, CardState.CardState_InPopout:
 			focus()
 
 func _on_focus_mouse_exited():
+	if not hover_focus_enabled:
+		return
 	match state:
 		CardState.CardState_Focusing:
 			unfocus()

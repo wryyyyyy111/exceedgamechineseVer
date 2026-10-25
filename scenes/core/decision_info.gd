@@ -28,6 +28,9 @@ var return_boost_to_hand : bool
 # (0..amount) instead of exactly one. Used by Heidi's 匕首风暴·三倍插入.
 var select_multiple : bool
 var source_player_id : int = -1
+# Dongshilang: 冰晶角色主行动（可一次打出多张冰晶）应在整段行动完成后
+# 仅询问一次取消，而不是每张加成后都询问。
+var dongshilang_ice_character_action_cancel_once : bool
 
 func clear():
 	player = Enums.PlayerId.PlayerId_Unassigned
@@ -53,3 +56,4 @@ func clear():
 	return_boost_to_hand = false
 	select_multiple = false
 	source_player_id = -1
+	dongshilang_ice_character_action_cancel_once = false

@@ -31,7 +31,9 @@ class StrikeStatBoosts:
 	var ignore_armor : bool = false
 	var ignore_guard : bool = false
 	var ignore_push_and_pull : bool = false
+	var heiqiyihu_prevent_opponent_moving_me : bool = false
 	var cannot_move_if_in_opponents_range : bool = false
+	var convert_advance_to_close : bool = false
 	var cannot_stun : bool = false
 	var deal_nonlethal_damage : bool = false
 	var always_add_to_gauge : bool = false
@@ -167,7 +169,9 @@ class StrikeStatBoosts:
 		ignore_armor = false
 		ignore_guard = false
 		ignore_push_and_pull = false
+		heiqiyihu_prevent_opponent_moving_me = false
 		cannot_move_if_in_opponents_range = false
+		convert_advance_to_close = false
 		cannot_stun = false
 		deal_nonlethal_damage = false
 		always_add_to_gauge = false
@@ -271,6 +275,8 @@ var card_database
 var my_id : Enums.PlayerId
 var name : String
 var life : int
+var heiqiyihu_thresholds_used : Array[int] = []
+var heiqiyihu_skip_hand_limit_this_turn : bool = false
 var life_cap : int
 var hand : Array[GameCard]
 var deck : Array[GameCard]
@@ -299,6 +305,7 @@ var renea_pre_strike_response : bool = false
 var renea_boost_from_briefcase_used : bool
 var renea_facedown_revealed : bool
 var renea_fd_pending : Array
+var dongshilang_opening_ice_setup_done : bool
 var umina_dreamlands_facedown : bool
 var umina_revealed_dreamlands_ids : Array = []
 var umina_facedown_hand_dreamlands_id : int = -1
@@ -325,8 +332,8 @@ var double_true_face_stacks : int
 var double_nightmare_army_stacks : int
 var double_illusion_original_definition
 var soifon_shunko_spent_this_strike : int
-var yamamoto_pressure_protected_card_id : int = -1
-var yamamoto_block_boost_movement : bool = false
+var yuanliuzhai_pressure_protected_ids : Array[int] = []
+var yuanliuzhai_blocked_boost_ids : Array[int] = []
 var cleanup_boost_to_gauge_cards : Array
 var cleanup_boost_to_bleach_cards : Array
 var boosts_to_gauge_on_move : Array
@@ -570,6 +577,7 @@ func _init(id, player_name, parent_ref, card_db_ref, chosen_deck, card_start_id)
 	renea_boost_from_briefcase_used = false
 	renea_facedown_revealed = false
 	renea_fd_pending = []
+	dongshilang_opening_ice_setup_done = false
 	umina_dreamlands_facedown = false
 	umina_revealed_dreamlands_ids = []
 	umina_facedown_hand_dreamlands_id = -1
@@ -588,8 +596,8 @@ func _init(id, player_name, parent_ref, card_db_ref, chosen_deck, card_start_id)
 	double_nightmare_army_stacks = 0
 	double_illusion_original_definition = null
 	soifon_shunko_spent_this_strike = 0
-	yamamoto_pressure_protected_card_id = -1
-	yamamoto_block_boost_movement = false
+	yuanliuzhai_pressure_protected_ids = []
+	yuanliuzhai_blocked_boost_ids = []
 	syrus_dredge_fury_spent_ids = []
 	mulligan_complete = false
 	reading_card_id = ""
@@ -1940,7 +1948,26 @@ func get_gauge_card_force_value_for(card_id : int) -> int:
 		return max(value, override_value)
 	return max(value, get_gauge_card_force_value())
 
+func is_heiqiyihu_guardian_resource(card_id : int) -> bool:
+	return deck_def.get("id", "") == "heiqiyihu" and exceeded and is_card_in_bleach(card_id)
+
+func validate_heiqiyihu_payment(card_ids : Array, gauge_only : bool = false) -> bool:
+	if deck_def.get("id", "") != "heiqiyihu":
+		return true
+	var seen = {}
+	for card_id in card_ids:
+		if seen.has(card_id) or not (
+			is_card_in_gauge(card_id) or is_heiqiyihu_guardian_resource(card_id)
+			or (not gauge_only and is_card_in_hand(card_id))
+		):
+			parent.printlog("ERROR: Invalid or duplicate Heiqiyihu resource payment.")
+			return false
+		seen[card_id] = true
+	return true
+
 func get_force_with_cards(card_ids : Array, reason : String, treat_ultras_as_single_force : bool, use_free_force : bool):
+	if not validate_heiqiyihu_payment(card_ids):
+		return 0
 	var force_generated = force_cost_reduction
 	if use_free_force:
 		force_generated += free_force
@@ -2000,6 +2027,8 @@ func get_gauge_from_spent_life(spent_life_for_gauge : int):
 	return 0
 
 func can_pay_cost_with(card_ids : Array, force_cost : int, gauge_cost : int, use_free_force : bool, spent_life_for_force : int, alternative_life_cost : int = 0, spent_life_for_gauge : int = 0):
+	if not validate_heiqiyihu_payment(card_ids, gauge_cost > 0):
+		return false
 	if alternative_life_cost and life > alternative_life_cost and card_ids.size() == 0:
 		return true
 	if force_cost and gauge_cost:
@@ -2008,7 +2037,8 @@ func can_pay_cost_with(card_ids : Array, force_cost : int, gauge_cost : int, use
 	elif force_cost:
 		var force_generated = get_force_with_cards(card_ids, "GENERIC_PAY_FORCE_COST", false, use_free_force)
 		for card_id in card_ids:
-			if not is_card_in_hand(card_id) and not is_card_in_gauge(card_id) and not (deck_def.get("id") == "soifon" and is_card_in_bleach(card_id)):
+			if not is_card_in_hand(card_id) and not is_card_in_gauge(card_id) \
+			and not is_heiqiyihu_guardian_resource(card_id) and not (deck_def.get("id") == "soifon" and is_card_in_bleach(card_id)):
 				assert(false)
 				parent.printlog("ERROR: Card not in hand or gauge")
 				return false
@@ -2025,6 +2055,8 @@ func can_pay_cost_with(card_ids : Array, force_cost : int, gauge_cost : int, use
 				# 枪灵：怒气区的这张卡可以当作 2 点怒气使用。
 				gauge_generated += get_gauge_payment_value(card_id)
 			elif deck_def.get("id") == "soifon" and exceeded and is_card_in_bleach(card_id):
+				gauge_generated += 1
+			elif is_heiqiyihu_guardian_resource(card_id):
 				gauge_generated += 1
 			elif can_seal_transforms and is_card_in_transforms(card_id):
 				gauge_generated += 1
@@ -2076,6 +2108,7 @@ func can_boost_something(valid_zones : Array, limitation : String, ignore_costs 
 		"gauge": gauge,
 		"discard": discards,
 		"extra": set_aside_cards,
+		"bleach": bleach_zone,
 		"deck": deck
 	}
 
@@ -2084,7 +2117,10 @@ func can_boost_something(valid_zones : Array, limitation : String, ignore_costs 
 	var umina_sd_target = umina_sd_opponent.get_umina_spiraling_target() if umina_sd_opponent != null else ""
 
 	for zone in valid_zones:
-		for card in zone_map[zone]:
+		var cards_in_zone = zone_map.get(zone, [])
+		for card in cards_in_zone:
+			if card.definition["boost"].get("reaction_only", false):
+				continue
 			if card.definition['boost']['boost_type'] in ["transform", "overload", "none"] and limitation != "transform":
 				continue
 
@@ -2122,7 +2158,9 @@ func can_boost_something(valid_zones : Array, limitation : String, ignore_costs 
 
 			if ignore_costs:
 				return true
-			var force_available_when_boosting_this = force_available - parent.card_db.get_card_force_value(card.id)
+			var force_available_when_boosting_this = force_available
+			if zone == "hand" or zone == "gauge":
+				force_available_when_boosting_this -= parent.card_db.get_card_force_value(card.id)
 			var cost = parent.card_db.get_card_boost_force_cost(card.id)
 			if force_available_when_boosting_this >= cost:
 				return true
@@ -2163,6 +2201,23 @@ func has_card_name_in_zone(card : GameCard, zone : String):
 		return match_count > threshold
 	return match_count > 0
 
+func get_boost_cancel_cost(card : GameCard) -> int:
+	if card == null:
+		return -1
+	if deck_def.get("id", "") == "heiqiyihu" and exceeded \
+			and card.definition.get("type", "") in ["special", "ultra"] \
+			and card.definition.get("boost", {}).get("boost_type", "") in ["continuous", "immediate"]:
+		# This grants a normal boost cancel, not a cancel during a strike or
+		# between a mandatory boost -> strike chain.
+		if parent.active_strike or strike_on_boost_cleanup or wild_strike_on_boost_cleanup or cancel_blocked_this_turn:
+			return -1
+		var resolving_boost = parent.active_boost
+		if resolving_boost and resolving_boost.card == card and resolving_boost.playing_player == self:
+			if resolving_boost.strike_after_boost or (resolving_boost.boost_negated and not resolving_boost.allow_cancel_after_negate):
+				return -1
+		return 1
+	return card.definition["boost"]["cancel_cost"]
+
 func can_cancel(card : GameCard):
 	if strike_on_boost_cleanup or wild_strike_on_boost_cleanup or cancel_blocked_this_turn:
 		return false
@@ -2170,7 +2225,7 @@ func can_cancel(card : GameCard):
 		return false
 
 	var available_gauge = get_available_gauge()
-	var cancel_cost = card.definition['boost']['cancel_cost']
+	var cancel_cost = get_boost_cancel_cost(card)
 	if cancel_cost == -1: return false
 	if available_gauge < cancel_cost: return false
 	return true
@@ -2597,6 +2652,8 @@ func move_cards_to_overdrive(card_ids : Array, source : String):
 				on_hand_remove_public_card(card_id)
 			"gauge":
 				source_array = gauge
+			"bleach":
+				source_array = bleach_zone
 			"discard":
 				source_array = discards
 			"deck":
@@ -2850,6 +2907,7 @@ func spend_life(amount):
 		# Assumption: No choices at this timing.
 		for effect in on_spend_life_effects:
 			parent.do_effect_if_condition_met(self, effect["card_id"], effect, null)
+	parent._queue_heiqiyihu_thresholds(self)
 
 func invalidate_card(card : GameCard, invalid_by_choice : bool = false):
 	invalid_card_moved_elsewhere = false
@@ -2970,6 +3028,9 @@ func get_available_force():
 		force += get_gauge_card_force_value_for(card.id)
 	if deck_def.get("id") == "soifon":
 		force += bleach_zone.size()
+	if deck_def.get("id") == "heiqiyihu" and exceeded:
+		for card in bleach_zone:
+			force += card_database.get_card_force_value(card.id)
 	if deck_def.get("id") == "minato" and not exceeded:
 		force += discards.size()
 	force += get_force_from_spent_life(life)
@@ -2978,6 +3039,8 @@ func get_available_force():
 func get_available_gauge():
 	var available_gauge = free_gauge
 	if deck_def.get("id") == "soifon" and exceeded:
+		available_gauge += bleach_zone.size()
+	if deck_def.get("id") == "heiqiyihu" and exceeded:
 		available_gauge += bleach_zone.size()
 	for card in gauge:
 		# 怒气区可能残留已被释放的卡对象（测试桩固定 id 与自动 id 撞车时会 free 旧卡），
@@ -2990,8 +3053,6 @@ func get_available_gauge():
 	return available_gauge
 
 func can_move_to(new_arena_location, ignore_force_req : bool):
-	if yamamoto_block_boost_movement and parent.active_boost:
-		return false
 	if cannot_move: return false
 	if new_arena_location == arena_location: return false
 	if (new_arena_location - extra_width < Enums.MinArenaLocation) or (new_arena_location + extra_width > Enums.MaxArenaLocation): return false
@@ -3066,10 +3127,21 @@ func on_position_changed(old_pos, buddy_old_pos, is_self_move):
 		if is_in_location(buddy_old_pos, old_pos):
 			handle_on_buddy_boosts(false)
 
+func _heiqiyihu_blocks_opponent_movement(is_self_move : bool = true) -> bool:
+	if not parent.active_strike or not strike_stat_boosts.heiqiyihu_prevent_opponent_moving_me:
+		return false
+	if is_self_move and parent._last_effect_source_player_id != parent.get_other_player(my_id):
+		return false
+	parent._append_log_full(Enums.LogType.LogType_CharacterMovement, self, "静血装：对手不能移动你。")
+	parent.create_event(Enums.EventType.EventType_Strike_IgnoredPushPull, my_id, 0)
+	return true
+
 func move_in_direction_by_amount(go_left : bool, amount : int, stop_at_opponent : bool, stop_on_space : int,
 	movement_type : String, is_self_move : bool = true, remove_my_buddies_encountered : int = 0,
 	set_x_to_buddy_spaces_entered : bool = false, stop_after_passing_opponent : bool = false
 ):
+	if _heiqiyihu_blocks_opponent_movement(is_self_move):
+		return
 	var direction = -1 if go_left else 1
 	var other_player = parent._get_player(parent.get_other_player(my_id))
 
@@ -3252,6 +3324,8 @@ func move_in_direction_by_amount(go_left : bool, amount : int, stop_at_opponent 
 				break
 
 func move_to(new_location, ignore_restrictions=false, remove_buddies_encountered : int = 0):
+	if _heiqiyihu_blocks_opponent_movement():
+		return
 	if arena_location == new_location:
 		return
 
@@ -3704,6 +3778,8 @@ func remove_from_continuous_boosts(card : GameCard, destination : String = "disc
 	var discards_to_sealed = card.definition["boost"].get("discards_to_sealed")
 	if discards_to_sealed:
 		destination = "sealed"
+	if _should_dongshilang_ice_return_to_bleach(card):
+		destination = "bleach"
 
 	do_discarded_effects_for_boost(card, destination == StrikeEffects.Strike)
 
@@ -3735,6 +3811,9 @@ func remove_from_continuous_boosts(card : GameCard, destination : String = "disc
 			continuous_boosts.remove_at(i)
 			break
 	_recalc_zsolt_pool()
+
+func _should_dongshilang_ice_return_to_bleach(card : GameCard) -> bool:
+	return deck_def.get("id", "") == "dongshilang" and card.definition.get("type", "") == "ice_crystal"
 
 func _recalc_zsolt_pool():
 	# Recalculate zsolt_force_pool from active continuous boosts.
@@ -3814,6 +3893,7 @@ func on_cancel_boost():
 	canceled_this_turn = true
 
 func do_discarded_effects_for_boost(card : GameCard, keep_arena_boost : bool = false):
+	yuanliuzhai_blocked_boost_ids.erase(card.id)
 	for effect in card.definition['boost']['effects']:
 		if effect['timing'] == "discarded":
 			var owner_player = parent._get_player(card.owner_id)
@@ -3841,7 +3921,11 @@ func cleanup_continuous_boosts():
 	var sustained_cards : Array[GameCard] = []
 	for boost_card in continuous_boosts:
 		var sustained = false
-		if boost_card.id in cleanup_boost_to_gauge_cards:
+		if _should_dongshilang_ice_return_to_bleach(boost_card):
+			add_to_bleach(boost_card)
+			var dongshilang_card_name = parent.card_db.get_card_name(boost_card.id)
+			parent._append_log_full(Enums.LogType.LogType_CardInfo, self, "东狮郎冰晶牌%s离开加成区后回到%s。" % [parent._log_card_name(dongshilang_card_name), get_bleach_zone_name()])
+		elif boost_card.id in cleanup_boost_to_gauge_cards:
 			add_to_gauge(boost_card)
 			var card_name = parent.card_db.get_card_name(boost_card.id)
 			parent._append_log_full(Enums.LogType.LogType_CardInfo, self, "将加成牌%s加入怒。" % parent._log_card_name(card_name))
@@ -3878,6 +3962,9 @@ func cleanup_continuous_boosts():
 func force_opponent_respond_wild_swing() -> bool:
 	if opponent_next_strike_forced_wild_swing:
 		opponent_next_strike_forced_wild_swing = false
+		return true
+
+	if parent._heiqiyihu_virtual_forces_wild(self):
 		return true
 
 	for boost_card in continuous_boosts:

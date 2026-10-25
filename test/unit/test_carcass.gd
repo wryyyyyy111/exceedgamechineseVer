@@ -542,9 +542,8 @@ func test_sg88_discard_boost_pays_off_with_powerup_six():
 	# 活体大炮「前置」：弃掉自己场上 1 张持续性加成 → 威力+6（参考 Trinity 的 5 速特殊技）
 	position_players(player1, 3, player2, 6)
 	var boost_id = give_player_specific_card(player1, "carcass_sg88")
-	var boost_card = game_logic.get_card_database().get_card(boost_id)
-	player1.add_to_continuous_boosts(boost_card)
-	player1.hand.erase(boost_card)
+	assert_true(game_logic.do_boost(player1, boost_id))
+	advance_turn(player2)
 
 	var effect = null
 	for e in _custom_card("carcass_living_cannon")["effects"]:
@@ -552,15 +551,20 @@ func test_sg88_discard_boost_pays_off_with_powerup_six():
 			effect = e
 	assert_true(effect != null, "前置：应找到 discard_continuous_boost 效果")
 
-	game_logic.handle_strike_effect(-1, effect, player1)
+	execute_strike(player1, player2, "carcass_living_cannon", "standard_normal_grasp",
+		false, false, [], [], true)
+	assert_eq(game_logic.get_current_strike_timing(), "before")
+	assert_eq(game_logic.decision_info.player, player1.my_id)
 	assert_eq(game_logic.decision_info.type,
 		Enums.DecisionType.DecisionType_ChooseDiscardContinuousBoost, "应弹出选择弃哪张加成")
 	assert_true(game_logic.decision_info.can_pass, "required=false 时应可以略过")
 	assert_eq(game_logic.decision_info.limitation, "mine")
 
 	assert_true(game_logic.do_boost_name_card_choice_effect(player1, boost_id), "选自己的加成弃置")
-	assert_eq(player1.strike_stat_boosts.power, 6, "弃置加成应使威力+6")
+	assert_eq(player2.life, 24, "印刷威力0加6，实际造成6伤害")
 	assert_eq(player1.get_boosts(true).size(), 0, "被弃的持续性加成应离开场上")
+	assert_true(player1.is_card_in_discards(boost_id))
+	assert_null(game_logic.active_strike)
 
 
 # ===== 弹药哥布林：摸至多 2 张（可选 0~2）=====
@@ -590,6 +594,9 @@ func test_grenade_boost_draws_exactly_the_chosen_number():
 
 func test_stg_headshot_pays_six_gauge_for_sixty_six_power():
 	position_players(player1, 4, player2, 6)
+	var boost_id = give_player_specific_card(player1, "carcass_gunfire")
+	assert_true(game_logic.do_boost(player1, boost_id))
+	advance_turn(player2)
 	var gauge_ids = give_gauge(player1, 6)
 	var effect = null
 	for e in _custom_card("carcass_gunfire")["boost"]["effects"]:
@@ -598,16 +605,29 @@ func test_stg_headshot_pays_six_gauge_for_sixty_six_power():
 	assert_true(effect != null, "前置：应找到 S.T.G. 的 gauge_for_effect")
 	assert_eq(effect.get("gauge_max"), 6, "需要支付 6 怒气")
 
-	game_logic.change_game_state(Enums.GameState.GameState_PlayerDecision)
-	game_logic.decision_info.clear()
-	game_logic.decision_info.player = player1.my_id
-	game_logic.decision_info.type = Enums.DecisionType.DecisionType_GaugeForEffect
-	game_logic.decision_info.choice_card_id = -1
-	game_logic.decision_info.effect = effect
+	# After setting this attack exactly 2 cards remain, so distance 2 is a real headshot.
+	player1.discard_hand()
+	give_player_specific_card(player1, "standard_normal_block")
+	give_player_specific_card(player1, "standard_normal_block")
+	execute_strike(player1, player2, "standard_normal_cross", "standard_normal_focus",
+		false, false, [], [], true)
+	assert_eq(game_logic.get_current_strike_timing(), "hit")
+	assert_eq(game_logic.decision_info.player, player1.my_id)
+	# UA power+1 and S.T.G. are independently sortable Hit effects.
+	while game_logic.decision_info.type == Enums.DecisionType.DecisionType_ChooseSimultaneousEffect:
+		assert_true(game_logic.do_choice(player1, 0))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_GaugeForEffect)
+	assert_eq(game_logic.decision_info.effect["gauge_max"], 6)
 
 	assert_true(game_logic.do_gauge_for_effect(player1, gauge_ids), "付 6 怒气应成功结算")
-	assert_eq(player1.strike_stat_boosts.power, 66, "爆头应使威力+66")
+	assert_eq(player1.strike_stat_boosts.power, 67, "S.T.G. +66和常态爆头+1各一次")
+	assert_eq(player2.life, -38, "印刷威力3 + 67 - 专注护甲2 = 68伤害")
+	validate_has_event(game_logic.get_latest_events(), Enums.EventType.EventType_Strike_TookDamage, player2, 68)
+	assert_true(game_logic.game_over)
+	assert_eq(game_logic.game_over_winning_player.my_id, player1.my_id)
 	assert_eq(player1.gauge.size(), 0, "6 张怒气应被支付掉")
+	for id in gauge_ids:
+		assert_true(player1.is_card_in_discards(id))
 
 
 # ===== 守望：对手不能穿越我（参考杰弗里 3G 神圣裁决）=====

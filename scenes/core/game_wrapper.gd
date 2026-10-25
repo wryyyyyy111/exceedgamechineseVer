@@ -113,6 +113,87 @@ func _test_add_to_gauge(amount):
 func _get_player(id):
 	return current_game._get_player(id)
 
+func _guardian_rules_game() -> LocalGame:
+	return current_game.local_game if current_game is RemoteGame else current_game
+
+func strike_needs_guardian_declaration() -> bool:
+	var rules = _guardian_rules_game()
+	return rules != null and not rules.game_over and rules.active_strike == null \
+		and rules.game_state in [Enums.GameState.GameState_PickAction, Enums.GameState.GameState_WaitForStrike] \
+		and rules._has_heiqiyihu_guardian_option()
+
+func get_guardian_effect_for_display(effect: Dictionary) -> Dictionary:
+	var rules = _guardian_rules_game()
+	if rules == null or rules.active_strike == null:
+		return effect
+	var source_id = effect.get("card_id", -1)
+	var record = rules._get_heiqiyihu_virtual_guardian(source_id)
+	if record.is_empty() or rules.card_db.get_card(source_id).definition["type"] != "special":
+		return effect
+	if effect.get("effect_type") not in [
+		StrikeEffects.Powerup, StrikeEffects.Guardup, StrikeEffects.Speedup,
+		StrikeEffects.Draw, StrikeEffects.MoveToAnySpace, StrikeEffects.Rangeup
+	]:
+		return effect
+	var display_effect = effect.duplicate(true)
+	display_effect.erase("override_description")
+	return display_effect
+
+func get_player_virtual_guardian_summary(player_id: Enums.PlayerId) -> Array:
+	var summaries = []
+	var rules = _guardian_rules_game()
+	if rules == null or rules.active_strike == null:
+		return summaries
+
+	for record in rules.active_strike.heiqiyihu_guardian_records:
+		if record["player"] != player_id:
+			continue
+		var boost = rules._get_heiqiyihu_guardian_boost(record)
+		if boost["boost_type"] != "continuous":
+			continue
+		for original_effect in boost["effects"]:
+			if original_effect.get("timing", "") in ["now", "immediate", "discarded", "start_of_next_turn"] \
+			or original_effect.get("hide_effect", false) or original_effect.get("hide_in_boost_summary", false):
+				continue
+			var effect = original_effect.duplicate(true)
+			effect["card_id"] = record["source_id"]
+			var text = GameStrings.get_effect_text(get_guardian_effect_for_display(effect))
+			summaries.append({"override_description": "守护 · %s：%s" % [boost["display_name"], text]})
+	return summaries
+
+func get_played_guardian_summary(player_id: Enums.PlayerId, records: Array, paid_huhuan_players: Array) -> Array:
+	var summaries = []
+	for record in records:
+		if record["player"] != player_id:
+			continue
+		var source = get_card_database().get_card(record["source_id"])
+		var boost = record["boost"]
+		if boost["boost_type"] != "continuous":
+			continue
+		var is_special = source.definition["type"] == "special"
+		var bonus = 1 + int(player_id in paid_huhuan_players) if is_special else 0
+		for original_effect in boost["effects"]:
+			if original_effect.get("timing", "") in ["now", "immediate", "discarded", "start_of_next_turn"] \
+			or original_effect.get("hide_effect", false) or original_effect.get("hide_in_boost_summary", false):
+				continue
+			var effect = original_effect.duplicate(true)
+			if is_special:
+				match effect.get("effect_type"):
+					StrikeEffects.Powerup, StrikeEffects.Guardup, StrikeEffects.Speedup, StrikeEffects.Draw:
+						effect["amount"] += bonus
+						effect.erase("override_description")
+					StrikeEffects.MoveToAnySpace:
+						effect["move_max"] += bonus
+						effect.erase("override_description")
+					StrikeEffects.Rangeup:
+						effect["amount"] += bonus
+						effect["amount2"] += bonus
+						effect.erase("override_description")
+			summaries.append({"override_description": "守护 · %s：%s" % [
+				boost["display_name"], GameStrings.get_effect_text(effect)
+			]})
+	return summaries
+
 func get_game_state() -> Enums.GameState:
 	return current_game.get_game_state()
 
@@ -568,12 +649,14 @@ func can_player_boost(player_id : Enums.PlayerId,
 		"gauge": is_card_in_gauge,
 		"discard": is_card_in_discards,
 		"extra": is_card_set_aside,
+		"bleach": is_card_in_bleach,
 		"deck": is_card_in_deck
 	}
 
 	var in_valid_zone = false
 	for zone in valid_zones:
-		if zone_func_map[zone].call(player_id, card_id):
+		var zone_func = zone_func_map.get(zone)
+		if zone_func and zone_func.call(player_id, card_id):
 			in_valid_zone = true
 	if not in_valid_zone:
 		return false
@@ -597,6 +680,8 @@ func can_player_boost(player_id : Enums.PlayerId,
 				return false
 	if card.definition['type'] == "decree_glorious" and not is_player_exceeded(player_id):
 		return false
+	if card.definition["boost"].get("reaction_only", false):
+		return false
 	if card.definition['boost']['boost_type'] in ["transform", "overload", "none"] and limitation != "transform":
 		return false
 
@@ -614,7 +699,9 @@ func can_player_boost(player_id : Enums.PlayerId,
 		var gauge_available = get_player_available_gauge(player_id) - boosting_card_gauge_value
 		return gauge_cost <= gauge_available
 	else:
-		var boosting_card_force_value = card_db.get_card_force_value(card_id)
+		var boosting_card_force_value = 0
+		if is_card_in_hand(player_id, card_id) or is_card_in_gauge(player_id, card_id):
+			boosting_card_force_value = card_db.get_card_force_value(card_id)
 		var force_available = get_player_available_force(player_id) - boosting_card_force_value
 		return force_cost <= force_available
 
@@ -693,6 +780,16 @@ func submit_reshuffle(player : Enums.PlayerId) -> bool:
 func submit_choice(player : Enums.PlayerId, choice_index : int) -> bool:
 	var game_player = _get_player(player)
 	return current_game.do_choice(game_player, choice_index)
+
+func get_player_boost_cancel_cost(player_id : Enums.PlayerId, card_id : int) -> int:
+	var game_player = _get_player(player_id)
+	var card = current_game.get_card_database().get_card(card_id)
+	if game_player.strike_on_boost_cleanup or game_player.wild_strike_on_boost_cleanup:
+		return -1
+	return game_player.get_boost_cancel_cost(card)
+
+func can_player_cancel_boost(player_id : Enums.PlayerId, card_id : int) -> bool:
+	return _get_player(player_id).can_cancel(current_game.get_card_database().get_card(card_id))
 
 func submit_boost_cancel(player : Enums.PlayerId, gauge_card_ids : Array, doing_cancel : bool) -> bool:
 	var game_player = _get_player(player)

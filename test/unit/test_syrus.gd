@@ -262,23 +262,30 @@ func _syrus_state_after_symphony(seed_value : int) -> Array:
 	g.draw_starting_hands_and_begin()
 	g.do_mulligan(g.player, [])
 	g.do_mulligan(g.opponent, [])
-	# 两边完全相同地准备弃牌堆（5 张普通技）+ 手牌 2 张
+	# Ten eligible discards force the seeded selection to choose a real subset of five.
 	var p = g.player
-	var ids = [11001, 11002, 11003, 11004, 11005]
-	p.discards = []
+	var ids = [11001, 11002, 11003, 11004, 11005, 11006, 11007, 11008, 11009, 11010]
+	p.discards.clear()
 	var db = g.get_card_database()
-	for i in range(5):
+	for i in range(ids.size()):
 		var card_def = CardDataManager.get_card("standard_normal_spike")
 		var card = GameCard.new(ids[i], card_def, p.my_id)
 		db._test_insert_card(card)
 		p.discards.append(card)
 	p.hand = p.hand.slice(0, 2)
+	var original_hand = p.hand.map(func(card): return card.id)
 	g.handle_strike_effect(-1, {"effect_type": "syrus_return_to_hand_until_7"}, p)
+	assert_eq(p.hand.size(), 7)
+	assert_eq(p.discards.size(), 5)
 	var returned = []
 	for card in p.hand:
+		assert_true(card.id in original_hand or card.id in ids)
+		assert_false(p.is_card_in_discards(card.id), "A returned card must leave its source zone.")
 		returned.append(card.id)
 	returned.sort()
-	loader.free()
+	assert_eq(returned.size(), 7)
+	g.teardown() # Also owns the test-mode loader.
+	g.free()
 	return returned
 
 
@@ -303,4 +310,11 @@ func test_symphony_picks_are_identical_for_the_same_seed():
 	# 联机不同步的回归：同一 seed 的两局必须取到完全相同的牌
 	var a = _syrus_state_after_symphony(24680)
 	var b = _syrus_state_after_symphony(24680)
+	assert_not_null(a)
+	assert_not_null(b)
+	assert_eq(a.size(), 7)
+	assert_eq(b.size(), 7)
 	assert_eq(a, b, "同一 seed 下取牌结果必须一致（否则联机双方会分叉）")
+	var c = _syrus_state_after_symphony(24681)
+	assert_eq(c.size(), 7)
+	assert_ne(a, c, "This fixture must actually exercise a seeded subset, not compare Nil or all cards.")

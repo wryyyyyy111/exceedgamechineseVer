@@ -6,6 +6,14 @@
 	],
 	"tier": [
 		{
+			"character": "heiqiyihu",
+			"tier": "A+"
+		},
+		{
+			"character": "yuanliuzhai",
+			"tier": "A+"
+		},
+		{
 			"character": "akuma",
 			"tier": "S-",
 			"real_tier": "真实在A+,hprank特化,所以是S-的对手匹配血量后,自身再+2"
@@ -93,6 +101,10 @@
 		{
 			"character": "devis",
 			"tier": "S+"
+		},
+		{
+			"character": "dongshilang",
+			"tier": "A+"
 		},
 		{
 			"character": "emogine",
@@ -320,7 +332,7 @@
 		},
 		{
 			"character": "potemkin",
-			"tier": "A"
+			"tier": "A+"
 		},
 		{
 			"character": "propeller",
@@ -708,7 +720,6 @@
 			"character": "galdred",
 			"hp": "+1"
 		},
-
 		{
 			"character": "akuma",
 			"hp": "+2",

@@ -1,0 +1,57 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/menu/rules_hint_overlay.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/ui_art/brief_rules.png" id="2_image"]
+
+[node name="RulesHintOverlay" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_script")
+
+[node name="OverlayLayer" type="CanvasLayer" parent="."]
+layer = 128
+visible = false
+
+[node name="BackgroundButton" type="Button" parent="OverlayLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_default_cursor_shape = 0
+flat = true
+
+[node name="Shade" type="ColorRect" parent="OverlayLayer/BackgroundButton"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.75)
+
+[node name="ImageView" type="TextureRect" parent="OverlayLayer"]
+mouse_filter = 0
+texture = ExtResource("2_image")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CloseHotspot" type="Button" parent="OverlayLayer/ImageView"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.925
+anchor_right = 1.0
+anchor_bottom = 0.13
+tooltip_text = "关闭"
+focus_mode = 0
+flat = true
+
+[connection signal="pressed" from="OverlayLayer/BackgroundButton" to="." method="hide"]
+[connection signal="pressed" from="OverlayLayer/ImageView/CloseHotspot" to="." method="hide"]

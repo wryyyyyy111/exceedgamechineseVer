@@ -20,7 +20,7 @@ const MatchQueueItemScene = preload("res://scenes/menu/match_queue_item.tscn")
 const CardPopoutScene = preload("res://scenes/game/card_popout.tscn")
 const CardBaseScene = preload("res://scenes/card/card_base.tscn")
 const CharSelectScenePath = "res://scenes/menu/char_select.tscn"
-const TierlistImageUrl = "https://cdn.exceedcntyd.com/decks_official/tierlist/chinese2610v4simple.png"
+const TierlistImageUrl = "https://cdn.exceedcntyd.com/decks_official/tierlist/chinese2610v5simple.png"
 #? const TierlistImageUrl = "https://cdn.exceedcntyd.com/decks_official/tierlist/chinese2610v4.png"
 const BackgroundManager = preload("res://globals/game_background_manager.gd")
 const MatchAvailableAudioPath = "res://assets/sounds/match_available.mp3"
@@ -222,6 +222,7 @@ func _set_nodes_visible(node_paths : Array, visible_state : bool) -> void:
 func _hide_hub_pages() -> void:
 	_set_nodes_visible([
 		^"PlayerChooser", ^"PlayerNameBox", ^"UpdateNameButton", ^"PlayerSkinPanel", ^"ViewCardsButton",
+		^"RulesHintButton", ^"RulesHintOverlay",
 		^"MenuList", ^"CancelButton", ^"Queues", ^"HpRankModeLabel", ^"HpRankModeQuickJoinButton", ^"HpRankModeStatusLabel", ^"PlayerListContainer", ^"RoomListContainer",
 		^"PlayerListLabel", ^"PlayerList", ^"ReconnectToServerButton", ^"TextEdit2",
 		^"CustomsBrowserButton", ^"AIBox", ^"TierListDialog", ^"PreferencesWindow"
@@ -229,6 +230,11 @@ func _hide_hub_pages() -> void:
 
 func _update_customs_browser_visibility() -> void:
 	$CustomsBrowserButton.visible = not hide_customs_browser and _active_hub_page == "hub"
+	var tool_buttons : Array[Button] = [$CustomsBrowserButton, $RulesHintButton, $LoadReplayButton, $tierlistbutton]
+	var default_positions := [500.0, 480.0, 546.0, 592.0]
+	for index in range(tool_buttons.size()):
+		tool_buttons[index].position.y = default_positions[index] if hide_customs_browser else 480.0 + index * 42.0
+		tool_buttons[index].size.y = 40.0 if hide_customs_browser else 36.0
 	$MainNavigation/CommunityEntry.visible = not hide_customs_browser
 
 func _show_main_hub() -> void:
@@ -238,7 +244,7 @@ func _show_main_hub() -> void:
 		^"PlayerGroupPanel", ^"BattleGroupPanel", ^"OnlineGroupPanel",
 		^"PlayerSectionLabel", ^"PlayerChooser",
 		^"PlayerNameBox", ^"UpdateNameButton", ^"PlayerSkinPanel", ^"ViewCardsButton",
-		^"LoadReplayButton", ^"tierlistbutton", ^"SettingsButton",
+		^"RulesHintButton", ^"LoadReplayButton", ^"tierlistbutton", ^"SettingsButton",
 		^"AIBox", ^"MenuList", ^"Queues", ^"HpRankModeLabel", ^"HpRankModeQuickJoinButton", ^"HpRankModeStatusLabel", ^"PlayerListContainer", ^"RoomListContainer",
 		^"PlayerListLabel", ^"PlayerList", ^"ReconnectToServerButton", ^"TextEdit2"
 	], true)
@@ -1524,6 +1530,8 @@ func _get_reference_buddy_graphics(deck_def) -> Array:
 	var buddy_graphics = []
 	if deck_def.get('hide_buddy_reference'):
 		return buddy_graphics
+	if deck_def.get('no_buddy_card_graphics', false):
+		return buddy_graphics
 	if 'buddy_card' in deck_def:
 		buddy_graphics.append(deck_def['buddy_card'])
 		# 主页面参考卡中，单 buddy 角色即使有 buddy_exceeds 也只展示 1 张 buddy。
@@ -1537,6 +1545,7 @@ func _get_reference_buddy_graphics(deck_def) -> Array:
 			if 'buddy_exceeds' in deck_def and deck_def['buddy_exceeds']:
 				buddy_graphics.append(buddy_card + "_exceeded")
 	return buddy_graphics
+
 
 func _count_unique_reference_buddy_graphics(buddy_graphics : Array) -> int:
 	var created_buddy_cards = []

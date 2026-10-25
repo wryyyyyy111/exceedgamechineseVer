@@ -264,14 +264,14 @@ func test_skin_animation_stays_on_skin_resource_after_exceed():
 	if not skin_deck:
 		return
 
-	character_preview.load_character(null, skin_deck, skin_deck["id"])
+	await character_preview.load_character(null, skin_deck, skin_deck["id"])
 	var scale_before_exceed = character_preview.scale
 	assert_eq(
 		character_preview.animation.sprite_frames.get_frame_texture("idle", 0).resource_path,
 		CarlswangeeSkinAnimationTexturePath,
 	)
 
-	character_preview.set_exceed(true, null, skin_deck, skin_deck["exceed_animation"])
+	await character_preview.set_exceed(true, null, skin_deck, skin_deck["exceed_animation"])
 	assert_true(character_preview.exceed_icon.visible)
 	assert_eq(character_preview.scale, scale_before_exceed)
 	assert_eq(

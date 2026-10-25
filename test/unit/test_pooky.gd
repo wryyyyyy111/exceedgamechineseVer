@@ -127,6 +127,8 @@ func test_pooky_3_skin_uses_s2_style_split_card_grids():
 	}
 	loader.load_image_page_indexed(atlas_data, 7)
 	await loader.get_card_image(image_url, 7, atlas_data)
+	# Resume outside the loader's signal stack before GUT frees this child.
+	await get_tree().process_frame
 	assert_eq(loader.loaded_images[image_url].size(), 8)
 	assert_not_null(loader.loaded_images[image_url][7])
 	loader.teardown()
@@ -247,7 +249,8 @@ func test_pooky_exceeded_stunned_death_triggers_immediate_game_over():
 	player1.exceed()
 	player1.life = 3
 
-	var events = execute_strike(player1, player2, "standard_normal_block", "standard_normal_sweep", false, false, [[]], [], false)
+	execute_strike(player1, player2, "standard_normal_block", "standard_normal_sweep", false, false, [[]], [], false)
+	var events = game_logic.get_latest_events()
 
 	assert_true(game_logic.game_over)
 	assert_eq(game_logic.game_state, Enums.GameState.GameState_GameOver)

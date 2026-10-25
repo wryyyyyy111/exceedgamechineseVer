@@ -389,6 +389,13 @@ func get_prepare_actions():
 		return []
 	return [PrepareAction.new()]
 
+func _guardian_payment_ids() -> Array:
+	var ids = []
+	for card in game_player.bleach_zone:
+		if game_player.is_heiqiyihu_guardian_resource(card.id):
+			ids.append(card.id)
+	return ids
+
 func get_move_actions():
 	var possible_move_actions = []
 	var available_force = game_player.get_available_force()
@@ -409,6 +416,7 @@ func get_move_actions():
 				all_force_option_ids.append(card.id)
 			for card in game_player.gauge:
 				all_force_option_ids.append(card.id)
+			all_force_option_ids.append_array(_guardian_payment_ids())
 			var combinations = generate_force_combinations(all_force_option_ids, force_to_move_here, free_force_available)
 			for combo_result in combinations:
 				var combo = combo_result[0]
@@ -470,7 +478,7 @@ func generate_card_count_combinations(cards, hand_size, exact=true):
 
 func get_change_cards_actions():
 	var possible_actions = []
-	var total_change_card_options = len(game_player.hand) + len(game_player.gauge)
+	var total_change_card_options = len(game_player.hand) + len(game_player.gauge) + _guardian_payment_ids().size()
 	possible_actions.append(ChangeCardsAction.new([], false))
 	var free_force_available = game_player.free_force
 	if free_force_available > 0:
@@ -488,6 +496,7 @@ func get_change_cards_actions():
 			all_change_card_ids.append(card.id)
 		for card in game_player.gauge:
 			all_change_card_ids.append(card.id)
+		all_change_card_ids.append_array(_guardian_payment_ids())
 
 		# Calculate every permutation of moves at this point.
 		var combinations = generate_card_count_combinations(all_change_card_ids, total_change_card_options, false)
@@ -502,6 +511,7 @@ func get_combinations_to_pay_gauge(gauge_cost : int):
 	var gauge_card_options = []
 	for card in game_player.gauge:
 		gauge_card_options.append(card.id)
+	gauge_card_options.append_array(_guardian_payment_ids())
 	var cost_to_pay = max(gauge_cost - game_player.free_gauge, 0)
 	if cost_to_pay == 0:
 		return [[]]
@@ -542,6 +552,8 @@ func get_available_gauge_payment_value() -> int:
 	var total = game_player.free_gauge
 	for gauge_card in game_player.gauge:
 		total += game_player.get_gauge_payment_value(gauge_card.id)
+	for card_id in _guardian_payment_ids():
+		total += game_player.get_gauge_payment_value(card_id)
 	return total
 
 func get_exceed_actions():
@@ -609,6 +621,7 @@ func get_boost_actions(valid_zones : Array, limitation : String, ignore_costs : 
 		"gauge": game_player.gauge,
 		"discard": game_player.discards,
 		"extra": game_player.set_aside_cards,
+		"bleach": game_player.bleach_zone,
 		"deck": game_player.deck
 	}
 	var free_force_available = game_player.free_force
@@ -622,6 +635,8 @@ func get_boost_actions(valid_zones : Array, limitation : String, ignore_costs : 
 	for zone in valid_zones:
 		var cards_in_zone = zone_map.get(zone, [])
 		for card in cards_in_zone:
+			if card.definition["boost"].get("reaction_only", false):
+				continue
 			if sd_banned != "" and game_logic._is_spiraling_match(sd_banned, card):
 				continue
 			if card.definition['type'] == "decree_glorious" and not game_player.exceeded:
@@ -651,6 +666,7 @@ func get_boost_actions(valid_zones : Array, limitation : String, ignore_costs : 
 							all_force_option_ids.append(payment_card.id)
 						for payment_card in game_player.gauge:
 							all_force_option_ids.append(payment_card.id)
+						all_force_option_ids.append_array(_guardian_payment_ids())
 						all_force_option_ids.erase(card.id)
 						combinations = generate_force_combinations(all_force_option_ids, cost, free_force_available)
 					else:
@@ -693,6 +709,9 @@ func get_ex_option_in_hand(card_id : int):
 	return -1
 
 func get_strike_actions(alternate_source : String = "", disable_wild_swing : bool = false, disable_ex : bool = false, require_ex : bool = false):
+	if game_logic.active_strike == null and game_logic._has_heiqiyihu_guardian_option():
+		# Declaration is not a choice of attack (including a wild swing).
+		return [StrikeAction.new(-1, -1, false)]
 	var possible_actions = []
 	var possible_actions_cant_pay = []
 	# Always allow wild swing if allowed.
@@ -714,7 +733,7 @@ func get_strike_actions(alternate_source : String = "", disable_wild_swing : boo
 			possible_actions.append(StrikeAction.new(card.id, -1, false))
 	elif alternate_source == "sealed":
 		for card in game_player.sealed:
-			if card.definition['gauge_cost'] > game_player.gauge.size():
+			if card.definition['gauge_cost'] > game_player.gauge.size() + _guardian_payment_ids().size():
 				# Skip cards we can't pay for.
 				# But remember them in case we have 0 options and must strike with something?
 				possible_actions_cant_pay.append(StrikeAction.new(card.id, -1, false))
@@ -730,7 +749,7 @@ func get_strike_actions(alternate_source : String = "", disable_wild_swing : boo
 				card_options.append(card)
 
 		for card in card_options:
-			if card.definition['gauge_cost'] > game_player.gauge.size():
+			if card.definition['gauge_cost'] > game_player.gauge.size() + _guardian_payment_ids().size():
 				# Skip cards we can't pay for.
 				# But remember them in case we have 0 options and must strike with something?
 				if require_ex:
@@ -778,6 +797,7 @@ func get_character_action_actions():
 					all_force_option_ids.append(card.id)
 				for card in game_player.gauge:
 					all_force_option_ids.append(card.id)
+				all_force_option_ids.append_array(_guardian_payment_ids())
 				var combinations = generate_force_combinations(all_force_option_ids, force_cost, free_force_available)
 				for combo_result in combinations:
 					var combo = combo_result[0]
@@ -815,6 +835,7 @@ func determine_pay_strike_force_cost_actions(force_cost : int, wild_swing_allowe
 		all_force_option_ids.append(card.id)
 	for card in game_player.gauge:
 		all_force_option_ids.append(card.id)
+	all_force_option_ids.append_array(_guardian_payment_ids())
 	var combinations = generate_force_combinations(all_force_option_ids, force_cost, free_force_available)
 	for combo_result in combinations:
 		var combo = combo_result[0]
@@ -884,6 +905,7 @@ func determine_force_for_armor_actions():
 		all_force_option_ids.append(card.id)
 	for card in game_player.gauge:
 		all_force_option_ids.append(card.id)
+	all_force_option_ids.append_array(_guardian_payment_ids())
 	for target_force in range(0, available_force + 1):
 		# Generate an action for every possible combination of cards that can get here.
 		var combinations = generate_force_combinations(all_force_option_ids, target_force, free_force_available)
@@ -902,6 +924,7 @@ func determine_force_for_effect_actions(options : Array):
 		all_force_option_ids.append(card.id)
 	for card in game_player.gauge:
 		all_force_option_ids.append(card.id)
+	all_force_option_ids.append_array(_guardian_payment_ids())
 
 	var max_force = game_logic.decision_info.effect['force_max']
 	if max_force == -1:
@@ -919,6 +942,9 @@ func determine_force_for_effect_actions(options : Array):
 		for combo_result in combinations:
 			var combo = combo_result[0]
 			var use_free_force = combo_result[1]
+			if game_logic.decision_info.effect.get("heiqiyihu_xuhua_payment", false) \
+			and game_player.get_force_with_cards(combo, "FORCE_FOR_EFFECT", false, use_free_force) > max_force:
+				continue
 			possible_actions.append(ForceForEffectAction.new(combo, use_free_force))
 	return possible_actions
 
@@ -930,7 +956,10 @@ func determine_gauge_for_effect_actions(options : Array, specific_card_id : Stri
 		possible_actions.append(GaugeForEffectAction.new([]))
 		return possible_actions
 	var all_option_ids = []
-	for card in game_player.gauge:
+	var gauge_options = game_player.gauge.duplicate()
+	for id in _guardian_payment_ids():
+		gauge_options.append(game_logic.card_db.get_card(id))
+	for card in gauge_options:
 		if specific_card_id and card.definition['id'] != specific_card_id:
 			continue
 		if valid_card_types:

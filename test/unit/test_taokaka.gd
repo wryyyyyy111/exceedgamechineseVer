@@ -23,6 +23,47 @@ func test_taokaka_exceed_no_dodge_on_defense():
 	validate_positions(player1, 7, player2, 6)
 	validate_life(player1, 24, player2, 24)
 
+func test_taokaka_trickedge_after_ua_retreat_to_edge():
+	position_players(player1, 1, player2, 5)
+	player1.exceed()
+	execute_strike(player1, player2, "taokaka_trickedge", "standard_normal_sweep",
+			false, false, [1, 0], [])
+	validate_positions(player1, 4, player2, 5)
+	validate_life(player1, 30, player2, 26)
+
+func test_taokaka_trickedge_after_ua_reaches_edge():
+	position_players(player1, 7, player2, 8)
+	player1.exceed()
+	execute_strike(player1, player2, "taokaka_trickedge", "standard_normal_sweep",
+			false, false, [0, 1], [])
+	validate_positions(player1, 9, player2, 8)
+	validate_life(player1, 30, player2, 26)
+
+func test_taokaka_trickedge_after_ua_retreat_to_right_edge():
+	position_players(player1, 9, player2, 5)
+	player1.exceed()
+	execute_strike(player1, player2, "taokaka_trickedge", "standard_normal_sweep",
+			false, false, [1, 0], [])
+	validate_positions(player1, 6, player2, 5)
+	validate_life(player1, 30, player2, 26)
+
+func test_taokaka_trickedge_ua_does_not_reach_edge():
+	position_players(player1, 2, player2, 6)
+	player1.exceed()
+	execute_strike(player1, player2, "taokaka_trickedge", "standard_normal_sweep",
+			false, false, [0, 0], [])
+	validate_positions(player1, 2, player2, 6)
+	validate_life(player1, 30, player2, 30)
+
+func test_taokaka_trickedge_wild_ua_retreat_to_edge():
+	position_players(player1, 1, player2, 5)
+	set_player_topdeck(player1, "taokaka_trickedge")
+	var force_id = give_player_specific_card(player1, "standard_normal_cross")
+	execute_strike(player1, player2, "", "standard_normal_sweep",
+			false, false, [1, [force_id]], [])
+	validate_positions(player1, 4, player2, 5)
+	validate_life(player1, 30, player2, 26)
+
 ## Taokaka ability: When you initiate a strike with a Wild Swing, your attack has
 ##     "Before: Advance 2; then, you may spend 1 Force to Retreat 2."
 

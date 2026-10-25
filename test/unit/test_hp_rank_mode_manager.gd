@@ -3,15 +3,15 @@ extends GutTest
 const HpRankModeManagerScript = preload("res://globals/hp_rank_mode_manager.gd")
 
 
-func test_build_match_starting_hp_applies_common_rule_and_adjusts():
+func test_build_match_starting_hp_uses_configured_pair_and_life_caps():
 	var manager = HpRankModeManagerScript.new()
 	var result = manager.build_match_starting_hp("hp_rank_mode", "pooky", "axl")
 
 	assert_true(result.get("enabled", false))
 	assert_true(result.get("valid", false))
-	assert_eq(int(result.get("player1_starting_life", -1)), 33)
+	assert_eq(int(result.get("player1_starting_life", -1)), 31)
 	assert_eq(int(result.get("player2_starting_life", -1)), 25)
-	assert_eq(int(result.get("player1_life_cap", -1)), 33)
+	assert_eq(int(result.get("player1_life_cap", -1)), 31)
 	assert_eq(int(result.get("player2_life_cap", -1)), 25)
 
 
@@ -52,16 +52,17 @@ func test_get_taisei_exceed_life_uses_taisei_exceed_table():
 	assert_eq(manager.get_taisei_exceed_life("taisei", "EX"), 11)
 
 
-func test_common_hp_adjust_applies_against_different_tiers():
+func test_current_tier_rules_apply_without_axl_hp_adjust():
 	var manager = HpRankModeManagerScript.new()
 
-	var vs_b_tier = manager.build_match_starting_hp("hp_rank_mode", "axl", "mika")
-	assert_true(vs_b_tier.get("valid", false))
-	assert_eq(int(vs_b_tier.get("player1_starting_life", -1)), 25)
+	var vs_a_tier = manager.build_match_starting_hp("hp_rank_mode", "axl", "mika")
+	assert_true(vs_a_tier.get("valid", false))
+	assert_eq(int(vs_a_tier.get("player1_starting_life", -1)), 25)
 
-	var vs_ex_tier = manager.build_match_starting_hp("hp_rank_mode", "axl", "minato")
-	assert_true(vs_ex_tier.get("valid", false))
-	assert_eq(int(vs_ex_tier.get("player1_starting_life", -1)), 31)
+	var vs_ex_minus_tier = manager.build_match_starting_hp("hp_rank_mode", "axl", "minato")
+	assert_true(vs_ex_minus_tier.get("valid", false))
+	assert_eq(int(vs_ex_minus_tier.get("player1_starting_life", -1)), 30)
+	assert_eq(int(vs_ex_minus_tier.get("player2_starting_life", -1)), 26)
 
 
 func test_reloads_when_config_json_changes():

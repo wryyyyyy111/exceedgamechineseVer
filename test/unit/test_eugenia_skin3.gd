@@ -104,26 +104,30 @@ func test_exceed_during_strike_also_discards():
 	position_players(player1, 4, player2, 5)  # dist1
 	var hand_before = player2.hand.size()
 	var discard_before = player2.discards.size()
+	var gauge_ids = give_gauge(player2, 2)
 
-	# 发起战斗，停在「等待对手应战」——此时战斗已真正开始
-	var attack_id = give_player_specific_card(player1, "standard_normal_grasp")
-	do_and_validate_strike(player1, attack_id)
-	assert_true(game_logic.active_strike != null, "战斗应已开始（active_strike 非空）")
-
-	# 战斗中觉醒
-	player1.exceed()
+	# Metamorphosis 的击中效果使对手觉醒，保证双方已设置攻击且正在结算战斗。
+	var strike_ids = execute_strike(player1, player2, "standard_normal_sweep", "galdred_metamorphosis",
+		false, false, [0], [[], gauge_ids])
 
 	assert_true(player1.exceeded, "应已觉醒")
 	assert_eq(player2.hand.size(), hand_before - 1,
 		"战斗内觉醒同样应让对手随机弃 1 张")
-	assert_eq(player2.discards.size(), discard_before + 1,
-		"战斗中觉醒时那张牌应进入对手弃牌堆")
+	assert_eq(player2.discards.size(), discard_before + 3,
+		"两张怒气支付费用，觉醒时随机弃掉的另一张牌进入对手弃牌堆")
 	assert_true(has_def_in_zone(player1, "wonderland", player1.set_aside_cards),
 		"战斗中觉醒 Wonderland 同样应就位")
-
-	# 消化掉觉醒被动的选择，避免测试结束时残留未处理的决策
-	if game_logic.game_state == Enums.GameState.GameState_PlayerDecision:
-		process_remaining_decisions(player1, player2, [0], [])
+	assert_null(game_logic.active_strike, "觉醒被动选择结束后应正常完成战斗")
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PickAction)
+	assert_true(player1.is_card_in_discards(strike_ids[0]))
+	assert_true(player2.is_card_in_gauge(strike_ids[1]))
+	validate_life(player1, 23, player2, 30)
+	var events = game_logic.get_latest_events()
+	var hit_events = validate_has_event(events, Enums.EventType.EventType_Strike_Hit, player2)
+	var exceed_events = validate_has_event(events, Enums.EventType.EventType_Exceed, player1)
+	if not hit_events.is_empty() and not exceed_events.is_empty():
+		assert_lt(events.find(hit_events[0]), events.find(exceed_events[0]),
+			"觉醒必须发生在对手击中后，而不是尚未设置应战牌时")
 
 func test_original_eugenia_is_not_polluted():
 	# 反向对照：改动只应落在皮肤3，原皮 eugenia 的 on_exceed 仍是原来的两段

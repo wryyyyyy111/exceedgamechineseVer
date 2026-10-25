@@ -18,6 +18,19 @@ This project is paired with a game server written in nodeJS.
     - game - all game UX focused scenes
 - test - GUT automated tests
 
+# Rules hint card
+Use the light-blue “游戏规则提示卡” button below the main menu's reference-card
+button or beside the in-game surrender button to open the rules image.
+The image is centered and scaled to fit the window. Click outside the image
+or the image's top-right corner to close it; clicking elsewhere on the image
+does not dismiss it or interact with the game.
+
+# Reconnect UI
+Historical card-naming events (including Focus's Reading boost) do not reopen
+selection UI during restore fast-forward. Once restoration finishes, the client
+restores a naming prompt only if the current decision still requires it. This
+keeps the opponent deck reference usable after a completed Reading.
+
 # Server
 See server project:
 https://github.com/daniel-k-taylor/exceedgameserver

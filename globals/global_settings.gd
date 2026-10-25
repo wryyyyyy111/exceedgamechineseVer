@@ -9,13 +9,13 @@ const UseECSServerAlways = true # If true, always defaults to the ECS server (ev
 const CenterAllSceneText = false #不要开，开了 虽然全部的文本居中 但是主页面的已经居中还是偏上 + 游戏卡卡的。
 const ShowMobileResourceBudget = false #todo 显示右侧的移动端资源加载预算。
 var MuteEmotes = false
-const ClientVersionString : String = "261020.1000" # YYMMDD.HHMM #!最后版本改动时间261020
+const ClientVersionString : String = "261025.1020" # YYMMDD.HHMM #!最后版本改动时间261020
 const ReplayVersion : int = 1
 
 # Web 端动画播放速度倍率：手机端（web_android/web_ios/mobile）默认 1.5x。
 var phone_web_speed : float = 1.5
 #todo 手机端 animations 资源完成全部处理后的最终展示缩放倍率。
-var phone_animation_final_scaling_adjust : float = 1.2
+var phone_animation_final_scaling_adjust : float = 1.1
 #? Web 端动画播放速度倍率：除手机端外的 Web 平台默认 1.0x。
 var other_web_speed : float = 1.0
 #? 是否启用“手机 Web 通过运行时健康状态来跳过积压动画”的判定。

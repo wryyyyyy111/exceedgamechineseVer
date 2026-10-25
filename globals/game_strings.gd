@@ -76,7 +76,7 @@ func get_choice_summary(choice, card_name_source : String):
 		var effect_summary = effect_summaries[i]
 		if i > 0:
 			summary_text += " 或 "
-		if effect_summary.min_value != null and effect_summary.effect['effect_type'] not in [StrikeEffects.SpendLife, StrikeEffects.MoveRandomCards]:
+		if effect_summary.min_value != null and effect_summary.effect['effect_type'] not in [StrikeEffects.SpendLife, StrikeEffects.MoveRandomCards, StrikeEffects.Rangeup]:
 			if effect_summary.effect['effect_type'] in [StrikeEffects.DiscardRandom, StrikeEffects.OpponentDiscardRandom]:
 				if effect_summary.min_value == effect_summary.max_value:
 					summary_text += "对手随机弃置%s张牌" % str(effect_summary.min_value)
@@ -161,6 +161,8 @@ func get_timing_text(timing):
 			text += ""
 		"during_strike":
 			text += ""
+		"passive":
+			text += ""
 		"end_of_turn":
 			text += "在你的回合结束时："
 		"hit":
@@ -183,6 +185,10 @@ func get_timing_text(timing):
 			text += "当你发起一场战斗时，"
 		"on_reveal":
 			text += ""
+		"on_strike_reveal":
+			text += "揭示攻击牌后："
+		"counter_boost":
+			text += "对手打出加成后、效果结算前："
 		"on_seal":
 			text += ""
 		"start_of_next_turn":
@@ -217,6 +223,8 @@ func get_condition_text(effect, amount, amount2, detail):
 	var condition = effect['condition']
 	var text = ""
 	match condition:
+		"yuanliuzhai_has_burn":
+			text += "焚烧："
 		"advanced_through":
 			text += "若前进越过对手，"
 		"not_advanced_through":
@@ -288,6 +296,8 @@ func get_condition_text(effect, amount, amount2, detail):
 			text += "若本回合未取消过，"
 		"not_full_push":
 			text += "若未完全击退，"
+		"is_special_or_dongshilang_longxianjia_attack":
+			text += "若以特殊技或\"龙霰架\"发起战斗，"
 		"not_full_pull":
 			text += "若未完全拉近，"
 		"pushed_min_spaces":
@@ -524,6 +534,58 @@ func get_effect_type_heading(effect):
 			effect_str += "拉近"
 		StrikeEffects.Powerup:
 			effect_str += "威力+"
+		StrikeEffects.Rangeup:
+			effect_str += "距离+"
+		StrikeEffects.Speedup:
+			effect_str += "速度+"
+		StrikeEffects.Guardup:
+			effect_str += "霸体+"
+		StrikeEffects.Armorup:
+			effect_str += "护甲+"
+		StrikeEffects.SpendLife:
+			effect_str += "支付生命"
+		StrikeEffects.SetStrikeX:
+			effect_str += "设置X"
+		StrikeEffects.GaugeFromHand:
+			effect_str += "从手牌置入%s" % effect.get("destination_name", "怒气区")
+		StrikeEffects.BlockOpponentMove:
+			effect_str += "对手无法移动"
+		StrikeEffects.RemoveBlockOpponentMove:
+			effect_str += "解除对手无法移动"
+		StrikeEffects.IgnoreArmor:
+			effect_str += "无视护甲"
+		StrikeEffects.IgnoreGuard:
+			effect_str += "无视霸体"
+		StrikeEffects.IgnorePushAndPull:
+			effect_str += "免疫击退和拉近"
+		StrikeEffects.GainAdvantage:
+			effect_str += "获得优势"
+		StrikeEffects.Choice:
+			effect_str += "选择效果"
+		StrikeEffects.AddBoostToGaugeOnStrikeCleanup:
+			effect_str += "整理时将此加成置入怒气区"
+		StrikeEffects.AddToGaugeBoostPlayCleanup:
+			effect_str += "加成结算后将此牌置入怒气区"
+		StrikeEffects.AddToGaugeImmediately:
+			effect_str += "将此加成置入怒气区"
+		StrikeEffects.AddStrikeToGaugeAfterCleanup:
+			effect_str += "整理后将攻击牌置入怒气区"
+		StrikeEffects.DodgeAttacks:
+			effect_str += "对手无法击中你"
+		StrikeEffects.DiscardContinuousBoost:
+			effect_str += "弃置持续性加成"
+		StrikeEffects.AttackIsEx:
+			effect_str += "强力攻击"
+		StrikeEffects.SetTotalPower:
+			effect_str += "总威力设为"
+		StrikeEffects.AttackDoesNotHit:
+			effect_str += "攻击无法击中"
+		StrikeEffects.WhenHitForceForArmor:
+			effect_str += "被击中时每花费1能量，护甲+"
+		"opponent_wild_swings":
+			effect_str += "对手必须疯狂攻击"
+		StrikeEffects.NameCardOpponentDiscards:
+			effect_str += "宣言牌名并让对手弃置同名牌"
 		StrikeEffects.SealTransformForPowerup:
 			effect_str += "威力+"
 		StrikeEffects.SealTransformForArmorup:
@@ -540,6 +602,52 @@ func get_effect_type_heading(effect):
 			effect_str += "对手随机弃置"
 		StrikeEffects.ReduceOpponentPrepareDraw:
 			effect_str += "对手热身行动少摸1牌"
+		StrikeEffects.DongshilangIcebladeAfterStunBonusDamage:
+			effect_str += "击晕后追加伤害"
+		StrikeEffects.DongshilangIceCloneNoGaugeOnHit:
+			effect_str += "对手击中你不入怒"
+		StrikeEffects.DongshilangIceCloneHitPowerIfWasHit:
+			effect_str += "被击中时威力+"
+		StrikeEffects.DongshilangZekkuAfterRangeBonusDamage:
+			effect_str += "最远距离+1追加伤害"
+		StrikeEffects.DongshilangRhombusHitPowerdownIfNoArmor:
+			effect_str += "无护甲时威力-"
+		StrikeEffects.DongshilangHyotenScaleByIceBoost:
+			effect_str += "按冰晶加成强化"
+		StrikeEffects.DongshilangDiscardAllOtherBoosts:
+			effect_str += "弃置其余加成"
+		StrikeEffects.DongshilangBinghuatuHitPowerupPerCross:
+			effect_str += "每次穿越威力+"
+		StrikeEffects.DongshilangLimitSelfMoveToOneThisStrike:
+			effect_str += "本战斗移动上限"
+		StrikeEffects.DongshilangConvertAdvanceToRetreat:
+			effect_str += "前进改后退"
+		StrikeEffects.ConvertAdvanceToClose:
+			effect_str += "前进改为逼近"
+		"yuanliuzhai_discard_pressure", "yuanliuzhai_exceed_discard_pressure":
+			effect_str += get_effect_type_text(effect)
+		"yuanliuzhai_start_turn":
+			effect_str += get_effect_type_text(effect)
+		"yuanliuzhai_boost_to_pressure_if_empty":
+			effect_str += get_effect_type_text(effect)
+		"yuanliuzhai_jokaku_hit":
+			effect_str += get_effect_type_text(effect)
+		"yuanliuzhai_ryujin_execute":
+			effect_str += get_effect_type_text(effect)
+		"yuanliuzhai_counter_cards":
+			effect_str += get_effect_type_text(effect)
+		"yuanliuzhai_activate_shinra":
+			effect_str += get_effect_type_text(effect)
+		"yuanliuzhai_activate_imin":
+			effect_str += get_effect_type_text(effect)
+		"heiqiyihu_guardian_thresholds", "heiqiyihu_guardian_before_set", "heiqiyihu_guardian_resources", \
+		"heiqiyihu_huhuan_guardian", "heiqiyihu_prevent_opponent_moving_me", \
+		StrikeEffects.HeiqiyihuThresholdSource, StrikeEffects.HeiqiyihuExceedDraw, \
+		StrikeEffects.HeiqiyihuGetsugaCleanup, StrikeEffects.HeiqiyihuAddGuardian, \
+		StrikeEffects.HeiqiyihuGuardianSource, StrikeEffects.HeiqiyihuXuhuaPayment, \
+		StrikeEffects.HeiqiyihuXuhuaRecover, StrikeEffects.HeiqiyihuXuhuaRecoverCard, \
+		StrikeEffects.HeiqiyihuPullAdjacent, StrikeEffects.HeiqiyihuShunbuCrossed, StrikeEffects.MoveStrikeToBleach:
+			effect_str += get_effect_type_text(effect)
 		_:
 			effect_str += "缺失效果标题"
 	return effect_str
@@ -548,26 +656,56 @@ func get_effect_type_text(effect, card_name_source : String = "", char_effect_pa
 	var effect_str = ""
 	var effect_type = effect['effect_type']
 	match effect_type:
-		"yamamoto_cleanup_choice":
-			effect_str += "整理时，选择弃置威压中的所有牌；否则在自己下回合开始时将它们置入怒气区"
-		"yamamoto_discard_pressure":
-			effect_str += "弃置威压中的所有牌"
-		"yamamoto_start_turn_gauge":
-			effect_str += "将威压中的所有牌置入怒气区"
-		"yamamoto_exceed_discard_pressure":
-			effect_str += "战斗结束时弃置威压中的所有牌；若成功弃置，摸1张牌"
-		"yamamoto_boost_to_pressure_if_empty":
-			effect_str += "若威压中没有牌，将此牌置入威压"
-		"yamamoto_jokaku_hit":
-			effect_str += "若有焚烧，击中时获得优势并将此牌置入威压，直到你的下个行动阶段前保留此牌"
-		"yamamoto_ryujin_execute":
-			effect_str += "若有焚烧，击中且对手生命低于6时，对其造成99点伤害"
-		"yamamoto_counter_cards":
-			effect_str += "对手打出加成时，可以发动森罗或威眠"
-		"yamamoto_activate_shinra":
-			effect_str += "弃置森罗并支付3生命，弃置场上所有加成"
-		"yamamoto_activate_imin":
-			effect_str += "弃置威眠并支付1生命，阻止该加成造成的自身移动"
+		"heiqiyihu_guardian_thresholds":
+			effect_str += "未觉醒时，生命值降至25、15、10或以下，每个阈值每局一次，将牌堆顶或1张手牌置入守护区。"
+		"heiqiyihu_guardian_before_set":
+			effect_str += effect.get("_choice_text", "任意一方宣战后、双方选择攻击牌前，你可以弃置1张守护卡免费触发其加成。特殊技守护加成的效果数值+1；发起战斗的子效果无效。")
+		"heiqiyihu_guardian_resources":
+			effect_str += "每张守护卡可作为1怒气，或按通常能量值支付。你正常打出的特殊技和必杀技加成可支付1怒气取消，仍受通常取消规则限制。"
+		"heiqiyihu_huhuan_guardian":
+			effect_str += "本次战斗触发过守护时，此牌怒气费用替换为3。此牌为有效攻击时，特殊技守护加成效果数值再+1。"
+		"heiqiyihu_prevent_opponent_moving_me":
+			effect_str += "对手不能移动你；不影响你自己的移动或对手自身移动。"
+		StrikeEffects.HeiqiyihuThresholdSource, StrikeEffects.HeiqiyihuGuardianSource:
+			var source_text = "将选中的1张手牌置入守护区" if effect.get("source", "deck") == "hand" else "将牌堆顶1张牌置入守护区"
+			effect_str += effect.get("_choice_text", source_text)
+		StrikeEffects.HeiqiyihuExceedDraw:
+			effect_str += "立刻抽守护卡数量×2张牌，至少抽2张；本回合不因手牌上限弃牌。"
+		StrikeEffects.HeiqiyihuGetsugaCleanup:
+			effect_str += "依次弃置所有手牌、所有怒气区的牌，将此牌置入守护区，然后觉醒。已经觉醒时不再觉醒。"
+		StrikeEffects.HeiqiyihuAddGuardian:
+			effect_str += "将牌堆顶的牌或1张手牌置入守护区。"
+		StrikeEffects.HeiqiyihuXuhuaPayment:
+			effect_str += "对手所有击中效果结算后、伤害与击晕判定前，可以支付至多2能量，每点霸体+1。"
+		StrikeEffects.HeiqiyihuXuhuaRecover:
+			effect_str += "从本次虚化实际消耗且仍在弃牌堆的牌中选1张置入守护区；若还有另一张，将它置入怒气区。"
+		StrikeEffects.HeiqiyihuXuhuaRecoverCard:
+			var destination_text = "怒气区" if effect.get("destination", "bleach") == "gauge" else "守护区"
+			effect_str += effect.get("_choice_text", "将选中的牌置入%s" % destination_text)
+		StrikeEffects.HeiqiyihuPullAdjacent:
+			effect_str += "选择将对手拉近至你左侧或右侧的合法相邻格。"
+		StrikeEffects.HeiqiyihuShunbuCrossed:
+			effect_str += "对手视为在你的攻击距离内，并且无视霸体。"
+		StrikeEffects.MoveStrikeToBleach:
+			effect_str += "将此攻击牌置入守护区"
+		"yuanliuzhai_discard_pressure":
+			effect_str += "弃置威压区中所有未受保护的牌"
+		"yuanliuzhai_start_turn":
+			effect_str += "若未觉醒，将威压区所有未受保护的牌置入怒气区；然后解除城郭炎上的保护"
+		"yuanliuzhai_exceed_discard_pressure":
+			effect_str += "弃置威压区中所有未受保护的牌；若以此法弃置了牌，摸1张牌"
+		"yuanliuzhai_boost_to_pressure_if_empty":
+			effect_str += "若威压区没有牌，将此牌置入威压区"
+		"yuanliuzhai_jokaku_hit":
+			effect_str += "获得优势并将此牌置入威压区；此牌在自己的下个回合开始前不会从威压区弃置，且跳过该次回合开始的转怒，随后保护失效"
+		"yuanliuzhai_ryujin_execute":
+			effect_str += "若此攻击击中且对手当前生命低于6，对其造成99点伤害"
+		"yuanliuzhai_counter_cards":
+			effect_str += "对手打出持续性加成后可发动森罗；对手打出包含自身移动的加成后可发动威眠；均在效果结算前响应，也可以不响应"
+		"yuanliuzhai_activate_shinra":
+			effect_str += "从手牌弃置森罗并支付2点生命，弃置双方所有持续性加成并无效当前加成；对手仍可按规则取消"
+		"yuanliuzhai_activate_imin":
+			effect_str += "从手牌弃置威眠并支付2点生命，阻止该张加成离场前的所有自身前进、后退和逼近；其他效果照常结算"
 		StrikeEffects.SoifonPayShunko:
 			effect_str += "设置攻击牌后，支付至多3张『瞬哄』以获得层叠效果"
 		StrikeEffects.SoifonApplyShunko:
@@ -1619,7 +1757,9 @@ func get_effect_type_text(effect, card_name_source : String = "", char_effect_pa
 				effect_str += effect['description']
 			else:
 				effect_str += "将X设为"
-				match effect['source']:
+				match effect.get("source", effect.get("special_amount", "")):
+					"RANGE_TO_OPPONENT":
+						effect_str += "此时自己到对手的距离"
 					'random_gauge_power':
 						effect_str += "随机怒牌的威力"
 					'top_discard_power':
@@ -1823,6 +1963,28 @@ func get_effect_type_text(effect, card_name_source : String = "", char_effect_pa
 			effect_str += "若中央格未被占据，移动到中央格，然后拉近1格"
 		StrikeEffects.SquiglyReturnAttackAndCopies:
 			effect_str += "将攻击牌及弃牌堆中所有同名牌返回手牌"
+		StrikeEffects.DongshilangIcebladeAfterStunBonusDamage:
+			effect_str += "若击晕对手，额外造成对手卡面护甲值的伤害"
+		StrikeEffects.DongshilangIceCloneNoGaugeOnHit:
+			effect_str += "对手击中你时无法获得怒气"
+		StrikeEffects.DongshilangIceCloneHitPowerIfWasHit:
+			effect_str += "若你被击中，威力+1"
+		StrikeEffects.DongshilangZekkuAfterRangeBonusDamage:
+			effect_str += "在你攻击最大距离+1的范围造成1点伤害；若以此法造成伤害，将此特殊技置入怒气区"
+		StrikeEffects.DongshilangRhombusHitPowerdownIfNoArmor:
+			effect_str += "若你没有护甲，威力-1"
+		StrikeEffects.DongshilangHyotenScaleByIceBoost:
+			effect_str += "每有1张冰晶加成，速度+1、威力+2、距离+0~1"
+		StrikeEffects.DongshilangDiscardAllOtherBoosts:
+			effect_str += "弃置场上除此加成外的所有加成"
+		StrikeEffects.DongshilangBinghuatuHitPowerupPerCross:
+			effect_str += "每穿越过对手1次，威力+1"
+		StrikeEffects.DongshilangLimitSelfMoveToOneThisStrike:
+			effect_str += "你在本次战斗中通过任何效果至多移动1格"
+		StrikeEffects.DongshilangConvertAdvanceToRetreat:
+			effect_str += "你的前进效果改为后退"
+		StrikeEffects.ConvertAdvanceToClose:
+			effect_str += "自身所有的前进改为逼近"
 		_:
 			effect_str += "缺失效果"
 	return effect_str
@@ -1895,6 +2057,8 @@ func get_on_exceed_text(on_exceed_ability):
 		return ""
 	var effect_type = on_exceed_ability['effect_type']
 	match effect_type:
+		StrikeEffects.HeiqiyihuExceedDraw:
+			return "当你觉醒时：" + get_effect_text(on_exceed_ability) + "\n"
 		StrikeEffects.JingleChunShuiOnExceed:
 			return "当你觉醒时：抽1张牌，然后双方各受到2点非致命伤害\n"
 		StrikeEffects.Strike:

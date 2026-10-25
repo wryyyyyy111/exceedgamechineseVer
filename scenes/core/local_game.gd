@@ -30,7 +30,7 @@ const StrikeStaticConditions = [
 	"was_wild_swing",
 	"last_turn_was_strike",
 	"speed_greater_than",
-	"is_special_or_ultra_attack", "is_normal_attack", "is_special_attack", "is_buddy_special_or_ultra_attack",
+	"is_special_or_ultra_attack", "is_normal_attack", "is_special_attack", "is_special_or_dongshilang_longxianjia_attack", "is_buddy_special_or_ultra_attack",
 	"has_continuous_boost_attack", "min_continuous_boosts_attack", "pooky_gambling_normals",
 	"discarded_matches_attack_speed",
 	"canceled_this_turn",
@@ -77,10 +77,19 @@ var prepare_effects_resolved : int = 0
 var post_action_effects_resolved : int = 0
 var post_action_interruption : bool = false
 var resolving_boost_before_queue : bool = false
+var dongshilang_cross_count_this_strike : Dictionary = {}
+var dongshilang_move_limit_remaining_this_strike : Dictionary = {}
+var dongshilang_convert_advance_to_retreat_this_strike : Dictionary = {}
+var dongshilang_pending_ice_action_boost_count : Dictionary = {}
+var dongshilang_pending_ice_action_context : Dictionary = {}
 
 var decision_info : DecisionInfo = DecisionInfo.new()
 var active_boost : Boost = null
 var preparing_boost_info : Dictionary = {}
+var heiqiyihu_pending_thresholds : Array = []
+var heiqiyihu_threshold_context : Dictionary = {}
+var heiqiyihu_guardian_setup : Dictionary = {}
+var heiqiyihu_pending_strike_request : Dictionary = {}
 
 var game_state : Enums.GameState = Enums.GameState.GameState_NotStarted
 
@@ -210,6 +219,21 @@ func create_event(
 	extra_info2 = null,
 	extra_info3 = null
 ):
+	# Defer only a new strike request, never an in-strike response. This lets
+	# effect-driven declarations reach the same pre-selection phase as actions.
+	if not active_strike and event_type in [
+		Enums.EventType.EventType_ForceStartStrike,
+		Enums.EventType.EventType_Strike_FromGauge,
+		Enums.EventType.EventType_Strike_OpponentSetsFirst,
+		Enums.EventType.EventType_Strike_EffectDoStrike
+	] and _has_heiqiyihu_guardian_option():
+		heiqiyihu_pending_strike_request = {
+			"player": event_player,
+			"opponent_first": event_type == Enums.EventType.EventType_Strike_OpponentSetsFirst,
+			"required_wild": event_type == Enums.EventType.EventType_Strike_EffectDoStrike \
+				and typeof(extra_info) == TYPE_DICTIONARY and extra_info.get("wild_swing", false)
+		}
+		return
 	var card_name = card_db.get_card_name(num)
 	var playerstr = "Player"
 	if event_player == Enums.PlayerId.PlayerId_Opponent:
@@ -400,6 +424,11 @@ class Strike:
 	var in_setup : bool = true
 	var waiting_for_reading_response : bool = false
 	var opponent_sets_first : bool = false
+	var heiqiyihu_declared_before_set : bool = false
+	var heiqiyihu_guardian_records : Array = []
+	var heiqiyihu_xuhua_spent_ids : Dictionary = {}
+	var heiqiyihu_required_wild : bool = false
+	var heiqiyihu_required_face_attack : bool = false
 	var remaining_effect_list : Array = []
 	var effects_resolved_in_timing : int = 0
 	var player1_hit : bool = false
@@ -597,6 +626,8 @@ class Boost:
 	# boost replaces this one, so this boost's own on_boost character effects
 	# (e.g. UA "结算加成摸 1 张") must not trigger.
 	var skip_on_boost_effects = false
+	# Dongshilang: 冰晶角色主行动在整段（1~N 张冰晶）结束后，仅询问一次取消。
+	var dongshilang_ice_character_action_cancel_once = false
 
 
 var player : Player
@@ -726,6 +757,341 @@ func draw_starting_hands_and_begin():
 	change_game_state(Enums.GameState.GameState_Mulligan)
 	create_event(Enums.EventType.EventType_MulliganDecision, player.my_id, 0)
 	return true
+
+# Thresholds are collected synchronously, but decisions start only at resumable
+# boundaries. In particular, damage must finish stun/death bookkeeping first.
+func _queue_heiqiyihu_thresholds(target : Player):
+	if target == null or game_over or target.life <= 0 or target.exceeded:
+		return
+	if target.deck_def.get("id", "") != "heiqiyihu":
+		return
+	for threshold in [25, 15, 10]:
+		if target.life <= threshold and threshold not in target.heiqiyihu_thresholds_used:
+			target.heiqiyihu_thresholds_used.append(threshold)
+			heiqiyihu_pending_thresholds.append({"player": target.my_id, "threshold": threshold})
+
+func _begin_heiqiyihu_thresholds(resume_player : Player, resume_kind : String = "action") -> bool:
+	if game_over or game_state == Enums.GameState.GameState_PlayerDecision:
+		return false
+	if not heiqiyihu_threshold_context.is_empty() or heiqiyihu_pending_thresholds.is_empty():
+		return false
+	heiqiyihu_threshold_context = {
+		"state": game_state,
+		"player": resume_player.my_id,
+		"kind": resume_kind,
+		"source_player_id": _last_effect_source_player_id
+	}
+	_offer_heiqiyihu_threshold_source()
+	return true
+
+func _offer_heiqiyihu_threshold_source():
+	if game_over:
+		heiqiyihu_pending_thresholds.clear()
+		heiqiyihu_threshold_context.clear()
+		return
+	if heiqiyihu_pending_thresholds.is_empty():
+		_resume_after_heiqiyihu_thresholds()
+		return
+	var pending = heiqiyihu_pending_thresholds[0]
+	var target = _get_player(pending["player"])
+	change_game_state(Enums.GameState.GameState_PlayerDecision)
+	decision_info.clear()
+	decision_info.type = Enums.DecisionType.DecisionType_EffectChoice
+	decision_info.player = target.my_id
+	decision_info.effect_type = StrikeEffects.HeiqiyihuThresholdSource
+	decision_info.choice_card_id = -1
+	decision_info.choice = [{
+		"effect_type": StrikeEffects.HeiqiyihuThresholdSource,
+		"source": "deck",
+		"_choice_text": "将牌堆顶1张牌置入守护区"
+	}]
+	for hand_card in target.hand:
+		decision_info.choice.append({
+			"effect_type": StrikeEffects.HeiqiyihuThresholdSource,
+			"source": "hand",
+			"guardian_card_id": hand_card.id,
+			"_choice_text": "将手牌「%s」置入守护区" % hand_card.definition["display_name"]
+		})
+	decision_info.effect = {"threshold": pending["threshold"]}
+	create_event(Enums.EventType.EventType_Strike_EffectChoice, target.my_id, 0, "守护：选择1张牌")
+
+func _do_heiqiyihu_threshold_choice(performing_player : Player, choice_index : int) -> bool:
+	if game_state != Enums.GameState.GameState_PlayerDecision \
+	or decision_info.player != performing_player.my_id \
+	or choice_index < 0 or choice_index >= decision_info.choice.size():
+		printlog("ERROR: Invalid Heiqiyihu threshold choice.")
+		return false
+	var selected = decision_info.choice[choice_index]
+	var guardian : GameCard = null
+	if selected["source"] == "hand":
+		var selected_id = selected["guardian_card_id"]
+		if not performing_player.is_card_in_hand(selected_id):
+			printlog("ERROR: Heiqiyihu threshold hand card is no longer available.")
+			return false
+		guardian = card_db.get_card(selected_id)
+		performing_player.remove_card_from_hand(selected_id, true, false)
+	else:
+		# The same retry/reshuffle/deckout semantics as Player.draw, without
+		# ever inserting the selected card into the hand.
+		while performing_player.deck.is_empty() and not game_over:
+			performing_player.reshuffle_discard(false)
+		if game_over:
+			heiqiyihu_pending_thresholds.clear()
+			heiqiyihu_threshold_context.clear()
+			return true
+		guardian = performing_player.deck[0]
+		performing_player.remove_top_card_from_deck()
+		performing_player.on_hand_removed_topdeck(guardian.id)
+		performing_player.public_topdeck_id = -1
+	performing_player.add_to_bleach(guardian)
+	_append_log_full(Enums.LogType.LogType_CardInfo, performing_player,
+		"生命阈值%s：将%s置入守护区。" % [
+			str(heiqiyihu_pending_thresholds[0]["threshold"]), _log_card_name(guardian.definition["display_name"])])
+	heiqiyihu_pending_thresholds.pop_front()
+	_offer_heiqiyihu_threshold_source()
+	return true
+
+func _resume_after_heiqiyihu_thresholds():
+	var context = heiqiyihu_threshold_context
+	heiqiyihu_threshold_context = {}
+	var resume_player = _get_player(context["player"])
+	_last_effect_source_player_id = context["source_player_id"]
+	change_game_state(context["state"])
+	match context["kind"]:
+		"opening":
+			_finish_opening_mulligans()
+		"strike":
+			continue_resolve_strike()
+		"hand_size":
+			check_hand_size_advance_turn(resume_player)
+		"action":
+			continue_player_action_resolution(resume_player)
+		"idle":
+			if queued_effect_chain["effect"]:
+				do_queued_effects(resume_player)
+				if game_state != Enums.GameState.GameState_PlayerDecision and not game_over:
+					change_game_state(context["state"])
+
+func _finish_opening_mulligans():
+	change_game_state(Enums.GameState.GameState_PickAction)
+	_append_log_full(Enums.LogType.LogType_Default, _get_player(active_turn_player), "的回合开始！")
+	create_event(Enums.EventType.EventType_AdvanceTurn, active_turn_player, 0)
+
+func _has_heiqiyihu_guardian_option() -> bool:
+	for candidate in [player, opponent]:
+		if candidate and candidate.deck_def.get("id", "") == "heiqiyihu" \
+		and not candidate.exceeded and not candidate.bleach_zone.is_empty():
+			return true
+	return false
+
+func _begin_pending_heiqiyihu_strike() -> bool:
+	if heiqiyihu_pending_strike_request.is_empty() or active_strike or active_boost \
+	or game_over or game_state == Enums.GameState.GameState_PlayerDecision:
+		return false
+	var request = heiqiyihu_pending_strike_request
+	heiqiyihu_pending_strike_request = {}
+	return _declare_heiqiyihu_strike(_get_player(request["player"]),
+		request["opponent_first"], request["required_wild"], request.get("required_face_attack", false))
+
+func _declare_heiqiyihu_strike(initiator : Player, opponent_first : bool, required_wild : bool = false, required_face_attack : bool = false) -> bool:
+	var restriction = decision_info.limitation if game_state == Enums.GameState.GameState_WaitForStrike else ""
+	var source = decision_info.source if game_state == Enums.GameState.GameState_WaitForStrike else ""
+	initialize_new_strike(initiator, opponent_first)
+	active_strike.heiqiyihu_declared_before_set = true
+	active_strike.heiqiyihu_required_wild = required_wild
+	active_strike.heiqiyihu_required_face_attack = required_face_attack
+	heiqiyihu_pending_strike_request = {}
+	heiqiyihu_guardian_setup = {
+		"players": [active_strike.initiator.my_id, active_strike.defender.my_id],
+		"index": 0,
+		"effects": [],
+		"effect_index": 0,
+		"owner": initiator.my_id,
+		"source_id": -1,
+		"restriction": restriction,
+		"source": source
+	}
+	_append_log_full(Enums.LogType.LogType_Strike, initiator, "宣战：双方选择攻击牌前，结算守护。")
+	change_game_state(Enums.GameState.GameState_Strike_Processing)
+	_continue_heiqiyihu_guardian_setup()
+	return true
+
+func _continue_heiqiyihu_guardian_setup():
+	if game_over or heiqiyihu_guardian_setup.is_empty() \
+	or game_state == Enums.GameState.GameState_PlayerDecision:
+		return
+	var setup = heiqiyihu_guardian_setup
+	while setup["effect_index"] < setup["effects"].size():
+		var effect = setup["effects"][setup["effect_index"]]
+		setup["effect_index"] += 1
+		do_effect_if_condition_met(_get_player(setup["owner"]), setup["source_id"], effect, null)
+		if game_over or game_state == Enums.GameState.GameState_PlayerDecision:
+			return
+	_finish_heiqiyihu_virtual_boost_play(setup["source_id"])
+	setup["effects"] = []
+	setup["effect_index"] = 0
+	while setup["index"] < setup["players"].size():
+		var guardian_player = _get_player(setup["players"][setup["index"]])
+		if guardian_player.deck_def.get("id", "") != "heiqiyihu" \
+		or guardian_player.exceeded or guardian_player.bleach_zone.is_empty():
+			setup["index"] += 1
+			continue
+		change_game_state(Enums.GameState.GameState_PlayerDecision)
+		decision_info.clear()
+		decision_info.type = Enums.DecisionType.DecisionType_EffectChoice
+		decision_info.player = guardian_player.my_id
+		decision_info.effect_type = "heiqiyihu_guardian_before_set"
+		decision_info.choice_card_id = -1
+		decision_info.choice = []
+		for guardian in guardian_player.bleach_zone:
+			decision_info.choice.append({
+				"effect_type": "heiqiyihu_guardian_before_set",
+				"guardian_card_id": guardian.id,
+				"_choice_text": "触发守护「%s」" % guardian.definition["display_name"]
+			})
+		decision_info.choice.append({"effect_type": StrikeEffects.Pass, "_choice_text": "不触发守护"})
+		create_event(Enums.EventType.EventType_Strike_EffectChoice, guardian_player.my_id, 0, "双方选牌前：守护")
+		return
+	var restriction = setup["restriction"]
+	var source = setup["source"]
+	heiqiyihu_guardian_setup = {}
+	if active_strike.opponent_sets_first:
+		continue_setup_strike()
+		return
+	change_game_state(Enums.GameState.GameState_WaitForStrike)
+	decision_info.clear()
+	decision_info.type = Enums.DecisionType.DecisionType_StrikeNow
+	decision_info.player = active_strike.initiator.my_id
+	decision_info.limitation = restriction
+	decision_info.source = source
+	if active_strike.heiqiyihu_required_wild:
+		do_strike(active_strike.initiator, -1, true, -1)
+	elif active_strike.heiqiyihu_required_face_attack:
+		do_strike(active_strike.initiator, -1, false, -1, false, true)
+	elif active_strike.initiator.next_strike_from_gauge or active_strike.initiator.next_strike_from_sealed:
+		create_event(Enums.EventType.EventType_Strike_FromGauge, active_strike.initiator.my_id, 0)
+	else:
+		create_event(Enums.EventType.EventType_ForceStartStrike, active_strike.initiator.my_id, 0)
+
+func _do_heiqiyihu_guardian_choice(performing_player : Player, choice_index : int) -> bool:
+	if decision_info.player != performing_player.my_id or choice_index < 0 \
+	or choice_index >= decision_info.choice.size():
+		printlog("ERROR: Invalid Heiqiyihu pre-set guardian choice.")
+		return false
+	var choice = decision_info.choice[choice_index]
+	if choice["effect_type"] != StrikeEffects.Pass:
+		var guardian_id = choice["guardian_card_id"]
+		if performing_player.exceeded or not performing_player.is_card_in_bleach(guardian_id):
+			printlog("ERROR: Heiqiyihu guardian is no longer available.")
+			return false
+		var guardian = performing_player.remove_card_from_bleach(guardian_id)
+		performing_player.add_to_discards(guardian)
+		var boost = guardian.definition["boost"].duplicate(true)
+		active_strike.heiqiyihu_guardian_records.append({
+			"player": performing_player.my_id,
+			"source_id": guardian_id,
+			"boost": boost
+		})
+		heiqiyihu_guardian_setup["owner"] = performing_player.my_id
+		heiqiyihu_guardian_setup["source_id"] = guardian_id
+		heiqiyihu_guardian_setup["effects"] = []
+		for effect in boost["effects"]:
+			if effect["timing"] in ["now", "immediate"]:
+				var immediate = effect.duplicate(true)
+				immediate["card_id"] = guardian_id
+				_add_source_player_id_to_effect_tree(immediate, performing_player.my_id)
+				heiqiyihu_guardian_setup["effects"].append(immediate)
+	heiqiyihu_guardian_setup["index"] += 1
+	change_game_state(Enums.GameState.GameState_Strike_Processing)
+	_continue_heiqiyihu_guardian_setup()
+	return true
+
+func _offer_heiqiyihu_xuhua_recovery(performing_player : Player, source_id : int, destination : String):
+	var choices = []
+	for paid_id in active_strike.heiqiyihu_xuhua_spent_ids.get(source_id, []):
+		if performing_player.is_card_in_discards(paid_id):
+			choices.append({
+				"effect_type": StrikeEffects.HeiqiyihuXuhuaRecoverCard,
+				"paid_id": paid_id,
+				"destination": destination,
+				"_choice_text": "将「%s」置入%s" % [card_db.get_card_name(paid_id),
+					"守护区" if destination == "bleach" else "怒气区"]
+			})
+	if choices.is_empty():
+		active_strike.heiqiyihu_xuhua_spent_ids.erase(source_id)
+	else:
+		handle_strike_effect(source_id, {
+			"effect_type": StrikeEffects.Choice, "choice": choices
+		}, performing_player)
+
+func _get_heiqiyihu_virtual_guardian(source_id : int) -> Dictionary:
+	if active_strike:
+		for record in active_strike.heiqiyihu_guardian_records:
+			if record["source_id"] == source_id:
+				return record
+	return {}
+
+func _get_heiqiyihu_guardian_boost(record : Dictionary) -> Dictionary:
+	var boost = record["boost"].duplicate(true)
+	var source = card_db.get_card(record["source_id"])
+	if source.definition["type"] != "special":
+		return boost
+	var bonus = 1
+	var owner = _get_player(record["player"])
+	var attack = active_strike.get_player_card(owner)
+	# Both attacks have paid (or been replaced) before these five boosts'
+	# first strike timing. Never amplify from an invalidated original attack.
+	if active_strike.strike_state >= StrikeState.StrikeState_DuringStrikeBonuses \
+	and attack != null and attack.definition["id"] == "heiqiyihu_呼唤我的名字吧！":
+		bonus += 1
+	for effect in boost["effects"]:
+		match effect["effect_type"]:
+			StrikeEffects.Powerup, StrikeEffects.Guardup, StrikeEffects.Speedup, StrikeEffects.Draw:
+				effect["amount"] += bonus
+			StrikeEffects.MoveToAnySpace:
+				effect["move_max"] += bonus
+			StrikeEffects.Rangeup:
+				effect["amount"] += bonus
+				effect["amount2"] += bonus
+	return boost
+
+func _move_heiqiyihu_virtual_source(source_id : int, destination : String) -> bool:
+	var record = _get_heiqiyihu_virtual_guardian(source_id)
+	if record.is_empty():
+		return false
+	var owner = _get_player(record["player"])
+	# The copied effects outlive the entity. Never fetch another copy by name,
+	# or take this entity back from a new zone.
+	if not owner.is_card_in_discards(source_id):
+		return false
+	var source_card = card_db.get_card(source_id)
+	owner.remove_card_from_discards(source_id)
+	match destination:
+		"gauge":
+			owner.add_to_gauge(source_card)
+		"bleach":
+			owner.add_to_bleach(source_card)
+		"overdrive":
+			owner.add_to_overdrive(source_card)
+	_append_log_full(Enums.LogType.LogType_CardInfo, owner,
+		"守护原卡%s移入%s。" % [_log_card_name(source_card.definition["display_name"]), destination])
+	return true
+
+func _finish_heiqiyihu_virtual_boost_play(source_id : int):
+	var record = _get_heiqiyihu_virtual_guardian(source_id)
+	if record.has("boost_play_destination"):
+		_move_heiqiyihu_virtual_source(source_id, record["boost_play_destination"])
+		record.erase("boost_play_destination")
+
+func _heiqiyihu_virtual_forces_wild(guardian_player : Player) -> bool:
+	if not active_strike or active_strike.initiator != guardian_player:
+		return false
+	for record in active_strike.heiqiyihu_guardian_records:
+		if record["player"] == guardian_player.my_id:
+			for effect in record["boost"]["effects"]:
+				if effect["effect_type"] == "opponent_wild_swings":
+					return true
+	return false
 
 func _test_add_to_gauge(amount: int):
 	for i in range(amount):
@@ -900,7 +1266,8 @@ func queue_end_of_turn_post_draw_effects(performing_player : Player):
 				remaining_end_of_turn_effects.append(effect)
 
 func finish_end_turn_resolution(performing_player : Player):
-	if len(performing_player.hand) > performing_player.max_hand_size and not end_of_turn_skip_eot_discard:
+	if len(performing_player.hand) > performing_player.max_hand_size and not end_of_turn_skip_eot_discard \
+	and not performing_player.heiqiyihu_skip_hand_limit_this_turn:
 		discard_to_max_after_end_turn_draw = true
 		change_game_state(Enums.GameState.GameState_DiscardDownToMax)
 		create_event(Enums.EventType.EventType_HandSizeExceeded, performing_player.my_id, len(performing_player.hand) - performing_player.max_hand_size)
@@ -1033,6 +1400,8 @@ func advance_to_next_turn():
 
 func start_begin_turn():
 	active_start_of_turn_effects = true
+	player.heiqiyihu_skip_hand_limit_this_turn = false
+	opponent.heiqiyihu_skip_hand_limit_this_turn = false
 	# Defensive reset: the end-of-turn draw skip is only meant to affect the
 	# turn it was set on, so clear it again when a fresh turn starts.
 	player.skip_end_of_turn_draw = false
@@ -1169,6 +1538,12 @@ func initialize_new_strike(performing_player : Player, opponent_sets_first : boo
 	opponent.strike_stat_boosts.clear()
 	player.bonus_actions = 0
 	opponent.bonus_actions = 0
+	dongshilang_cross_count_this_strike[player.my_id] = 0
+	dongshilang_cross_count_this_strike[opponent.my_id] = 0
+	dongshilang_move_limit_remaining_this_strike[player.my_id] = -1
+	dongshilang_move_limit_remaining_this_strike[opponent.my_id] = -1
+	dongshilang_convert_advance_to_retreat_this_strike[player.my_id] = false
+	dongshilang_convert_advance_to_retreat_this_strike[opponent.my_id] = false
 
 	active_strike.starting_distance = player.distance_to_opponent()
 
@@ -1787,8 +2162,13 @@ func is_effect_condition_met(performing_player : Player, effect, local_condition
 		elif condition == "not_initiated_strike":
 			var initiated_strike = active_strike.initiator == performing_player
 			return not initiated_strike
-		elif condition == "yamamoto_has_burn":
-			return performing_player.deck_def.get("id") == "yamamoto" and not performing_player.bleach_zone.is_empty()
+		elif condition == "yuanliuzhai_has_burn":
+			if performing_player.deck_def.get("id") != "yuanliuzhai":
+				return false
+			for pressure_card in performing_player.bleach_zone:
+				if pressure_card.definition.get("type", "") in ["normal", "special", "ultra"]:
+					return true
+			return false
 		elif condition == "not_moved_self_this_strike":
 			return not performing_player.moved_self_this_strike
 		elif condition == "opponent_not_moved_this_strike":
@@ -1847,6 +2227,11 @@ func is_effect_condition_met(performing_player : Player, effect, local_condition
 			return performing_player.is_buddy_in_play(buddy_id) and (attack_type == "special" or attack_type == "ultra")
 		elif condition == "is_special_attack":
 			return active_strike.get_player_card(performing_player).definition['type'] == "special"
+		elif condition == "is_special_or_dongshilang_longxianjia_attack":
+			var attack_card = active_strike.get_player_card(performing_player)
+			var special = attack_card.definition['type'] == "special"
+			var is_longxianjia = attack_card.definition.get("id", "") == "dongshilang_龙霰架"
+			return special or is_longxianjia
 		elif condition == "is_special_or_ultra_attack":
 			var special = active_strike.get_player_card(performing_player).definition['type'] == "special"
 			var ultra = active_strike.get_player_card(performing_player).definition['type'] == "ultra"
@@ -2509,6 +2894,7 @@ func _jingle_yangui_choices(reveal_player : Player, owner_id : int, stage : int)
 
 func handle_strike_effect(card_id : int, effect, performing_player : Player):
 	printlog("STRIKE: Handling effect %s" % [effect])
+	var original_performing_player_id = performing_player.my_id
 	if 'for_other_player' in effect:
 		performing_player = _get_player(get_other_player(performing_player.my_id))
 	# Track who caused this effect for discard source checking (e.g. Eugenia passive)
@@ -2518,6 +2904,17 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 	# PayCosts reset). The executing player is the correct source in that case.
 	if _last_effect_source_player_id == -1:
 		_last_effect_source_player_id = performing_player.my_id
+	if 'for_other_player' in effect and performing_player.strike_stat_boosts.heiqiyihu_prevent_opponent_moving_me:
+		# Target switching must not turn the opponent's forced move into
+		# the protected player's own movement.
+		_last_effect_source_player_id = effect.get("_source_player_id", original_performing_player_id)
+	var virtual_guardian = _get_heiqiyihu_virtual_guardian(card_id)
+	if not virtual_guardian.is_empty() and _is_strike_initiation_effect(effect):
+		_append_log_full(Enums.LogType.LogType_Effect, performing_player, "守护不会再次发起战斗，该子效果被跳过。")
+		# Keep the legal tail of this atomic effect, including a pending choice.
+		if effect.get("and"):
+			do_effect_if_condition_met(performing_player, card_id, effect["and"], null)
+		return
 	if _skip_strike_initiation_during_active_strike(effect, performing_player):
 		return
 	if 'character_effect' in effect and effect['character_effect']:
@@ -2529,7 +2926,119 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 	var other_start = opposing_player.arena_location
 	var buddy_start = performing_player.get_buddy_location()
 	var and_handled_elsewhere = false
-	match effect['effect_type']:
+	var resolved_effect_type = effect['effect_type']
+	if resolved_effect_type in [
+		StrikeEffects.Advance, StrikeEffects.AdvanceInternal, StrikeEffects.Close, StrikeEffects.CloseInternal,
+		StrikeEffects.Retreat, StrikeEffects.RetreatInternal, StrikeEffects.MoveToSpace, StrikeEffects.MoveToAnySpace
+	] and performing_player._heiqiyihu_blocks_opponent_movement():
+		# Stop opponent-owned self-movement before its internal conversion can
+		# switch targets again; keep any legal tail of the original effect.
+		resolved_effect_type = StrikeEffects.Pass
+	var movement_source_id = effect.get("card_id", card_id)
+	if resolved_effect_type in [StrikeEffects.Advance, StrikeEffects.AdvanceInternal, StrikeEffects.Retreat, StrikeEffects.Close, StrikeEffects.CloseInternal] \
+			and movement_source_id in performing_player.yuanliuzhai_blocked_boost_ids:
+		_append_log_full(Enums.LogType.LogType_Effect, performing_player, "威眠阻止了该加成的自身移动。")
+		resolved_effect_type = StrikeEffects.Pass
+	match resolved_effect_type:
+		StrikeEffects.HeiqiyihuShunbuCrossed:
+			performing_player.strike_stat_boosts.range_includes_opponent = true
+			performing_player.strike_stat_boosts.ignore_guard = true
+			_append_log_full(Enums.LogType.LogType_Effect, performing_player, "瞬步越过对手：对手视为在攻击距离内，无视霸体。")
+		"heiqiyihu_prevent_opponent_moving_me":
+			performing_player.strike_stat_boosts.heiqiyihu_prevent_opponent_moving_me = true
+		StrikeEffects.HeiqiyihuExceedDraw:
+			performing_player.heiqiyihu_skip_hand_limit_this_turn = true
+			performing_player.draw(max(2, performing_player.bleach_zone.size() * 2))
+		StrikeEffects.HeiqiyihuPullAdjacent:
+			var adjacent_choices = []
+			var adjacent_spaces = []
+			for destination in [performing_player.arena_location - 1, performing_player.arena_location + 1]:
+				if destination < Enums.MinArenaLocation or destination > Enums.MaxArenaLocation \
+				or opposing_player.is_overlapping_opponent(destination):
+					continue
+				adjacent_spaces.append(destination)
+				adjacent_choices.append({
+					"effect_type": StrikeEffects.Pull,
+					"amount": opposing_player.movement_distance_between(opposing_player.arena_location, destination),
+					"_choice_text": "将对手拉近至你的%s侧（%s号格）" % [
+						"左" if destination < performing_player.arena_location else "右", destination]
+				})
+			if not adjacent_choices.is_empty():
+				change_game_state(Enums.GameState.GameState_PlayerDecision)
+				decision_info.clear()
+				decision_info.type = Enums.DecisionType.DecisionType_ChooseArenaLocationForEffect
+				decision_info.player = performing_player.my_id
+				decision_info.choice_card_id = card_id
+				decision_info.effect_type = StrikeEffects.Pull
+				decision_info.choice = adjacent_choices
+				decision_info.limitation = adjacent_spaces
+				create_event(Enums.EventType.EventType_ChooseArenaLocationForEffect, performing_player.my_id, 0)
+		StrikeEffects.HeiqiyihuAddGuardian:
+			var guardian_choices = [{
+				"effect_type": StrikeEffects.HeiqiyihuGuardianSource, "source": "deck",
+				"_choice_text": "将牌堆顶1张牌置入守护区"
+			}]
+			for hand_card in performing_player.hand:
+				guardian_choices.append({
+					"effect_type": StrikeEffects.HeiqiyihuGuardianSource, "source": "hand",
+					"guardian_card_id": hand_card.id,
+					"_choice_text": "将手牌「%s」置入守护区" % hand_card.definition["display_name"]
+				})
+			handle_strike_effect(card_id, {
+				"effect_type": StrikeEffects.Choice, "choice": guardian_choices
+			}, performing_player)
+		StrikeEffects.HeiqiyihuGuardianSource:
+			var guardian : GameCard
+			if effect["source"] == "hand":
+				guardian = card_db.get_card(effect["guardian_card_id"])
+				performing_player.remove_card_from_hand(guardian.id, true, false)
+			else:
+				# Same empty-deck semantics as the confirmed threshold source.
+				while performing_player.deck.is_empty() and not game_over:
+					performing_player.reshuffle_discard(false)
+				if game_over:
+					return
+				guardian = performing_player.deck[0]
+				performing_player.remove_top_card_from_deck()
+				performing_player.on_hand_removed_topdeck(guardian.id)
+				performing_player.public_topdeck_id = -1
+			performing_player.add_to_bleach(guardian)
+		StrikeEffects.HeiqiyihuXuhuaPayment:
+			handle_strike_effect(card_id, {
+				"effect_type": StrikeEffects.ForceForEffect,
+				"force_max": 2, "min_force": 0,
+				"heiqiyihu_xuhua_payment": true,
+				"per_force_effect": {
+					"effect_type": StrikeEffects.Guardup, "amount": 1,
+					"combine_multiple_into_one": true
+				}
+			}, performing_player)
+		StrikeEffects.HeiqiyihuXuhuaRecover:
+			_offer_heiqiyihu_xuhua_recovery(performing_player, card_id, "bleach")
+		StrikeEffects.HeiqiyihuXuhuaRecoverCard:
+			var paid_id = effect["paid_id"]
+			var recovered_card = card_db.get_card(paid_id)
+			performing_player.remove_card_from_discards(paid_id)
+			if effect["destination"] == "bleach":
+				performing_player.add_to_bleach(recovered_card)
+				_offer_heiqiyihu_xuhua_recovery(performing_player, card_id, "gauge")
+			else:
+				performing_player.add_to_gauge(recovered_card)
+				active_strike.heiqiyihu_xuhua_spent_ids.erase(card_id)
+		StrikeEffects.HeiqiyihuGetsugaCleanup:
+			# This is one atomic Cleanup item, not separately sortable effects.
+			# Gauge means the actual zone, not every card usable as Gauge.
+			performing_player.discard_hand()
+			performing_player.discard_gauge()
+			if not virtual_guardian.is_empty():
+				_move_heiqiyihu_virtual_source(card_id, "bleach")
+			elif performing_player.is_card_in_continuous_boosts(card_id):
+				performing_player.remove_from_continuous_boosts(card_db.get_card(card_id), "bleach")
+			performing_player.exceed()
+		"heiqiyihu_huhuan_guardian":
+			# Cost is queried dynamically; amplification reads the final valid
+			# attack only after PayCosts, not this earlier set-strike marker.
+			pass
 		StrikeEffects.ActivateNonExceedOverdrive:
 			performing_player.non_exceed_overdrive_active = true
 		StrikeEffects.AddAttackEffect:
@@ -2556,7 +3065,12 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 		StrikeEffects.AddBoostToGaugeOnStrikeCleanup:
 			if card_id == -1:
 				assert(false, "ERROR: Unimplemented path to add_boost_to_gauge_on_strike_cleanup")
-			if 'not_immediate' in effect and effect['not_immediate']:
+			if not virtual_guardian.is_empty():
+				if effect.get("not_immediate", false):
+					virtual_guardian["strike_cleanup_destination"] = "gauge"
+				else:
+					_move_heiqiyihu_virtual_source(card_id, "gauge")
+			elif 'not_immediate' in effect and effect['not_immediate']:
 				var card = card_db.get_card(card_id)
 				var card_name = card_db.get_card_name(card.id)
 				performing_player.add_boost_to_gauge_on_strike_cleanup(card_id)
@@ -2579,7 +3093,10 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 			var card = card_db.get_card(card_id)
 			var card_name = card_db.get_card_name(card.id)
 			_append_log_full(Enums.LogType.LogType_CardInfo, performing_player, "将加成牌%s加入超载。" % _log_card_name(card_name))
-			performing_player.remove_from_continuous_boosts(card, "overdrive")
+			if not virtual_guardian.is_empty():
+				_move_heiqiyihu_virtual_source(card_id, "overdrive")
+			else:
+				performing_player.remove_from_continuous_boosts(card, "overdrive")
 		StrikeEffects.AddHandToGauge:
 			performing_player.add_hand_to_gauge()
 		StrikeEffects.AddOpponentStrikeToGauge:
@@ -2621,7 +3138,7 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				performing_player.add_to_set_aside(new_card)
 				_append_log_full(Enums.LogType.LogType_CardInfo, performing_player, "adds %s to set-aside (Wonderland)." % _log_card_name(new_card.definition['display_name']))
 		StrikeEffects.AddStrikeToGaugeAfterCleanup:
-			if effect.get("allow_bleach_zone", false) and performing_player.has_bleach_zone():
+			if effect.get("allow_bleach_zone", false) and performing_player.has_bleach_zone() and performing_player.deck_def.get("id", "") != "dongshilang":
 				var gauge_effect = effect.duplicate(true)
 				gauge_effect.erase("allow_bleach_zone")
 				handle_strike_effect(card_id, {
@@ -2639,7 +3156,9 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 			performing_player.strike_stat_boosts.always_add_to_overdrive = true
 			handle_strike_attack_immediate_removal(performing_player)
 		StrikeEffects.AddToGaugeBoostPlayCleanup:
-			if effect.get("allow_bleach_zone", false) and performing_player.has_bleach_zone():
+			if not virtual_guardian.is_empty():
+				virtual_guardian["boost_play_destination"] = "gauge"
+			elif effect.get("allow_bleach_zone", false) and performing_player.has_bleach_zone() and performing_player.deck_def.get("id", "") != "dongshilang":
 				handle_strike_effect(card_id, {
 					"effect_type": StrikeEffects.Choice,
 					StrikeEffects.Choice: [
@@ -2652,7 +3171,9 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 					active_boost.discard_on_cleanup = true
 				active_boost.cleanup_to_gauge_card_ids.append(card_id)
 		StrikeEffects.AddToGaugeImmediately:
-			if effect.get("allow_bleach_zone", false) and performing_player.has_bleach_zone():
+			if not virtual_guardian.is_empty():
+				_move_heiqiyihu_virtual_source(card_id, "gauge")
+			elif effect.get("allow_bleach_zone", false) and performing_player.has_bleach_zone() and performing_player.deck_def.get("id", "") != "dongshilang":
 				handle_strike_effect(card_id, {
 					"effect_type": StrikeEffects.Choice,
 					StrikeEffects.Choice: [
@@ -2666,15 +3187,24 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				_append_log_full(Enums.LogType.LogType_CardInfo, performing_player, "将加成牌%s加入怒气。" % _log_card_name(card_name))
 				performing_player.remove_from_continuous_boosts(card, "gauge")
 		StrikeEffects.MoveBoostToBleachOnCleanup:
-			active_boost.cleanup_to_bleach_card_ids.append(card_id)
+			if not virtual_guardian.is_empty():
+				virtual_guardian["boost_play_destination"] = "bleach"
+			else:
+				active_boost.cleanup_to_bleach_card_ids.append(card_id)
 		StrikeEffects.MoveBoostToBleachImmediately:
-			var bleach_card = card_db.get_card(card_id)
-			performing_player.remove_from_continuous_boosts(bleach_card, "bleach")
+			if not virtual_guardian.is_empty():
+				_move_heiqiyihu_virtual_source(card_id, "bleach")
+			else:
+				var bleach_card = card_db.get_card(card_id)
+				performing_player.remove_from_continuous_boosts(bleach_card, "bleach")
 		StrikeEffects.AddToGaugeImmediatelyMidStrikeUndoEffects:
 			var card = card_db.get_card(card_id)
 			var card_name = card_db.get_card_name(card.id)
 			_append_log_full(Enums.LogType.LogType_CardInfo, performing_player, "将加成牌%s加入怒气。" % _log_card_name(card_name))
-			performing_player.remove_from_continuous_boosts(card, "gauge")
+			if not virtual_guardian.is_empty():
+				_move_heiqiyihu_virtual_source(card_id, "gauge")
+			else:
+				performing_player.remove_from_continuous_boosts(card, "gauge")
 		StrikeEffects.AddBottomDiscardToGauge:
 			var amount = 1
 			if 'amount' in effect:
@@ -2776,34 +3306,45 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 			else:
 				_append_log_full(Enums.LogType.LogType_CardInfo, performing_player, "其弃牌堆中没有可加入超载的牌。")
 		StrikeEffects.Advance:
-			decision_info.clear()
-			decision_info.source = StrikeEffects.Advance
-			decision_info.amount = effect['amount']
-			decision_info.limitation = { 'and': null }
-			if 'and' in effect:
-				decision_info.limitation['and'] = effect['and']
-				# and effect is handled by internal version
+			if performing_player.strike_stat_boosts.convert_advance_to_close:
+				var converted_close_effect = effect.duplicate(true)
+				converted_close_effect["effect_type"] = StrikeEffects.Close
+				handle_strike_effect(card_id, converted_close_effect, performing_player)
 				and_handled_elsewhere = true
+			elif _dongshilang_is_advance_converted_to_retreat(performing_player):
+				var converted_retreat_effect = effect.duplicate(true)
+				converted_retreat_effect["effect_type"] = StrikeEffects.Retreat
+				handle_strike_effect(card_id, converted_retreat_effect, performing_player)
+			else:
+				decision_info.clear()
+				decision_info.source = StrikeEffects.Advance
+				decision_info.amount = effect['amount']
+				decision_info.limitation = { 'and': null }
+				if 'and' in effect:
+					decision_info.limitation['and'] = effect['and']
+					# and effect is handled by internal version
+					and_handled_elsewhere = true
 
-			var stop_on_space = -1
-			if 'stop_on_buddy_space' in effect:
-				var buddy_location = performing_player.get_buddy_location(effect['stop_on_buddy_space'])
-				if buddy_location != performing_player.arena_location and buddy_location != opposing_player.arena_location:
-					stop_on_space = buddy_location
+				var stop_on_space = -1
+				if 'stop_on_buddy_space' in effect:
+					var buddy_location = performing_player.get_buddy_location(effect['stop_on_buddy_space'])
+					if buddy_location != performing_player.arena_location and buddy_location != opposing_player.arena_location:
+						stop_on_space = buddy_location
 
-			var effects = performing_player.get_character_effects_at_timing("on_advance_or_close")
-			for sub_effect in effects:
-				do_effect_if_condition_met(performing_player, -1, sub_effect, null)
-			if game_state != Enums.GameState.GameState_PlayerDecision:
-				var advance_effect = effect.duplicate()
-				advance_effect['effect_type'] = StrikeEffects.AdvanceInternal
-				advance_effect['stop_on_space'] = stop_on_space
-				handle_strike_effect(card_id, advance_effect, performing_player)
+				var effects = performing_player.get_character_effects_at_timing("on_advance_or_close")
+				for sub_effect in effects:
+					do_effect_if_condition_met(performing_player, -1, sub_effect, null)
+				if game_state != Enums.GameState.GameState_PlayerDecision:
+					var advance_effect = effect.duplicate()
+					advance_effect['effect_type'] = StrikeEffects.AdvanceInternal
+					advance_effect['stop_on_space'] = stop_on_space
+					handle_strike_effect(card_id, advance_effect, performing_player)
 		StrikeEffects.AdvanceInternal:
 			var amount = effect['amount']
 			if str(amount) == "strike_x":
 				amount = performing_player.strike_stat_boosts.strike_x
 			amount += performing_player.strike_stat_boosts.increase_movement_effects_by
+			amount = _dongshilang_limit_requested_movement(performing_player, amount)
 
 			var stop_on_space = -1
 			if 'stop_on_space' in effect:
@@ -2818,6 +3359,7 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				advance_amount -= 1
 				local_conditions.advanced_through = true
 				handle_advanced_through(performing_player, opposing_player)
+				_dongshilang_register_cross_during_strike(performing_player)
 				performing_player.moved_past_this_strike = true
 				if performing_player.strike_stat_boosts.range_includes_if_moved_past:
 					performing_player.strike_stat_boosts.range_includes_opponent = true
@@ -2826,6 +3368,7 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 					(performing_player.is_in_or_right_of_location(buddy_start, performing_start) and performing_player.is_in_or_left_of_location(buddy_start, new_location))):
 				local_conditions.advanced_through_buddy = true
 			local_conditions.movement_amount = advance_amount
+			_dongshilang_consume_movement_limit(performing_player, advance_amount)
 			# Ulrik: increment move counters from continuous boosts
 			for boost in performing_player.continuous_boosts:
 				for boost_effect in boost.definition['boost']['effects']:
@@ -3462,38 +4005,35 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				opposing_player.strike_stat_boosts.attack_does_not_hit = true
 				if card_id not in performing_player.cleanup_boost_to_bleach_cards:
 					performing_player.cleanup_boost_to_bleach_cards.append(card_id)
-		"yamamoto_cleanup_choice":
-			if performing_player.bleach_zone.is_empty():
-				return
-			handle_strike_effect(card_id, {"effect_type":StrikeEffects.Choice,"choice":[{"effect_type":"yamamoto_discard_pressure","override_description":"弃置威压中的所有牌"},{"effect_type":StrikeEffects.Pass,"override_description":"保留；自己下回合开始时全部置入怒气区"}]}, performing_player)
-		"yamamoto_discard_pressure":
-			_yamamoto_clear_pressure(performing_player, false)
-		"yamamoto_start_turn_gauge":
-			_yamamoto_clear_pressure(performing_player, true)
-			performing_player.yamamoto_pressure_protected_card_id = -1
-		"yamamoto_exceed_discard_pressure":
-			var yamamoto_discarded = _yamamoto_clear_pressure(performing_player, false)
-			if yamamoto_discarded > 0:
+		"yuanliuzhai_discard_pressure":
+			_yuanliuzhai_clear_pressure(performing_player, false)
+		"yuanliuzhai_start_turn":
+			if not performing_player.exceeded:
+				_yuanliuzhai_clear_pressure(performing_player, true)
+			performing_player.yuanliuzhai_pressure_protected_ids.clear()
+		"yuanliuzhai_exceed_discard_pressure":
+			var pressure_discarded = _yuanliuzhai_clear_pressure(performing_player, false)
+			if pressure_discarded > 0:
 				performing_player.draw(1)
-		"yamamoto_boost_to_pressure_if_empty":
+		"yuanliuzhai_boost_to_pressure_if_empty":
 			if performing_player.bleach_zone.is_empty() and active_boost:
 				active_boost.cleanup_to_bleach_card_ids.append(card_id)
-		"yamamoto_jokaku_hit":
+		"yuanliuzhai_jokaku_hit":
 			handle_strike_effect(card_id, {"effect_type":StrikeEffects.GainAdvantage}, performing_player)
 			performing_player.strike_stat_boosts.move_strike_to_bleach = true
 			if active_strike:
-				var yamamoto_jokaku = active_strike.get_player_card(performing_player)
-				if yamamoto_jokaku:
-					performing_player.yamamoto_pressure_protected_card_id = yamamoto_jokaku.id
-		"yamamoto_ryujin_execute":
+				var jokaku = active_strike.get_player_card(performing_player)
+				if jokaku and jokaku.id not in performing_player.yuanliuzhai_pressure_protected_ids:
+					performing_player.yuanliuzhai_pressure_protected_ids.append(jokaku.id)
+		"yuanliuzhai_ryujin_execute":
 			if active_strike and active_strike.did_player_hit_opponent(performing_player) and opposing_player.life < 6:
 				handle_strike_effect(card_id, {"effect_type":StrikeEffects.TakeDamage,"amount":99,"opponent":true}, performing_player)
-		"yamamoto_counter_cards":
-			_yamamoto_offer_counter_cards(performing_player)
-		"yamamoto_activate_shinra":
-			_yamamoto_activate_counter_card(performing_player, effect.get("card_id", -1), 3, true)
-		"yamamoto_activate_imin":
-			_yamamoto_activate_counter_card(performing_player, effect.get("card_id", -1), 1, false)
+		"yuanliuzhai_counter_cards":
+			_yuanliuzhai_offer_counter_cards(performing_player)
+		"yuanliuzhai_activate_shinra":
+			_yuanliuzhai_activate_counter_card(performing_player, effect.get("card_id", -1), 2, true)
+		"yuanliuzhai_activate_imin":
+			_yuanliuzhai_activate_counter_card(performing_player, effect.get("card_id", -1), 2, false)
 		"minato_power_per_sealed":
 			var minato_sealed_count = performing_player.sealed.size()
 			var minato_power_bonus = mini(int(minato_sealed_count / 4.0), 5)
@@ -4260,7 +4800,10 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				handle_strike_effect(card_id, close_effect, performing_player)
 		StrikeEffects.CloseInternal:
 			var amount = effect['amount']
+			if str(amount) == "strike_x":
+				amount = performing_player.strike_stat_boosts.strike_x
 			amount += performing_player.strike_stat_boosts.increase_movement_effects_by
+			amount = _dongshilang_limit_requested_movement(performing_player, amount)
 
 			var previous_location = performing_player.arena_location
 			performing_player.close(amount)
@@ -4276,6 +4819,7 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				_append_log_full(Enums.LogType.LogType_Strike, performing_player, "此次战斗的X被设为未逼近的格数，%s。" % not_closed)
 				performing_player.set_strike_x(not_closed)
 			local_conditions.movement_amount = close_amount
+			_dongshilang_consume_movement_limit(performing_player, close_amount)
 			# Ulrik: increment move counters from continuous boosts
 			for boost in performing_player.continuous_boosts:
 				for boost_effect in boost.definition['boost']['effects']:
@@ -4562,9 +5106,12 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				var destination = "discard"
 				var log_action = "弃置"
 				var log_suffix = ""
-				if decision_info.destination == "owner_hand":
+				var requested_destination = effect.get("destination", "")
+				if requested_destination == "":
+					requested_destination = decision_info.destination
+				if requested_destination == "owner_hand":
 					destination = "hand"
-				elif decision_info.destination == "gauge":
+				elif requested_destination == "gauge":
 					destination = "gauge"
 					log_action = "将"
 					log_suffix = "加入怒气"
@@ -6042,9 +6589,17 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 
 					_append_log_full(Enums.LogType.LogType_CardInfo, target_player, "%s随机牌%s：%s。" % [action_word, destination_str, _log_card_name(card_ids)])
 		StrikeEffects.MoveToSpace:
-			var space = effect['amount']
+			var target_space = effect['amount']
 			var remove_buddies_encountered = effect['remove_buddies_encountered']
 			var previous_location = performing_player.arena_location
+			var space = target_space
+			var move_budget = _dongshilang_limit_requested_movement(performing_player, abs(target_space - previous_location))
+			if move_budget <= 0:
+				space = previous_location
+			elif target_space > previous_location:
+				space = previous_location + move_budget
+			elif target_space < previous_location:
+				space = previous_location - move_budget
 			performing_player.move_to(space, false, remove_buddies_encountered)
 			var new_location = performing_player.arena_location
 			_append_log_full(Enums.LogType.LogType_CharacterMovement, performing_player, "从格子%s移动到%s。" % [str(previous_location), str(performing_player.arena_location)])
@@ -6052,6 +6607,8 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 			var move_amount = abs(new_location - previous_location)
 			if (performing_start < other_start and new_location > other_start) or (performing_start > other_start and new_location < other_start):
 				move_amount -= 1
+			move_amount = maxi(move_amount, 0)
+			_dongshilang_consume_movement_limit(performing_player, move_amount)
 			# Ulrik: increment move counters from continuous boosts
 			for boost in performing_player.continuous_boosts:
 				for boost_effect in boost.definition['boost']['effects']:
@@ -6064,6 +6621,7 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				# The opponent's space doesn't count as one you move through
 				local_conditions.advanced_through = true
 				handle_advanced_through(performing_player, opposing_player)
+				_dongshilang_register_cross_during_strike(performing_player)
 				performing_player.moved_past_this_strike = true
 				if performing_player.strike_stat_boosts.range_includes_if_moved_past:
 					performing_player.strike_stat_boosts.range_includes_opponent = true
@@ -6826,6 +7384,35 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 						break
 				if found: break
 		StrikeEffects.Pass:
+			if performing_player.deck_def.get("id", "") == "dongshilang":
+				var setup_once = effect.get("setup_once", false)
+				var move_ice_amount = int(effect.get("ice_from_set_aside_to_bleach", 0))
+				if move_ice_amount > 0:
+					if not setup_once or not performing_player.dongshilang_opening_ice_setup_done:
+						_dongshilang_move_ice_from_set_aside_to_bleach(performing_player, move_ice_amount, true)
+						if setup_once:
+							performing_player.dongshilang_opening_ice_setup_done = true
+
+				if effect.get("grant_exceed_character_action", false):
+					var exceed_actions = performing_player.deck_def.get("character_action_exceeded", [])
+					var action_effect = {}
+					if exceed_actions.size() > 0:
+						action_effect = exceed_actions[0].get("effect", {})
+					_dongshilang_start_ice_character_action(performing_player, action_effect, true)
+
+				if effect.has("required_ice_boost_count"):
+					var required_count = int(effect.get("required_ice_boost_count", 0))
+					var count_type = effect.get("count_type", "ice_crystal")
+					var current_count = _dongshilang_count_ice_in_boost_zone(performing_player, count_type)
+					for ice_card in performing_player.bleach_zone:
+						if ice_card.definition.get("type", "") == count_type:
+							current_count += 1
+					if current_count != required_count and performing_player.exceeded:
+						performing_player.revert_exceed()
+
+				var is_ice_character_action = effect.get("valid_zones", []).has("bleach") and effect.get("limitation", "") == "ice_crystal"
+				if is_ice_character_action:
+					_dongshilang_start_ice_character_action(performing_player, effect, false)
 			# Do nothing.
 			pass
 		StrikeEffects.PlaceBoostInSpace:
@@ -8073,6 +8660,7 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 			if str(amount) == "strike_x":
 				amount = performing_player.strike_stat_boosts.strike_x
 			amount += performing_player.strike_stat_boosts.increase_movement_effects_by
+			amount = _dongshilang_limit_requested_movement(performing_player, amount)
 
 			var previous_location = performing_player.arena_location
 			performing_player.retreat(amount)
@@ -8080,6 +8668,7 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 			var retreat_amount = abs(performing_start - new_location)
 			local_conditions.fully_retreated = retreat_amount == amount
 			local_conditions.movement_amount = retreat_amount
+			_dongshilang_consume_movement_limit(performing_player, retreat_amount)
 			# Ulrik: increment move counters from continuous boosts
 			for boost in performing_player.continuous_boosts:
 				for boost_effect in boost.definition['boost']['effects']:
@@ -8838,7 +9427,14 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				}
 				create_event(Enums.EventType.EventType_Strike_EffectDoStrike, performing_player.my_id, 0, "", strike_info)
 		StrikeEffects.StunImmunity:
-			performing_player.strike_stat_boosts.stun_immunity = true
+			var is_color_spray_immunity = performing_player.deck_def.get("id") == "eugenia" \
+				and card_id >= 0 \
+				and card_db.get_card(card_id).definition.get("id") == "eugenia_colorful_mist" \
+				and effect.get("timing", "") == "during_strike" \
+				and effect.get("condition", "") == "opponent_max_cards_in_hand"
+			# Color Spray is checked live in check_for_stun, not latched for the strike.
+			if not is_color_spray_immunity:
+				performing_player.strike_stat_boosts.stun_immunity = true
 		StrikeEffects.SustainAllBoosts:
 			for boost in performing_player.continuous_boosts:
 				if boost.id not in performing_player.sustained_boosts:
@@ -9290,11 +9886,137 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 		"noelle_magic_shotgun_power":
 			# 由对手（选择者）执行：改为让诺艾尔（攻击方）威力+2
 			handle_strike_effect(card_id, { "effect_type": StrikeEffects.Powerup, "amount": 2 }, opposing_player)
+		StrikeEffects.DongshilangIcebladeAfterStunBonusDamage:
+			if not active_strike:
+				return
+			if not active_strike.is_player_stunned(opposing_player):
+				return
+			var dongshilang_opponent_attack = active_strike.get_player_card(opposing_player)
+			if not dongshilang_opponent_attack:
+				return
+			var dongshilang_printed_armor = int(dongshilang_opponent_attack.definition.get("armor", 0))
+			if dongshilang_printed_armor > 0:
+				handle_strike_effect(card_id, {
+					"effect_type": StrikeEffects.TakeDamage,
+					"amount": dongshilang_printed_armor,
+					"opponent": true
+				}, performing_player)
+		StrikeEffects.DongshilangIceCloneNoGaugeOnHit:
+			if not active_strike:
+				return
+			opposing_player.strike_stat_boosts.discard_attack_on_cleanup = true
+		StrikeEffects.DongshilangIceCloneHitPowerIfWasHit:
+			if not active_strike:
+				return
+			if active_strike.did_player_hit_opponent(opposing_player):
+				handle_strike_effect(card_id, {
+					"effect_type": StrikeEffects.Powerup,
+					"amount": 1
+				}, performing_player)
+		StrikeEffects.DongshilangZekkuAfterRangeBonusDamage:
+			if not active_strike:
+				return
+			var dongshilang_max_range = get_total_max_range(performing_player)
+			var dongshilang_attack_origin = get_attack_origin(performing_player, opposing_player.arena_location)
+			var dongshilang_extra_range = dongshilang_max_range + 1
+			if not opposing_player.is_in_range_of_location(dongshilang_attack_origin, dongshilang_extra_range, dongshilang_extra_range):
+				return
+			var dongshilang_life_before = opposing_player.life
+			handle_strike_effect(card_id, {
+				"effect_type": StrikeEffects.TakeDamage,
+				"amount": 1,
+				"opponent": true
+			}, performing_player)
+			if opposing_player.life < dongshilang_life_before:
+				performing_player.strike_stat_boosts.always_add_to_gauge = true
+		StrikeEffects.DongshilangRhombusHitPowerdownIfNoArmor:
+			if not active_strike:
+				return
+			if get_total_armor(performing_player) <= 0:
+				handle_strike_effect(card_id, {
+					"effect_type": StrikeEffects.Powerup,
+					"amount": -1
+				}, performing_player)
+		StrikeEffects.DongshilangHyotenScaleByIceBoost:
+			var hyoten_ice_count = _dongshilang_count_ice_in_boost_zone(performing_player)
+			if hyoten_ice_count > 0:
+				handle_strike_effect(card_id, {
+					"effect_type": StrikeEffects.Speedup,
+					"amount": hyoten_ice_count
+				}, performing_player)
+				handle_strike_effect(card_id, {
+					"effect_type": StrikeEffects.Powerup,
+					"amount": hyoten_ice_count * 2
+				}, performing_player)
+				handle_strike_effect(card_id, {
+					"effect_type": StrikeEffects.Rangeup,
+					"amount": 0,
+					"amount2": hyoten_ice_count
+				}, performing_player)
+		StrikeEffects.DongshilangDiscardAllOtherBoosts:
+			var all_boosts_to_discard = []
+			for current_boost in performing_player.continuous_boosts:
+				if current_boost.id != card_id:
+					all_boosts_to_discard.append(current_boost.id)
+			for current_boost in opposing_player.continuous_boosts:
+				if current_boost.id != card_id:
+					all_boosts_to_discard.append(current_boost.id)
+			for discard_boost_id in all_boosts_to_discard:
+				handle_strike_effect(card_id, {
+					"effect_type": StrikeEffects.DiscardContinuousBoostInternal,
+					"card_id": discard_boost_id,
+					"destination": "discard"
+				}, performing_player)
+		StrikeEffects.DongshilangBinghuatuHitPowerupPerCross:
+			var cross_count = int(dongshilang_cross_count_this_strike.get(performing_player.my_id, 0))
+			if cross_count > 0:
+				handle_strike_effect(card_id, {
+					"effect_type": StrikeEffects.Powerup,
+					"amount": cross_count
+				}, performing_player)
+		StrikeEffects.DongshilangLimitSelfMoveToOneThisStrike:
+			var remaining = int(dongshilang_move_limit_remaining_this_strike.get(performing_player.my_id, -1))
+			if remaining < 0 or remaining > 1:
+				dongshilang_move_limit_remaining_this_strike[performing_player.my_id] = 1
+		StrikeEffects.DongshilangConvertAdvanceToRetreat:
+			dongshilang_convert_advance_to_retreat_this_strike[performing_player.my_id] = true
+		StrikeEffects.ConvertAdvanceToClose:
+			performing_player.strike_stat_boosts.convert_advance_to_close = true
+		"dongshilang_begin_ice_boost_now":
+			var dongshilang_amount = maxi(int(effect.get("amount", 1)), 1)
+			var dongshilang_valid_zones = effect.get("valid_zones", ["bleach"])
+			var dongshilang_limitation = effect.get("limitation", "ice_crystal")
+			var dongshilang_ignore_costs = effect.get("ignore_costs", false)
+			if performing_player.can_boost_something(dongshilang_valid_zones, dongshilang_limitation, dongshilang_ignore_costs):
+				create_event(Enums.EventType.EventType_ForceStartBoost, performing_player.my_id, dongshilang_amount, "", dongshilang_valid_zones, dongshilang_limitation, dongshilang_ignore_costs)
+				change_game_state(Enums.GameState.GameState_PlayerDecision)
+				decision_info.clear()
+				decision_info.type = Enums.DecisionType.DecisionType_BoostNow
+				decision_info.amount = dongshilang_amount
+				decision_info.player = performing_player.my_id
+				decision_info.valid_zones = dongshilang_valid_zones
+				decision_info.limitation = dongshilang_limitation
+				decision_info.ignore_costs = dongshilang_ignore_costs
+				decision_info.dongshilang_ice_character_action_cancel_once = true
+			else:
+				_append_log_full(Enums.LogType.LogType_Effect, performing_player, "没有可用于加成的冰晶。")
 		_:
 			assert(false, "ERROR: Unhandled effect type: %s" % effect['effect_type'])
 
+	_queue_heiqiyihu_thresholds(performing_player)
+	_queue_heiqiyihu_thresholds(opposing_player)
+	var threshold_resume_kind = "action"
+	if not active_strike and not _is_action_resolution_in_progress():
+		threshold_resume_kind = "idle"
+	_begin_heiqiyihu_thresholds(performing_player, threshold_resume_kind)
+	_begin_pending_heiqiyihu_strike()
+
 	if "and" in effect and effect['and'] and not and_handled_elsewhere:
 		var and_effect = effect['and'].duplicate()
+		if performing_player.strike_stat_boosts.heiqiyihu_prevent_opponent_moving_me \
+		and _last_effect_source_player_id == opposing_player.my_id \
+		and not and_effect.has("_source_player_id"):
+			and_effect["_source_player_id"] = _last_effect_source_player_id
 		var currently_set_card_id = and_effect.get("card_id", -1)
 		# If currently_set_card_id is a string or something besides -1, then don't bother setting it.
 		# Godot requires you check for the type of the variable before comparing it to -1.
@@ -9303,7 +10025,8 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 		if effect.get('pass_discards_to_and', false):
 			and_effect["discarded_card_ids"] = effect["discarded_card_ids"]
 		if game_state == Enums.GameState.GameState_PlayerDecision:
-			add_queued_effect(and_effect, local_conditions)
+			add_queued_effect(and_effect, local_conditions,
+				performing_player.my_id if not virtual_guardian.is_empty() else -1)
 		else:
 			var saved_source = _last_effect_source_player_id
 			do_effect_if_condition_met(performing_player, card_id, and_effect, local_conditions)
@@ -9332,6 +10055,7 @@ func change_stats_when_attack_leaves_play(performing_player : Player):
 	# the focus or block passives twice from a boost and a card somehow.
 	# You would also lose ignore armor/guard but that shouldn't matter.
 	performing_player.strike_stat_boosts.ignore_push_and_pull = false
+	performing_player.strike_stat_boosts.heiqiyihu_prevent_opponent_moving_me = false
 	performing_player.strike_stat_boosts.when_hit_force_for_armor = ""
 
 	# This currently assumes that this would always from the played attack
@@ -9571,6 +10295,18 @@ func get_boost_effects_at_timing(timing_name : String, performing_player : Playe
 				var effect_with_id = effect.duplicate(true)
 				effect_with_id['card_id'] = boost_card.id
 				effects.append(effect_with_id)
+	# Virtual guardians are not continuous_boost entities. Their immediate
+	# effects were consumed before setting attacks; no next-turn hooks survive.
+	if active_strike and timing_name not in ["now", "immediate", "start_of_next_turn"]:
+		for record in active_strike.heiqiyihu_guardian_records:
+			if record["player"] != performing_player.my_id:
+				continue
+			for effect in _get_heiqiyihu_guardian_boost(record)["effects"]:
+				if effect["timing"] == timing_name:
+					var virtual_effect = effect.duplicate(true)
+					virtual_effect["card_id"] = record["source_id"]
+					_add_source_player_id_to_effect_tree(virtual_effect, record["player"])
+					effects.append(virtual_effect)
 	return effects
 
 func get_all_effects_for_timing(
@@ -9924,73 +10660,107 @@ func do_queued_effects(performing_player : Player):
 			# Player has a decision to make, so stop mid-effect resolve.
 			break
 
-func _yamamoto_clear_pressure(performing_player : Player, to_gauge : bool) -> int:
+func _yuanliuzhai_clear_pressure(performing_player : Player, to_gauge : bool) -> int:
 	var moved := 0
 	for pressure_card in performing_player.bleach_zone.duplicate():
-		if pressure_card.id == performing_player.yamamoto_pressure_protected_card_id:
+		if pressure_card.id in performing_player.yuanliuzhai_pressure_protected_ids:
 			continue
 		performing_player.remove_card_from_bleach(pressure_card.id)
 		if to_gauge:
 			performing_player.add_to_gauge(pressure_card)
 		else:
 			performing_player.add_to_discards(pressure_card)
+		_append_log_full(Enums.LogType.LogType_CardInfo, performing_player, "将威压区的%s%s。" % [_log_card_name(pressure_card.definition["display_name"]), "置入怒气区" if to_gauge else "弃置"])
 		moved += 1
 	return moved
 
-func _yamamoto_find_hand_card(performing_player : Player, definition_id : String) -> int:
+func _yuanliuzhai_find_hand_card(performing_player : Player, definition_id : String) -> int:
 	for hand_card in performing_player.hand:
 		if hand_card.definition.get("id") == definition_id:
 			return hand_card.id
 	return -1
 
-func _yamamoto_effect_has_self_movement(effect) -> bool:
+func _yuanliuzhai_counter_copies_publicly_unavailable(performing_player : Player, definition_id : String) -> bool:
+	var unavailable_count := 0
+	# Only public zones may rule out the response window without exposing hidden cards.
+	for zone in [performing_player.discards, performing_player.bleach_zone]:
+		for card in zone:
+			if card.owner_id == performing_player.my_id and card.definition.get("id") == definition_id:
+				unavailable_count += 1
+	return unavailable_count >= 2
+
+func _yuanliuzhai_effect_has_self_movement(effect, owned_by_booster : bool = true) -> bool:
 	if typeof(effect) != TYPE_DICTIONARY:
 		return false
-	if effect.get("effect_type", "") in [StrikeEffects.Advance, StrikeEffects.Retreat, StrikeEffects.Close, StrikeEffects.MoveToAnySpace, StrikeEffects.MoveToSpace]:
+	if effect.get("for_other_player", false):
+		owned_by_booster = not owned_by_booster
+	if owned_by_booster and effect.get("effect_type", "") in [StrikeEffects.Advance, StrikeEffects.Retreat, StrikeEffects.Close]:
 		return true
-	if effect.has("and") and _yamamoto_effect_has_self_movement(effect["and"]):
-		return true
-	if effect.has(StrikeEffects.Choice):
-		for choice_effect in effect[StrikeEffects.Choice]:
-			if _yamamoto_effect_has_self_movement(choice_effect):
-				return true
+	for nested_key in ["and", "negative_condition_effect", "added_effect"]:
+		if effect.has(nested_key) and _yuanliuzhai_effect_has_self_movement(effect[nested_key], owned_by_booster):
+			return true
+	for choice_effect in effect.get("choice", []):
+		if _yuanliuzhai_effect_has_self_movement(choice_effect, owned_by_booster != bool(effect.get("opponent", false))):
+			return true
 	return false
 
-func _yamamoto_offer_counter_cards(performing_player : Player):
+func _yuanliuzhai_offer_counter_cards(performing_player : Player):
 	if not active_boost or active_boost.playing_player == performing_player:
 		return
 	var choices := []
-	var boost_type = active_boost.card.definition.get("boost", {}).get("boost_type", "")
-	var shinra_id = _yamamoto_find_hand_card(performing_player, "yamamoto_netsu_jigoku")
-	if boost_type == "continuous" and shinra_id >= 0 and performing_player.life > 3:
-		choices.append({"effect_type":"yamamoto_activate_shinra","card_id":shinra_id,"override_description":"弃置森罗并支付3生命：弃置场上所有加成"})
+	var is_continuous = active_boost.card.definition["boost"]["boost_type"] == "continuous"
 	var boost_moves_self := false
-	for boost_effect in active_boost.card.definition.get("boost", {}).get("effects", []):
-		if boost_effect.get("timing", "") in ["now", "immediate"] and _yamamoto_effect_has_self_movement(boost_effect):
+	for boost_effect in active_boost.card.definition["boost"].get("effects", []):
+		if _yuanliuzhai_effect_has_self_movement(boost_effect):
 			boost_moves_self = true
 			break
-	var imin_id = _yamamoto_find_hand_card(performing_player, "yamamoto_onibi")
-	if boost_moves_self and imin_id >= 0 and performing_player.life > 1:
-		choices.append({"effect_type":"yamamoto_activate_imin","card_id":imin_id,"override_description":"弃置威眠并支付1生命：阻止该加成造成的自身移动"})
-	if choices.is_empty():
+	if not is_continuous and not boost_moves_self:
 		return
-	choices.append({"effect_type":StrikeEffects.Pass,"override_description":"不响应"})
-	handle_strike_effect(-1, {"effect_type":StrikeEffects.Choice,"choice":choices,"override_description":"是否发动山本的反应牌？"}, performing_player)
+	var can_offer_shinra = is_continuous and not _yuanliuzhai_counter_copies_publicly_unavailable(performing_player, "yuanliuzhai_netsu_jigoku")
+	var shinra_id = _yuanliuzhai_find_hand_card(performing_player, "yuanliuzhai_netsu_jigoku")
+	if can_offer_shinra and shinra_id >= 0 and performing_player.life >= 2:
+		choices.append({
+			"effect_type": "yuanliuzhai_activate_shinra", "card_id": shinra_id,
+			"_choice_text": "弃置森罗并支付2点生命：弃置双方所有持续性加成并无效当前加成"
+		})
+	var imin_id = _yuanliuzhai_find_hand_card(performing_player, "yuanliuzhai_onibi")
+	var can_offer_imin = boost_moves_self and not _yuanliuzhai_counter_copies_publicly_unavailable(performing_player, "yuanliuzhai_onibi")
+	if can_offer_imin and imin_id >= 0 and performing_player.life >= 2:
+		choices.append({
+			"effect_type": "yuanliuzhai_activate_imin", "card_id": imin_id,
+			"_choice_text": "弃置威眠并支付2点生命：阻止该张加成离场前的所有自身移动"
+		})
+	if not can_offer_shinra and choices.is_empty():
+		return
+	choices.append({"effect_type": StrikeEffects.Pass, "_choice_text": "不响应"})
+	handle_strike_effect(-1, {"effect_type": StrikeEffects.Choice, "choice": choices}, performing_player)
 
-func _yamamoto_activate_counter_card(performing_player : Player, counter_card_id : int, life_cost : int, is_shinra : bool):
-	if counter_card_id < 0 or not performing_player.is_card_in_hand(counter_card_id) or performing_player.life <= life_cost:
+func _yuanliuzhai_activate_counter_card(performing_player : Player, counter_card_id : int, life_cost : int, is_shinra : bool):
+	var expected_definition = "yuanliuzhai_netsu_jigoku" if is_shinra else "yuanliuzhai_onibi"
+	if not active_boost or active_boost.playing_player == performing_player \
+			or (is_shinra and active_boost.card.definition["boost"]["boost_type"] != "continuous") \
+			or not performing_player.is_card_in_hand(counter_card_id) \
+			or card_db.get_card(counter_card_id).definition["id"] != expected_definition \
+			or performing_player.life < life_cost:
+		printlog("ERROR: Invalid Yuanliuzhai counter target, card or life payment.")
 		return
+	var countered_boost = active_boost
 	performing_player.discard([counter_card_id])
 	performing_player.spend_life(life_cost)
+	if game_over:
+		return
 	if is_shinra:
+		handle_strike_effect(countered_boost.card.id, {
+			"effect_type": StrikeEffects.NegateBoost, "allow_cancel_after_negate": true
+		}, performing_player)
 		for boost_owner in [player, opponent]:
 			for boost_card in boost_owner.continuous_boosts.duplicate():
 				boost_owner.remove_from_continuous_boosts(boost_card, "discard")
-		if active_boost:
-			active_boost.boost_negated = true
 	else:
-		if active_boost:
-			active_boost.playing_player.yamamoto_block_boost_movement = true
+		var boost_owner = countered_boost.playing_player
+		if countered_boost.card.id not in boost_owner.yuanliuzhai_blocked_boost_ids:
+			boost_owner.yuanliuzhai_blocked_boost_ids.append(countered_boost.card.id)
+		_append_log_full(Enums.LogType.LogType_Effect, performing_player, "威眠：阻止%s离场前的所有自身移动。" % _log_card_name(countered_boost.card.definition["display_name"]))
 
 func do_set_strike_x(performing_player : Player, source : String, extra_info):
 
@@ -10334,14 +11104,16 @@ func get_total_power(performing_player : Player, ignore_swap : bool = false, car
 	var positive_boosted_power = performing_player.strike_stat_boosts.power_positive_only
 	if performing_player.deck_def.get("id") == "soifon" and card.definition.get("id") == "soifon_jakuho_raikoben":
 		boosted_power += performing_player.soifon_shunko_spent_this_strike
-	if performing_player.deck_def.get("id") == "yamamoto":
-		var yamamoto_pressure_types := {}
+	if performing_player.deck_def.get("id") == "yuanliuzhai":
+		var pressure_types := {}
 		for pressure_card in performing_player.bleach_zone:
-			yamamoto_pressure_types[pressure_card.definition.get("type", "")] = true
-		if yamamoto_pressure_types.has("special"):
+			pressure_types[pressure_card.definition.get("type", "")] = true
+		if pressure_types.has("special"):
 			boosted_power += 1
-		if yamamoto_pressure_types.has("ultra"):
+			positive_boosted_power += 1
+		if pressure_types.has("ultra"):
 			boosted_power += 2
+			positive_boosted_power += 2
 	if performing_player.strike_stat_boosts.power_modify_per_buddy_between:
 		# NOTE: This does not interact with the positive power multiplier.
 		# If someone ever needs that, this needs to be updated.
@@ -10628,6 +11400,7 @@ func apply_damage(offense_player : Player, defense_player : Player):
 	if defense_player.life <= 0:
 		_append_log_full(Enums.LogType.LogType_Default, defense_player, "生命已归零！")
 		on_death(defense_player)
+	_queue_heiqiyihu_thresholds(defense_player)
 
 func on_death(performing_player):
 	if 'on_death' in performing_player.deck_def:
@@ -10756,6 +11529,7 @@ func _register_life_conditional_boost(target_player : Player, effect_type : Stri
 		list.append({"amount": amount, "threshold": threshold, "applied": true})
 
 func _recalc_life_conditional_boosts(target_player : Player):
+	_queue_heiqiyihu_thresholds(target_player)
 	var boosts = target_player.strike_stat_boosts
 	for entry in boosts.conditional_life_powerups:
 		var ok = target_player.life <= entry.threshold
@@ -10776,6 +11550,9 @@ func _recalc_life_conditional_boosts(target_player : Player):
 
 func get_gauge_cost(performing_player : Player, card, check_if_card_in_hand = false):
 	var gauge_cost = card.definition['gauge_cost']
+	if card.definition["id"] == "heiqiyihu_呼唤我的名字吧！" and active_strike \
+	and not active_strike.heiqiyihu_guardian_records.is_empty():
+		gauge_cost = 3
 	var is_ex = active_strike.will_be_ex(performing_player)
 	if 'gauge_cost_ex' in card.definition and is_ex:
 		gauge_cost = card.definition['gauge_cost_ex']
@@ -10796,6 +11573,14 @@ func get_gauge_cost(performing_player : Player, card, check_if_card_in_hand = fa
 			"per_boost_in_play":
 				var boosts_in_play = performing_player.get_boosts().size()
 				gauge_cost = max(0, gauge_cost - boosts_in_play)
+			"per_boost_in_play_of_type":
+				var reduction_boost_type = card.definition.get("gauge_cost_reduction_boost_type", "")
+				if reduction_boost_type != "":
+					var typed_boosts_in_play = 0
+					for boost_card in performing_player.get_boosts():
+						if boost_card.definition.get("type", "") == reduction_boost_type:
+							typed_boosts_in_play += 1
+					gauge_cost = max(0, gauge_cost - typed_boosts_in_play)
 			"free_if_ex":
 				if is_ex:
 					gauge_cost = 0
@@ -11065,6 +11850,8 @@ func continue_resolve_strike():
 			var player_name = get_player_name(decision_info.player)
 			printlog("STRIKE: Pausing for decision %s %s" % [player_name, Enums.DecisionType.keys()[decision_info.type]])
 			break
+		if _begin_heiqiyihu_thresholds(active_strike.initiator, "strike"):
+			break
 
 		printlog("STRIKE: processing state %s " % [StrikeState.keys()[active_strike.strike_state]])
 		match active_strike.strike_state:
@@ -11273,6 +12060,9 @@ func continue_resolve_strike():
 				player2.reading_card_id = ""
 
 				# Cleanup any continuous boosts.
+				for record in active_strike.heiqiyihu_guardian_records:
+					if record.has("strike_cleanup_destination"):
+						_move_heiqiyihu_virtual_source(record["source_id"], record["strike_cleanup_destination"])
 				active_strike.initiator.cleanup_continuous_boosts()
 				active_strike.defender.cleanup_continuous_boosts()
 
@@ -11381,6 +12171,12 @@ func strike_add_transform_option(performing_player : Player, card : GameCard):
 func strike_add_bleach_option(performing_player : Player, card : GameCard):
 	assert(active_strike)
 	if not performing_player.has_bleach_zone():
+		return
+	if performing_player.deck_def.get("id", "") in ["dongshilang", "yuanliuzhai"]:
+		return
+	if performing_player.deck_def.get("base_id", performing_player.deck_def.get("id", "")) == "heiqiyihu":
+		# Guardians are obtained only by this character's explicit effects,
+		# not by the shared special/ultra hit destination option.
 		return
 	if performing_player.strike_stat_boosts.seal_attack_on_cleanup:
 		return
@@ -11869,6 +12665,11 @@ func _play_forced_discard_boost(performing_player : Player, boost_card_id : int,
 	do_boost(performing_player, boost_card_id, [], true)
 
 func begin_resolve_boost(performing_player : Player, card_id : int, additional_boost_ids = [], shuffle_discard_after : bool = false, overwrite_current_active : bool = false):
+	var dongshilang_cancel_once = decision_info.dongshilang_ice_character_action_cancel_once \
+		and performing_player.deck_def.get("id", "") == "dongshilang"
+	if dongshilang_cancel_once:
+		var consumed_count = 1 + additional_boost_ids.size()
+		_dongshilang_consume_pending_ice_action_boosts(performing_player, consumed_count)
 
 	# If boosting multiple cards, treat as parent boosts to "queue" them
 	var more_boosts_to_play = true
@@ -11888,6 +12689,7 @@ func begin_resolve_boost(performing_player : Player, card_id : int, additional_b
 		active_boost = new_boost
 		active_boost.playing_player = performing_player
 		active_boost.card = card_db.get_card(card_id)
+		active_boost.dongshilang_ice_character_action_cancel_once = dongshilang_cancel_once
 		active_boost.shuffle_discard_on_cleanup = shuffle_discard_after
 		active_boost.boosted_from_gauge = performing_player.is_card_in_gauge(card_id)
 		# 「展示并执行」（海蒂 开关扇：boost_multiple + return_to_hand）：被展示的加成
@@ -11907,6 +12709,7 @@ func begin_resolve_boost(performing_player : Player, card_id : int, additional_b
 			# Renea exceed: track briefcase boost usage (check before removal)
 			var renea_was_in_set_aside = performing_player.is_card_in_set_aside(card_id)
 			performing_player.remove_card_from_set_aside(card_id)
+			performing_player.remove_card_from_bleach(card_id)
 			performing_player.remove_card_from_deck(card_id)
 			if renea_was_in_set_aside and performing_player.deck_def.get("id") == "renea" and performing_player.exceeded:
 				if not performing_player.renea_boost_from_briefcase_used:
@@ -11972,10 +12775,12 @@ func continue_resolve_boost():
 					active_boost.counters_resolved += 1
 					continue
 				do_effect_if_condition_met(other_player, -1, effect, null)
-				if game_state == Enums.GameState.GameState_PlayerDecision:
+				if game_over or game_state == Enums.GameState.GameState_PlayerDecision:
 					break
 
 				active_boost.counters_resolved += 1
+				# Finish the counter phase before boost decisions can advance effects_resolved.
+				continue
 			else:
 				active_boost.checked_counter = true
 		if active_boost.boost_negated and active_boost.effects_resolved < len(effects) + len(character_effects):
@@ -12009,14 +12814,39 @@ func continue_resolve_boost():
 			active_boost.effects_resolved += 1
 			if game_state == Enums.GameState.GameState_PlayerDecision:
 				break
-			if active_boost.playing_player.can_cancel(active_boost.card) and not active_boost.strike_after_boost and (not active_boost.boost_negated or active_boost.allow_cancel_after_negate):
-				var cancel_cost = card_db.get_card_cancel_cost(active_boost.card.id)
-				change_game_state(Enums.GameState.GameState_PlayerDecision)
-				decision_info.type = Enums.DecisionType.DecisionType_BoostCancel
-				decision_info.player = active_boost.playing_player.my_id
-				decision_info.choice = cancel_cost
-				create_event(Enums.EventType.EventType_Boost_CancelDecision, active_boost.playing_player.my_id, cancel_cost)
-				break
+
+			var dongshilang_defer_cancel = active_boost.dongshilang_ice_character_action_cancel_once and active_boost.parent_boost != null
+			if not dongshilang_defer_cancel:
+				if active_boost.dongshilang_ice_character_action_cancel_once and active_boost.parent_boost == null:
+					var pending_ice_boosts = _dongshilang_get_pending_ice_action_count(active_boost.playing_player)
+					if pending_ice_boosts > 0:
+						var pending_context = _dongshilang_get_pending_ice_action_context(active_boost.playing_player)
+						var pending_valid_zones = pending_context.get("valid_zones", ["bleach"])
+						var pending_limitation = pending_context.get("limitation", "ice_crystal")
+						var pending_ignore_costs = pending_context.get("ignore_costs", false)
+						if active_boost.playing_player.can_boost_something(pending_valid_zones, pending_limitation, pending_ignore_costs):
+							change_game_state(Enums.GameState.GameState_PlayerDecision)
+							decision_info.clear()
+							decision_info.type = Enums.DecisionType.DecisionType_BoostNow
+							decision_info.player = active_boost.playing_player.my_id
+							decision_info.amount = pending_ice_boosts
+							decision_info.valid_zones = pending_valid_zones
+							decision_info.limitation = pending_limitation
+							decision_info.ignore_costs = pending_ignore_costs
+							decision_info.dongshilang_ice_character_action_cancel_once = true
+							create_event(Enums.EventType.EventType_ForceStartBoost, active_boost.playing_player.my_id, pending_ice_boosts, "", pending_valid_zones, pending_limitation, pending_ignore_costs)
+							break
+						_dongshilang_clear_pending_ice_action(active_boost.playing_player)
+
+				var cancel_cost = _get_effective_boost_cancel_cost(active_boost.playing_player, active_boost.card)
+				if cancel_cost != -1 and active_boost.playing_player.get_available_gauge() >= cancel_cost and not active_boost.strike_after_boost and (not active_boost.boost_negated or active_boost.allow_cancel_after_negate):
+					_dongshilang_clear_pending_ice_action(active_boost.playing_player)
+					change_game_state(Enums.GameState.GameState_PlayerDecision)
+					decision_info.type = Enums.DecisionType.DecisionType_BoostCancel
+					decision_info.player = active_boost.playing_player.my_id
+					decision_info.choice = cancel_cost
+					create_event(Enums.EventType.EventType_Boost_CancelDecision, active_boost.playing_player.my_id, cancel_cost)
+					break
 		else:
 			if not active_boost.parent_boost:
 				resolving_boost_before_queue = false
@@ -12201,7 +13031,8 @@ func boost_finish_resolving_card(performing_player : Player):
 func boost_play_cleanup(performing_player : Player):
 	if game_state != Enums.GameState.GameState_PlayerDecision:
 		decision_info.clear()
-	performing_player.yamamoto_block_boost_movement = false
+	if not performing_player.is_card_in_continuous_boosts(active_boost.card.id):
+		performing_player.yuanliuzhai_blocked_boost_ids.erase(active_boost.card.id)
 	# Syrus: from-gauge instant boost (Memories from the Deep) whose exceed-face
 	# now effect (Move up to 1) resolved first; seal the replayed continuous
 	# boost now that the effect finished.
@@ -12211,8 +13042,48 @@ func boost_play_cleanup(performing_player : Player):
 			_append_log_full(Enums.LogType.LogType_CardInfo, performing_player, "封印加成牌%s。" % active_boost.card.definition['display_name'])
 			performing_player.remove_from_continuous_boosts(active_boost.card, "sealed")
 		active_boost.discarded_already = true
+	if active_boost and active_boost.parent_boost == null and active_boost.dongshilang_ice_character_action_cancel_once:
+		_dongshilang_clear_pending_ice_action(performing_player)
 	# Account for boosts that played other boosts
 	if active_boost.parent_boost:
+		var parent_boost = active_boost.parent_boost
+		var parent_is_dongshilang_cancel_chain = parent_boost.dongshilang_ice_character_action_cancel_once \
+			and parent_boost.checked_counter \
+			and parent_boost.effects_resolved > 0 \
+			and not active_strike
+		if parent_is_dongshilang_cancel_chain:
+			active_boost = parent_boost
+			var pending_ice_boosts = _dongshilang_get_pending_ice_action_count(performing_player)
+			if pending_ice_boosts > 0:
+				var pending_context = _dongshilang_get_pending_ice_action_context(performing_player)
+				var pending_valid_zones = pending_context.get("valid_zones", ["bleach"])
+				var pending_limitation = pending_context.get("limitation", "ice_crystal")
+				var pending_ignore_costs = pending_context.get("ignore_costs", false)
+				if performing_player.can_boost_something(pending_valid_zones, pending_limitation, pending_ignore_costs):
+					change_game_state(Enums.GameState.GameState_PlayerDecision)
+					decision_info.clear()
+					decision_info.type = Enums.DecisionType.DecisionType_BoostNow
+					decision_info.player = performing_player.my_id
+					decision_info.amount = pending_ice_boosts
+					decision_info.valid_zones = pending_valid_zones
+					decision_info.limitation = pending_limitation
+					decision_info.ignore_costs = pending_ignore_costs
+					decision_info.dongshilang_ice_character_action_cancel_once = true
+					create_event(Enums.EventType.EventType_ForceStartBoost, performing_player.my_id, pending_ice_boosts, "", pending_valid_zones, pending_limitation, pending_ignore_costs)
+					return
+				_dongshilang_clear_pending_ice_action(performing_player)
+
+			var cancel_cost = _get_effective_boost_cancel_cost(performing_player, active_boost.card)
+			if cancel_cost != -1 and performing_player.get_available_gauge() >= cancel_cost and not active_boost.strike_after_boost and (not active_boost.boost_negated or active_boost.allow_cancel_after_negate):
+				_dongshilang_clear_pending_ice_action(performing_player)
+				change_game_state(Enums.GameState.GameState_PlayerDecision)
+				decision_info.clear()
+				decision_info.type = Enums.DecisionType.DecisionType_BoostCancel
+				decision_info.player = performing_player.my_id
+				decision_info.choice = cancel_cost
+				create_event(Enums.EventType.EventType_Boost_CancelDecision, performing_player.my_id, cancel_cost)
+				return
+
 		if active_strike:
 			_boost_play_cleanup_update_effects(performing_player)
 
@@ -12347,6 +13218,7 @@ func boost_play_cleanup(performing_player : Player):
 			active_boost = null
 			if not preparing_strike and not active_overdrive:
 				check_hand_size_advance_turn(performing_player)
+	_begin_pending_heiqiyihu_strike()
 
 func _boost_play_cleanup_update_effects(performing_player : Player):
 	# 被无效化的加成（如杰弗里 强制净化 / Inquisition 的 counter_boost）不得把它的
@@ -12533,6 +13405,10 @@ func check_post_action_effects(performing_player : Player):
 func check_hand_size_advance_turn(performing_player : Player):
 
 	assert(not active_strike)
+	_queue_heiqiyihu_thresholds(player)
+	_queue_heiqiyihu_thresholds(opponent)
+	if _begin_heiqiyihu_thresholds(performing_player, "hand_size"):
+		return
 
 	if not performing_player.checked_post_action_effects:
 		active_post_action_effect = true
@@ -12843,6 +13719,8 @@ func do_reshuffle(performing_player : Player) -> bool:
 
 func do_move(performing_player : Player, card_ids, new_arena_location, use_free_force : bool = false, spent_life_for_force : int = 0) -> bool:
 	printlog("MainAction: MOVE by %s to %s" % [performing_player.name, str(new_arena_location)])
+	if not performing_player.validate_heiqiyihu_payment(card_ids):
+		return false
 	if not can_do_move(performing_player):
 		printlog("ERROR: Cannot perform the move action for this player.")
 		return false
@@ -12854,7 +13732,8 @@ func do_move(performing_player : Player, card_ids, new_arena_location, use_free_
 
 	# Ensure cards are in hand/gauge
 	for id in card_ids:
-		if not performing_player.is_card_in_hand(id) and not performing_player.is_card_in_gauge(id):
+		if not performing_player.is_card_in_hand(id) and not performing_player.is_card_in_gauge(id) \
+		and not performing_player.is_heiqiyihu_guardian_resource(id):
 			# Card not found, error
 			printlog("ERROR: Tried to discard cards that aren't in hand/gauge.")
 			return false
@@ -12916,6 +13795,8 @@ func do_move(performing_player : Player, card_ids, new_arena_location, use_free_
 
 func do_change(performing_player : Player, card_ids, treat_ultras_as_single_force : bool, use_free_force : bool = false, spent_life_for_force : int = 0) -> bool:
 	printlog("MainAction: CHANGE_CARDS by %s - %s" % [performing_player.name, card_ids])
+	if not performing_player.validate_heiqiyihu_payment(card_ids):
+		return false
 	if not can_do_change(performing_player):
 		printlog("ERROR: Cannot do change action for this player.")
 		return false
@@ -12925,7 +13806,8 @@ func do_change(performing_player : Player, card_ids, treat_ultras_as_single_forc
 		if performing_player.is_card_in_gauge(id):
 			has_card_from_gauge = true
 
-		if not performing_player.is_card_in_hand(id) and not performing_player.is_card_in_gauge(id):
+		if not performing_player.is_card_in_hand(id) and not performing_player.is_card_in_gauge(id) \
+		and not performing_player.is_heiqiyihu_guardian_resource(id):
 			# Card not found, error
 			printlog("ERROR: Tried to discard cards that aren't in hand or gauge.")
 			return false
@@ -12979,6 +13861,8 @@ func do_change(performing_player : Player, card_ids, treat_ultras_as_single_forc
 
 func do_exceed(performing_player : Player, card_ids : Array, spent_life_for_gauge : int = 0) -> bool:
 	printlog("MainAction: EXCEED by %s - %s" % [performing_player.name, card_ids])
+	if not performing_player.validate_heiqiyihu_payment(card_ids, true):
+		return false
 	if game_state != Enums.GameState.GameState_PickAction:
 		printlog("ERROR: Tried to exceed but not in correct game state.")
 		return false
@@ -12986,7 +13870,7 @@ func do_exceed(performing_player : Player, card_ids : Array, spent_life_for_gaug
 		printlog("ERROR: Tried to exceed for wrong player.")
 		return false
 	for id in card_ids:
-		if not performing_player.is_card_in_gauge(id):
+		if not performing_player.is_card_in_gauge(id) and not performing_player.is_heiqiyihu_guardian_resource(id):
 			# Card not found, error
 			printlog("ERROR: Tried to exceed with cards that not in gauge.")
 			return false
@@ -13015,6 +13899,18 @@ func do_exceed(performing_player : Player, card_ids : Array, spent_life_for_gaug
 	performing_player.exceed()
 	if game_state == Enums.GameState.GameState_AutoStrike:
 		performing_player.face_attack_id = decision_info.effect_type
+		if _has_heiqiyihu_guardian_option():
+			# The rule specifies a face attack, not a card chosen by the
+			# player. Leave it in set-aside until guardians finish.
+			heiqiyihu_pending_strike_request = {
+				"player": performing_player.my_id,
+				"opponent_first": false,
+				"required_wild": false,
+				"required_face_attack": true
+			}
+			change_game_state(Enums.GameState.GameState_PickAction)
+			_begin_pending_heiqiyihu_strike()
+			return true
 		var card = _prepare_face_attack_for_strike(performing_player)
 		if not card:
 			printlog("ERROR: Tried to auto-strike with a missing set aside card.")
@@ -13041,11 +13937,19 @@ func do_boost(performing_player : Player, card_id : int, payment_card_ids : Arra
 			return false
 
 	var card = card_db.get_card(card_id)
+	if not performing_player.validate_heiqiyihu_payment(payment_card_ids, card.definition["boost"].has("gauge_cost")):
+		return false
+	if performing_player.deck_def.get("id") == "heiqiyihu" and card_id in payment_card_ids:
+		printlog("ERROR: A boost cannot also be its own payment.")
+		return false
 	if facedown_override != null and card.definition['boost']['boost_type'] == "continuous":
 		if facedown_override:
 			card.definition["boost"]["facedown"] = true
 		elif "facedown" in card.definition["boost"]:
 			card.definition["boost"].erase("facedown")
+	if card.definition["boost"].get("reaction_only", false):
+		printlog("ERROR: Reaction-only cards cannot be played as boosts.")
+		return false
 	# Umina Spiraling Descent: opponent cannot boost copies of the Dreamlands card
 	var uma_sd_opponent = _get_player(get_other_player(performing_player.my_id))
 	if uma_sd_opponent.deck_def.get("id") == "umina" and uma_sd_opponent.has_transform("umina_dark_thoughts"):
@@ -13241,7 +14145,14 @@ func do_strike(
 	opponent_sets_first : bool = false,
 	use_face_attack : bool = false
 ) -> bool:
-	printlog("MainAction: STRIKE by %s card %s wild %s" % [get_player_name(performing_player.my_id), card_db.get_card_id(card_id), str(wild_strike)])
+	var guardian_declaration = not active_strike and _has_heiqiyihu_guardian_option()
+	if guardian_declaration:
+		printlog("MainAction: STRIKE declaration by %s (attack not selected)" % get_player_name(performing_player.my_id))
+	else:
+		printlog("MainAction: STRIKE by %s card %s wild %s" % [get_player_name(performing_player.my_id), card_db.get_card_id(card_id), str(wild_strike)])
+	if not heiqiyihu_guardian_setup.is_empty():
+		printlog("ERROR: Attack selection must wait for both guardian phases.")
+		return false
 	if game_state == Enums.GameState.GameState_PickAction:
 		if performing_player.my_id != active_turn_player:
 			printlog("ERROR: Tried to strike but not current player")
@@ -13261,6 +14172,12 @@ func do_strike(
 		if performing_player.my_id != decision_info.player:
 			printlog("ERROR: Strike response from wrong player.")
 			return false
+	if guardian_declaration:
+		return _declare_heiqiyihu_strike(performing_player, opponent_sets_first)
+	var resuming_guardian_declaration = active_strike and active_strike.heiqiyihu_declared_before_set \
+		and active_strike.initiator == performing_player and active_strike.initiator_card == null
+	if resuming_guardian_declaration:
+		opponent_sets_first = active_strike.opponent_sets_first
 
 	# ex_card_id being non -1 means it is an extra strike option.
 	var ex_strike = not wild_strike and ex_card_id != -1
@@ -13356,7 +14273,7 @@ func do_strike(
 	# Lay down the strike
 	match game_state:
 		Enums.GameState.GameState_PickAction, Enums.GameState.GameState_WaitForStrike:
-			if not opponent_sets_first:
+			if not opponent_sets_first and not resuming_guardian_declaration:
 				initialize_new_strike(performing_player, opponent_sets_first)
 				if game_state == Enums.GameState.GameState_PickAction:
 					_append_log_full(Enums.LogType.LogType_Action, performing_player, "回合行动：战斗")
@@ -13478,7 +14395,8 @@ func do_strike(
 
 		Enums.GameState.GameState_Strike_Opponent_Set_First:
 			if opponent_sets_first: # should always be true
-				initialize_new_strike(performing_player, opponent_sets_first)
+				if not resuming_guardian_declaration:
+					initialize_new_strike(performing_player, opponent_sets_first)
 				var opponent_name = _get_player(get_other_player(performing_player.my_id)).name
 				_append_log_full(Enums.LogType.LogType_Strike, performing_player, "发起一场战斗！%s将先设置其攻击。" % opponent_name)
 				if performing_player.deck_def.get("id") == "minato" and performing_player.exceeded and performing_player.minato_seal_power_bonus > 0:
@@ -13708,14 +14626,17 @@ func do_force_for_armor(performing_player : Player, card_ids : Array, use_free_f
 		return false
 
 	var use_gauge_instead = decision_info.limitation == "gauge"
+	if not performing_player.validate_heiqiyihu_payment(card_ids, use_gauge_instead):
+		return false
 	if use_gauge_instead:
 		for card_id in card_ids:
-			if not performing_player.is_card_in_gauge(card_id):
+			if not performing_player.is_card_in_gauge(card_id) and not performing_player.is_heiqiyihu_guardian_resource(card_id):
 				printlog("ERROR: Tried to force(gauge) for armor with card not in gauge.")
 				return false
 	else:
 		for card_id in card_ids:
-			if not performing_player.is_card_in_hand(card_id) and not performing_player.is_card_in_gauge(card_id):
+			if not performing_player.is_card_in_hand(card_id) and not performing_player.is_card_in_gauge(card_id) \
+			and not performing_player.is_heiqiyihu_guardian_resource(card_id):
 				printlog("ERROR: Tried to force for armor with card not in hand or gauge.")
 				return false
 
@@ -13761,6 +14682,8 @@ func do_force_for_armor(performing_player : Player, card_ids : Array, use_free_f
 
 func do_boost_cancel(performing_player : Player, gauge_card_ids : Array, doing_cancel : bool) -> bool:
 	printlog("SubAction: BOOST_CANCEL by %s cards %s cancel %s" % [performing_player.name, gauge_card_ids, str(doing_cancel)])
+	if not performing_player.validate_heiqiyihu_payment(gauge_card_ids, true):
+		return false
 	if game_state != Enums.GameState.GameState_PlayerDecision or decision_info.type != Enums.DecisionType.DecisionType_BoostCancel:
 		printlog("ERROR: Tried to cancel boost but not in decision state.")
 		return false
@@ -13770,12 +14693,16 @@ func do_boost_cancel(performing_player : Player, gauge_card_ids : Array, doing_c
 	if not active_boost:
 		printlog("ERROR: Tried to cancel boost but no active boost.")
 		return false
+	var cancel_cost = _get_effective_boost_cancel_cost(performing_player, active_boost.card)
+	if cancel_cost < 0:
+		printlog("ERROR: Tried to cancel boost but this boost cannot be canceled.")
+		return false
 	# 按支付点数算：「枪灵」一类在怒气区的卡值 2 点（原先是 len(gauge_card_ids) 按张数）
-	if doing_cancel and performing_player.get_gauge_payment_value_for_cards(gauge_card_ids) < card_db.get_card_cancel_cost(active_boost.card.id):
+	if doing_cancel and performing_player.get_gauge_payment_value_for_cards(gauge_card_ids) < cancel_cost:
 		printlog("ERROR: Tried to cancel boost with too few cards.")
 		return false
 	for id in gauge_card_ids:
-		if not performing_player.is_card_in_gauge(id):
+		if not performing_player.is_card_in_gauge(id) and not performing_player.is_heiqiyihu_guardian_resource(id):
 			# Card not found, error
 			printlog("ERROR: Tried to cancel boost with cards that aren't in gauge.")
 			return false
@@ -13908,6 +14835,11 @@ func do_boost_name_card_choice_effect(performing_player : Player, card_id : int)
 
 func do_choice(performing_player : Player, choice_index : int) -> bool:
 	printlog("SubAction: CHOICE by %s card %s" % [performing_player.name, str(choice_index)])
+	if not heiqiyihu_threshold_context.is_empty():
+		return _do_heiqiyihu_threshold_choice(performing_player, choice_index)
+	if not heiqiyihu_guardian_setup.is_empty() \
+	and decision_info.effect_type == "heiqiyihu_guardian_before_set":
+		return _do_heiqiyihu_guardian_choice(performing_player, choice_index)
 	if decision_info.player != performing_player.my_id:
 		printlog("ERROR: Tried to name card for wrong player.")
 		return false
@@ -13923,6 +14855,15 @@ func do_choice(performing_player : Player, choice_index : int) -> bool:
 
 	var card_id = decision_info.choice_card_id
 	var effect = decision_info.choice[choice_index].duplicate()
+	if effect.get("effect_type") == StrikeEffects.HeiqiyihuGuardianSource \
+	and effect.get("source") == "hand" \
+	and not performing_player.is_card_in_hand(effect["guardian_card_id"]):
+		printlog("ERROR: Guardian source is no longer in hand.")
+		return false
+	if effect.get("effect_type") == StrikeEffects.HeiqiyihuXuhuaRecoverCard \
+	and not performing_player.is_card_in_discards(effect["paid_id"]):
+		printlog("ERROR: Xuhua payment is no longer in the discard pile.")
+		return false
 	if effect.get("requires_sealed_cards", false) and performing_player.sealed.is_empty():
 		printlog("ERROR: Tried to make a choice that requires sealed cards with an empty sealed area.")
 		return false
@@ -13997,6 +14938,16 @@ func continue_player_action_resolution(performing_player : Player):
 	# This function is intended to be called at the end of the various do_* functions
 	# that are called by the game wrapper to resolve player actions/decisions.
 	if game_over:
+		return
+	if _begin_heiqiyihu_thresholds(performing_player):
+		return
+	if not heiqiyihu_guardian_setup.is_empty():
+		if game_state != Enums.GameState.GameState_PlayerDecision:
+			var guardian_owner = _get_player(heiqiyihu_guardian_setup["owner"])
+			do_queued_effects(guardian_owner)
+			_continue_heiqiyihu_guardian_setup()
+		return
+	if _begin_pending_heiqiyihu_strike():
 		return
 
 	# Renea pre-strike: continue processing next facedown effect
@@ -14086,6 +15037,131 @@ func continue_player_action_resolution(performing_player : Player):
 				else:
 					assert(false, "ERROR: Unexpected game state - no active action resolution")
 
+func _dongshilang_register_cross_during_strike(performing_player : Player):
+	if not active_strike:
+		return
+	var current_cross_count = int(dongshilang_cross_count_this_strike.get(performing_player.my_id, 0))
+	dongshilang_cross_count_this_strike[performing_player.my_id] = current_cross_count + 1
+
+func _dongshilang_get_move_limit_remaining(performing_player : Player) -> int:
+	return int(dongshilang_move_limit_remaining_this_strike.get(performing_player.my_id, -1))
+
+func _dongshilang_limit_requested_movement(performing_player : Player, requested_amount : int) -> int:
+	var remaining = _dongshilang_get_move_limit_remaining(performing_player)
+	if remaining < 0:
+		return requested_amount
+	return mini(requested_amount, maxi(remaining, 0))
+
+func _dongshilang_consume_movement_limit(performing_player : Player, moved_amount : int):
+	var remaining = _dongshilang_get_move_limit_remaining(performing_player)
+	if remaining < 0:
+		return
+	dongshilang_move_limit_remaining_this_strike[performing_player.my_id] = maxi(remaining - moved_amount, 0)
+
+func _dongshilang_is_advance_converted_to_retreat(performing_player : Player) -> bool:
+	return bool(dongshilang_convert_advance_to_retreat_this_strike.get(performing_player.my_id, false))
+func _dongshilang_get_ice_cards_in_set_aside(performing_player : Player) -> Array:
+	var cards : Array = []
+	for card in performing_player.set_aside_cards:
+		if card.definition.get("type", "") == "ice_crystal":
+			cards.append(card)
+	return cards
+
+func _dongshilang_move_ice_from_set_aside_to_bleach(performing_player : Player, amount : int, random_pick : bool = true) -> int:
+	var ice_cards = _dongshilang_get_ice_cards_in_set_aside(performing_player)
+	var move_count = mini(amount, ice_cards.size())
+	var moved = 0
+	for _i in range(move_count):
+		var pick_idx = 0
+		if random_pick and ice_cards.size() > 1:
+			pick_idx = randi() % ice_cards.size()
+		var chosen_card = ice_cards[pick_idx]
+		ice_cards.remove_at(pick_idx)
+		performing_player.remove_card_from_set_aside(chosen_card.id)
+		performing_player.add_to_bleach(chosen_card)
+		moved += 1
+		_append_log_full(Enums.LogType.LogType_CardInfo, performing_player, "将冰晶%s置入%s。" % [_log_card_name(chosen_card.definition.get("display_name", "")), performing_player.get_bleach_zone_name()])
+	return moved
+
+func _dongshilang_count_ice_in_boost_zone(performing_player : Player, count_type : String = "ice_crystal") -> int:
+	var count = 0
+	for card in performing_player.continuous_boosts:
+		if card.definition.get("type", "") == count_type:
+			count += 1
+	return count
+
+func _dongshilang_set_pending_ice_action(performing_player : Player, amount : int, valid_zones : Array, limitation : String, ignore_costs : bool):
+	dongshilang_pending_ice_action_boost_count[performing_player.my_id] = maxi(amount, 0)
+	dongshilang_pending_ice_action_context[performing_player.my_id] = {
+		"valid_zones": valid_zones.duplicate(),
+		"limitation": limitation,
+		"ignore_costs": ignore_costs,
+	}
+
+func _dongshilang_get_pending_ice_action_count(performing_player : Player) -> int:
+	return int(dongshilang_pending_ice_action_boost_count.get(performing_player.my_id, 0))
+
+func _dongshilang_consume_pending_ice_action_boosts(performing_player : Player, consumed_count : int):
+	if consumed_count <= 0:
+		return
+	var pending_count = _dongshilang_get_pending_ice_action_count(performing_player)
+	dongshilang_pending_ice_action_boost_count[performing_player.my_id] = maxi(pending_count - consumed_count, 0)
+
+func _dongshilang_get_pending_ice_action_context(performing_player : Player) -> Dictionary:
+	return dongshilang_pending_ice_action_context.get(performing_player.my_id, {})
+
+func _dongshilang_clear_pending_ice_action(performing_player : Player):
+	dongshilang_pending_ice_action_boost_count.erase(performing_player.my_id)
+	dongshilang_pending_ice_action_context.erase(performing_player.my_id)
+
+
+func _dongshilang_start_ice_character_action(performing_player : Player, effect, _clear_active_exceed_on_cancel : bool = false):
+	var amount = maxi(int(effect.get("amount", 1)), 1)
+	var valid_zones = effect.get("valid_zones", ["bleach"])
+	var limitation = effect.get("limitation", "ice_crystal")
+	var ignore_costs = effect.get("ignore_costs", false)
+	_dongshilang_set_pending_ice_action(performing_player, amount, valid_zones, limitation, ignore_costs)
+	var begin_action_effect = {
+		"effect_type": "dongshilang_begin_ice_boost_now",
+		"amount": amount,
+		"valid_zones": valid_zones,
+		"limitation": limitation,
+		"ignore_costs": ignore_costs
+	}
+	do_effect_if_condition_met(performing_player, -1, begin_action_effect, null)
+
+func _get_effective_boost_cancel_cost(performing_player : Player, card : GameCard) -> int:
+	# Apply Player.can_cancel's context gate before looking up printed or
+	# character-action costs. A cost override must never grant permission to
+	# cancel a mid-strike boost or bypass an explicit cancellation restriction.
+	# All window creation and submission paths share this query; affordability
+	# remains the caller's responsibility (declining a valid window costs 0).
+	if card == null or active_strike or performing_player.cancel_blocked_this_turn \
+			or performing_player.strike_on_boost_cleanup or performing_player.wild_strike_on_boost_cleanup:
+		return -1
+	var resolving_this_boost = active_boost and active_boost.playing_player == performing_player and active_boost.card == card
+	if resolving_this_boost and (active_boost.strike_after_boost or (active_boost.boost_negated and not active_boost.allow_cancel_after_negate)):
+		return -1
+	var cancel_cost = performing_player.get_boost_cancel_cost(card)
+	if cancel_cost != -1:
+		return cancel_cost
+	var ice_action_context = active_character_action or active_exceed \
+			or (resolving_this_boost and active_boost.dongshilang_ice_character_action_cancel_once)
+	if performing_player.deck_def.get("id", "") == "dongshilang" and ice_action_context and card.definition.get("type", "") == "ice_crystal":
+		return 1
+	return -1
+
+func _resolve_opening_setup_once_effects():
+	for setup_player in [player, opponent]:
+		if setup_player == null:
+			continue
+		if setup_player.deck_def.get("id", "") != "dongshilang":
+			continue
+		var ability_effects = setup_player.deck_def.get("ability_effects", [])
+		for setup_effect in ability_effects:
+			if setup_effect.get("timing", "") == "start_of_next_turn" and setup_effect.get("setup_once", false):
+				do_effect_if_condition_met(setup_player, -1, setup_effect, null)
+
 func do_mulligan(performing_player : Player, card_ids : Array) -> bool:
 	printlog("InitialAction: MULLIGAN by %s cards %s" % [performing_player.name, card_ids])
 	if performing_player.mulligan_complete:
@@ -14103,9 +15179,11 @@ func do_mulligan(performing_player : Player, card_ids : Array) -> bool:
 	performing_player.mulligan(card_ids)
 	_append_log_full(Enums.LogType.LogType_CardInfo, performing_player, "调度%s张牌。" % str(len(card_ids)))
 	if player.mulligan_complete and opponent.mulligan_complete:
-		change_game_state(Enums.GameState.GameState_PickAction)
-		_append_log_full(Enums.LogType.LogType_Default, _get_player(active_turn_player), "的回合开始！")
-		create_event(Enums.EventType.EventType_AdvanceTurn, active_turn_player, 0)
+		_resolve_opening_setup_once_effects()
+		_queue_heiqiyihu_thresholds(_get_player(active_turn_player))
+		_queue_heiqiyihu_thresholds(_get_player(next_turn_player))
+		if not _begin_heiqiyihu_thresholds(_get_player(active_turn_player), "opening"):
+			_finish_opening_mulligans()
 	else:
 		create_event(Enums.EventType.EventType_MulliganDecision, get_other_player(performing_player.my_id), 0)
 	return true
@@ -14565,6 +15643,8 @@ func do_choose_from_discard(performing_player : Player, card_ids : Array) -> boo
 
 func do_force_for_effect(performing_player : Player, card_ids : Array, treat_ultras_as_single_force : bool, cancel : bool = false, use_free_force : bool = false, spent_life_for_force : int = 0) -> bool:
 	printlog("SubAction: FORCE_FOR_EFFECT by %s cards %s" % [performing_player.name, card_ids])
+	if not performing_player.validate_heiqiyihu_payment(card_ids):
+		return false
 	if game_state != Enums.GameState.GameState_PlayerDecision or decision_info.type != Enums.DecisionType.DecisionType_ForceForEffect:
 		printlog("ERROR: Tried to force for effect but not in decision state.")
 		return false
@@ -14576,7 +15656,8 @@ func do_force_for_effect(performing_player : Player, card_ids : Array, treat_ult
 		return false
 
 	for card_id in card_ids:
-		if not performing_player.is_card_in_hand(card_id) and not performing_player.is_card_in_gauge(card_id):
+		if not performing_player.is_card_in_hand(card_id) and not performing_player.is_card_in_gauge(card_id) \
+		and not performing_player.is_heiqiyihu_guardian_resource(card_id):
 			printlog("ERROR: Tried to force for effect with card not in hand or gauge.")
 			return false
 
@@ -14651,6 +15732,14 @@ func do_force_for_effect(performing_player : Player, card_ids : Array, treat_ult
 			return false
 	performing_player.total_force_spent_this_turn += force_generated
 
+	if decision_info.effect.get("heiqiyihu_xuhua_payment", false) and force_generated > 0:
+		var source_id = decision_info.choice_card_id
+		var spent_ids = active_strike.heiqiyihu_xuhua_spent_ids.get(source_id, [])
+		for paid_id in card_ids:
+			if paid_id not in spent_ids:
+				spent_ids.append(paid_id)
+		active_strike.heiqiyihu_xuhua_spent_ids[source_id] = spent_ids
+
 	var continuation_player = performing_player
 	if 'continuation_switch_player_control' in decision_info.effect and decision_info.effect['continuation_switch_player_control']:
 		continuation_player = _get_player(get_other_player(performing_player.my_id))
@@ -14699,16 +15788,21 @@ func do_force_for_effect(performing_player : Player, card_ids : Array, treat_ult
 		if to_overdrive:
 			var hand_cards = []
 			var gauge_cards = []
+			var guardian_cards = []
 			for card_id in card_ids:
 				if performing_player.is_card_in_hand(card_id):
 					hand_cards.append(card_id)
 				elif performing_player.is_card_in_gauge(card_id):
 					gauge_cards.append(card_id)
+				elif performing_player.is_heiqiyihu_guardian_resource(card_id):
+					guardian_cards.append(card_id)
 				else:
 					assert(false)
 					printlog("ERROR: Unexpected source for force sent to overdrive: card id %s" % card_id)
 			performing_player.move_cards_to_overdrive(hand_cards, "hand")
 			performing_player.move_cards_to_overdrive(gauge_cards, "gauge")
+			if not guardian_cards.is_empty():
+				performing_player.move_cards_to_overdrive(guardian_cards, "bleach")
 		else:
 			_append_log_full(Enums.LogType.LogType_CardInfo, performing_player, "通过弃置%s生成能量。" % _log_card_name(card_names))
 			performing_player.discard(card_ids, 0, true)
@@ -14790,6 +15884,8 @@ func _umina_restore_shadow_chorus_definitions(performing_player : Player) -> voi
 
 func do_gauge_for_effect(performing_player : Player, card_ids : Array) -> bool:
 	printlog("SubAction: GAUGE_FOR_EFFECT by %s cards %s" % [performing_player.name, card_ids])
+	if not performing_player.validate_heiqiyihu_payment(card_ids, true):
+		return false
 	if game_state != Enums.GameState.GameState_PlayerDecision or decision_info.type != Enums.DecisionType.DecisionType_GaugeForEffect:
 		printlog("ERROR: Tried to gauge for effect but not in decision state.")
 		return false
@@ -14804,6 +15900,8 @@ func do_gauge_for_effect(performing_player : Player, card_ids : Array) -> bool:
 			in_valid_zone = performing_player.is_card_in_bleach(card_id)
 		elif payment_zone == "gauge" and performing_player.deck_def.get("id") == "soifon" and performing_player.exceeded:
 			in_valid_zone = in_valid_zone or performing_player.is_card_in_bleach(card_id)
+		elif payment_zone == "gauge" and performing_player.is_heiqiyihu_guardian_resource(card_id):
+			in_valid_zone = true
 		if not in_valid_zone:
 			printlog("ERROR: Tried to pay for effect with card outside %s." % payment_zone)
 			return false
@@ -14903,9 +16001,22 @@ func do_gauge_for_effect(performing_player : Player, card_ids : Array) -> bool:
 		# Move the spent cards to the right place.
 		if to_hand:
 			for card_id in card_ids:
-				performing_player.move_card_from_gauge_to_hand(card_id)
+				if performing_player.is_heiqiyihu_guardian_resource(card_id):
+					var guardian_card = performing_player.remove_card_from_bleach(card_id)
+					performing_player.add_to_hand(guardian_card, true)
+				else:
+					performing_player.move_card_from_gauge_to_hand(card_id)
 		elif to_overdrive:
-			performing_player.move_cards_to_overdrive(card_ids, "gauge")
+			var gauge_ids = []
+			var guardian_ids = []
+			for card_id in card_ids:
+				if performing_player.is_heiqiyihu_guardian_resource(card_id):
+					guardian_ids.append(card_id)
+				else:
+					gauge_ids.append(card_id)
+			performing_player.move_cards_to_overdrive(gauge_ids, "gauge")
+			if not guardian_ids.is_empty():
+				performing_player.move_cards_to_overdrive(guardian_ids, "bleach")
 		else:
 			performing_player.syrus_dredge_fury_spent_ids = card_ids.duplicate()
 			performing_player.discard(card_ids, 0, true)

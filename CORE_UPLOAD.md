@@ -15,7 +15,7 @@
   - .gitignore
   - README.md
   - project.godot
-  - xport_presets.cfg
+  - export_presets.cfg
   - untests.cmd
 - 核心逻辑与场景：
   - globals/
@@ -27,9 +27,9 @@
 
 ## 默认不上传范围（按需另行评估）
 
-- 美术与音频大资源：ssets/
-- 第三方或工具型目录：ddons/、	ools/、xport_scripts/
-- 平台构建与文档类：ndroid/、docs/、documents/、onts/
+- 美术与音频大资源：assets/
+- 第三方或工具型目录：addons/、	ools/、export_scripts/
+- 平台构建与文档类：android/、docs/、documents/
 - 临时与备份：	mp/、*.bak_*、临时 smoke 文件
 
 ## 后续增量上传建议流程

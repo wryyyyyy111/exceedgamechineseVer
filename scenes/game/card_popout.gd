@@ -26,6 +26,7 @@ var preview_card_scale_multiplier : float = 1.0
 var preview_label_color : Color = Color(1, 1, 1, 1)
 var close_button_background_color : Color = CLOSE_BUTTON_BACKGROUND_COLOR
 var enable_card_label_count_click_update : bool = false
+var allow_hover_focus : bool = true
 var custom_content : Control = null
 var content_source_image : Image = null
 var content_resize_generation : int = 0
@@ -107,6 +108,9 @@ func set_close_button_background_color(color : Color):
 
 func set_enable_card_label_count_click_update(enabled : bool):
 	enable_card_label_count_click_update = enabled
+
+func set_allow_hover_focus(enabled : bool):
+	allow_hover_focus = enabled
 
 func _apply_close_button_background_color():
 	if close_window_button == null:
@@ -278,6 +282,7 @@ func _render_card_slot(card : CardBase, slot_index : int, display_scale : Vector
 	var spot = get_spot(slot_index)
 	spot.add_child(new_card)
 	new_card.initialize_simple(card.card_id, card.card_url_loaded_image, card.card_url_loaded_cardback, card.card_attack_name, card.card_boost_name, card.card_definition)
+	new_card.set_hover_focus_enabled(allow_hover_focus)
 	new_card.flip_card_to_front(card.card_front.visible)
 	new_card.remaining_count_label.add_theme_color_override("font_color", preview_label_color)
 	new_card.backup_label_text.set("theme_override_colors/default_color", preview_label_color)

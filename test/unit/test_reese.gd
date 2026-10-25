@@ -250,5 +250,6 @@ func test_reese_support_summary_tracks_guard_counters():
 	var boost_text = game_ui.get_node("PlayerBoostZone").boost_effects.text
 	assert_true(boost_text.find("累积: 护甲 +2, 霸体 +2") != -1)
 
-	ui_game_logic.teardown()
 	game_ui.queue_free()
+	await get_tree().process_frame
+	assert_false(is_instance_valid(ui_game_logic), "Game owns and destroys its UI engine exactly once.")

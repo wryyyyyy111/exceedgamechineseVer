@@ -5,6 +5,11 @@ func who_am_i():
 
 const GameScene = preload("res://scenes/game/game.tscn")
 
+func _restart_fixture_with_opponent(opponent_id: String):
+	game_logic.teardown()
+	game_logic.free()
+	default_game_setup(opponent_id)
+
 func make_game_with_deck(deck_id, base_id = ""):
 	var game = GameScene.instantiate()
 	game.set_not_started_directly()
@@ -1334,7 +1339,7 @@ func test_iaquis_ultras_play_when_main_attack():
 # event (cost paid, card took effect) count.
 
 func test_geoffrey_judgment_damage_requires_activated_card():
-	default_game_setup("geoffrey")
+	_restart_fixture_with_opponent("geoffrey")
 	var game = make_game_with_deck("geoffrey")
 	game.game_wrapper.current_game = game_logic
 	var card_id = give_player_specific_card(player2, "geoffrey_inviolablejudgment")
@@ -1345,11 +1350,13 @@ func test_geoffrey_judgment_damage_requires_activated_card():
 	game.strike_activated_card_ids = [card_id]
 	assert_true(game._is_geoffrey_judgment_dealing_damage_to(Enums.PlayerId.PlayerId_Player),
 			"Activated ultra should count for the damage effect")
+	game.game_wrapper.current_game = null # The base fixture, not Game, owns this engine.
 	game.queue_free()
 	await get_tree().process_frame
+	assert_true(is_instance_valid(game_logic))
 
 func test_qoh_damage_requires_activated_card():
-	default_game_setup("eugenia")
+	_restart_fixture_with_opponent("eugenia")
 	var game = make_game_with_deck("eugenia")
 	game.game_wrapper.current_game = game_logic
 	var card_id = give_player_specific_card(player2, "eugenia_queen_of_hearts")
@@ -1360,8 +1367,10 @@ func test_qoh_damage_requires_activated_card():
 	game.strike_activated_card_ids = [card_id]
 	assert_true(game._is_qoh_strike_dealing_damage_to(Enums.PlayerId.PlayerId_Player),
 			"Activated QOH should count for the damage effect")
+	game.game_wrapper.current_game = null
 	game.queue_free()
 	await get_tree().process_frame
+	assert_true(is_instance_valid(game_logic))
 
 # --- Iaquis initial-skill face-attack closeup + stun easter-egg (2026-08-23) ---
 
@@ -1406,12 +1415,14 @@ func test_iaquis_faceup_deduped_and_cleanup():
 	await get_tree().process_frame
 
 func test_is_player_iaquis_detects_deck():
-	default_game_setup("iaquis")
+	_restart_fixture_with_opponent("iaquis")
 	var game = make_game_with_deck("iaquis")
 	game.game_wrapper.current_game = game_logic
 	assert_true(game._is_player_iaquis(Enums.PlayerId.PlayerId_Opponent),
 			"Opponent (iaquis deck) should be detected")
 	assert_false(game._is_player_iaquis(Enums.PlayerId.PlayerId_Player),
 			"Local player (renea deck) should not be detected as iaquis")
+	game.game_wrapper.current_game = null
 	game.queue_free()
 	await get_tree().process_frame
+	assert_true(is_instance_valid(game_logic))

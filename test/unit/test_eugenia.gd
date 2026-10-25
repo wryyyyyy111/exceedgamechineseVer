@@ -300,6 +300,84 @@ func test_color_spray_stun_immunity_uses_stun_check_timing_after_opponent_discar
 	validate_has_event(events, Enums.EventType.EventType_Strike_Stun_Immunity, player1)
 	validate_not_has_event(events, Enums.EventType.EventType_Strike_Stun, player1)
 
+func test_color_spray_loses_stun_immunity_after_opponent_hit_draws_from_two_to_three():
+	game_logic.teardown()
+	game_logic.free()
+	default_game_setup("ryu")
+	position_players(player1, 4, player2, 5)
+	player2.hand = []
+	give_player_specific_card(player2, "standard_normal_assault")
+	give_player_specific_card(player2, "standard_normal_cross")
+
+	var strike_ids = execute_strike(player1, player2, "eugenia_colorful_mist", "chipp_betablade")
+
+	assert_eq(player2.hand.size(), 3)
+	validate_life(player1, 29, player2, 30)
+	assert_true(player1.is_card_in_discards(strike_ids[0]))
+	var events = game_logic.get_latest_events()
+	validate_has_event(events, Enums.EventType.EventType_Draw, player2)
+	validate_has_event(events, Enums.EventType.EventType_Strike_Stun, player1)
+	validate_not_has_event(events, Enums.EventType.EventType_Strike_Stun_Immunity, player1)
+
+func test_color_spray_keeps_stun_immunity_after_opponent_hit_draws_from_one_to_two():
+	game_logic.teardown()
+	game_logic.free()
+	default_game_setup("ryu")
+	position_players(player1, 4, player2, 5)
+	player2.hand = []
+	give_player_specific_card(player2, "standard_normal_assault")
+
+	var strike_ids = execute_strike(player1, player2, "eugenia_colorful_mist", "chipp_betablade",
+		false, false, [1], [])
+
+	assert_eq(player2.hand.size(), 2)
+	validate_life(player1, 29, player2, 24)
+	assert_true(player1.is_card_in_gauge(strike_ids[0]))
+	var events = game_logic.get_latest_events()
+	validate_has_event(events, Enums.EventType.EventType_Draw, player2)
+	validate_has_event(events, Enums.EventType.EventType_Strike_Stun_Immunity, player1)
+	validate_not_has_event(events, Enums.EventType.EventType_Strike_Stun, player1)
+
+func test_color_spray_has_no_stun_immunity_when_opponent_stays_above_two_cards():
+	game_logic.teardown()
+	game_logic.free()
+	default_game_setup("ryu")
+	position_players(player1, 4, player2, 5)
+	player2.hand = []
+	give_player_specific_card(player2, "standard_normal_assault")
+	give_player_specific_card(player2, "standard_normal_cross")
+	give_player_specific_card(player2, "standard_normal_dive")
+
+	execute_strike(player1, player2, "eugenia_colorful_mist", "chipp_betablade")
+
+	assert_eq(player2.hand.size(), 4)
+	validate_life(player1, 29, player2, 30)
+	var events = game_logic.get_latest_events()
+	validate_has_event(events, Enums.EventType.EventType_Strike_Stun, player1)
+	validate_not_has_event(events, Enums.EventType.EventType_Strike_Stun_Immunity, player1)
+
+func test_color_spray_preserves_other_stun_immunity_after_opponent_hit_draws_above_two():
+	game_logic.teardown()
+	game_logic.free()
+	default_game_setup("ryu")
+	position_players(player1, 4, player2, 5)
+	player2.hand = []
+	give_player_specific_card(player2, "standard_normal_assault")
+	give_player_specific_card(player2, "standard_normal_cross")
+	var boost_id = give_player_specific_card(player1, "fight_retreatingbolts")
+	var boost_card = game_logic.card_db.get_card(boost_id)
+	player1.remove_card_from_hand(boost_id, false, false)
+	player1.continuous_boosts.append(boost_card)
+
+	execute_strike(player1, player2, "eugenia_colorful_mist", "chipp_betablade",
+		false, false, [0, 1], [])
+
+	assert_eq(player2.hand.size(), 2)
+	validate_life(player1, 29, player2, 24)
+	var events = game_logic.get_latest_events()
+	validate_has_event(events, Enums.EventType.EventType_Strike_Stun_Immunity, player1)
+	validate_not_has_event(events, Enums.EventType.EventType_Strike_Stun, player1)
+
 func test_exceeded_sweep_hit_triggers_wonderland_choice():
 	position_players(player1, 3, player2, 5)
 	player1.exceeded = true
@@ -581,6 +659,8 @@ func test_happychaos_fire_gauge_payment_does_not_trigger_eugenia_passive():
 	# attributed to Eugenia's passive ("your own effect makes the opponent
 	# discard"). Log-exact scenario: seed 5863294181541210112, Eugenia p1,
 	# Happy Chaos p2, Fire id 212 paid with 213/229/227.
+	game_logic.teardown()
+	game_logic.free()
 	image_loader = CardImageLoader.new(true)
 	game_logic = LocalGame.new(image_loader)
 	game_logic.initialize_game(

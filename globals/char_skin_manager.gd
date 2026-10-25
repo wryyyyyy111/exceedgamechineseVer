@@ -509,6 +509,19 @@ var CHARACTER_SKINS := {
 			},
         },
     },
+	"doomies": {
+        "count": 1,
+		"skins": {
+			1: {
+				"label": "皮肤1: 亚索",
+				"portraits_skin": false,
+				"portraits_url": "",
+				"animations_skin": true,
+ 			    "exceed_change_skin": false,
+ 			    "buddy_skin": false,
+			},
+        },
+    },
 }
 
 func get_skin_count(char_id: String) -> int:

@@ -54,6 +54,7 @@ func test_devis_desktop_combined_atlas_uses_four_by_four_grid():
 	}
 	loader.load_image_page_indexed(atlas_data, 14)
 	await loader.get_card_image(image_url, 14, atlas_data)
+	await get_tree().process_frame # Leave the loader's emitting stack before autofree.
 	assert_eq(loader.loaded_images[image_url].size(), 16)
 	assert_not_null(loader.loaded_images[image_url][14])
 	loader.teardown()
@@ -102,6 +103,7 @@ func test_devis_skin_uses_s2_style_split_card_grids():
 	}
 	loader.load_image_page_indexed(atlas_data, 7)
 	await loader.get_card_image(image_url, 7, atlas_data)
+	await get_tree().process_frame
 	assert_eq(loader.loaded_images[image_url].size(), 8)
 	assert_not_null(loader.loaded_images[image_url][7])
 	loader.teardown()
@@ -127,6 +129,7 @@ func test_devis_skin_explicit_grid_overrides_base_devis_combined_grid():
 	}
 	loader.load_image_page_indexed(atlas_data, 7)
 	await loader.get_card_image(image_url, 7, atlas_data)
+	await get_tree().process_frame
 	assert_eq(loader.loaded_images[image_url].size(), 8)
 	assert_not_null(loader.loaded_images[image_url][7])
 	loader.teardown()

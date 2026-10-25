@@ -308,6 +308,7 @@ func test_character_animation_tres_parser_prefers_cdn_texture_path():
 
 func test_character_animation_loads_local_structure_with_remote_texture():
 	var character := Character.new()
+	autofree(character)
 	var texture := await CdnAssetLoader.load_texture(
 		"res://assets/character_animations/akuma/idle/akumaidle.png",
 		"AnimationTest",
@@ -323,6 +324,7 @@ func test_character_animation_loads_local_structure_with_remote_texture():
 
 func test_mobile_remote_animation_uses_phone_scale_for_display_compensation():
 	var character := TestMobileCharacter.new()
+	autofree(character)
 	var frames := await character._load_cdn_sprite_frames(
 		"res://assets/character_animations/emogine/animations.tres", false)
 	assert_not_null(frames)
@@ -331,6 +333,7 @@ func test_mobile_remote_animation_uses_phone_scale_for_display_compensation():
 
 func test_mobile_remote_ryu_atlas_preserves_authored_regions():
 	var character := TestMobileCharacter.new()
+	autofree(character)
 	var frames := await character._load_cdn_sprite_frames(
 		"res://assets/character_animations/ryu/animations.tres", false)
 	assert_not_null(frames)
@@ -345,6 +348,7 @@ func test_mobile_remote_ryu_atlas_preserves_authored_regions():
 
 func test_mobile_remote_animation_refreshes_display_scale_between_forms():
 	var character := TestMobileCharacter.new()
+	autofree(character)
 	var normal_frames := await character._load_cdn_sprite_frames(
 		"res://assets/character_animations/emogine/animations.tres", false)
 	assert_not_null(normal_frames)
@@ -361,7 +365,9 @@ func test_mobile_emogine_exceed_preserves_desktop_relative_visual_size():
 	var deck := CardDataManager.get_deck_from_str_id("emogine")
 	var character := _instantiate_mobile_character_scene()
 	add_child_autofree(character)
-	await character.load_character(TestMobileCardImageLoader.new(false), deck, "emogine", false)
+	var loader := TestMobileCardImageLoader.new(false)
+	add_child_autofree(loader)
+	await character.load_character(loader, deck, "emogine", false)
 	var normal_scale := character.scale
 	var normal_texture_scale := Character._get_phone_character_texture_scale(
 		"res://assets/character_animations/emogine/emogine.png")
@@ -371,11 +377,12 @@ func test_mobile_emogine_exceed_preserves_desktop_relative_visual_size():
 		"res://assets/character_animations/emogine_exceed/animations.tres") as SpriteFrames
 	var desktop_relative_scaling := float(desktop_exceed_frames.get_meta("scaling"))
 
-	await character.set_exceed(true, TestMobileCardImageLoader.new(false), deck, deck["exceed_animation"])
+	await character.set_exceed(true, loader, deck, deck["exceed_animation"])
 
 	var expected_scale := normal_scale * desktop_relative_scaling * normal_texture_scale / exceed_texture_scale
 	assert_almost_eq(character.scale.x, expected_scale.x, 0.001)
 	assert_almost_eq(character.scale.y, expected_scale.y, 0.001)
+	loader.teardown()
 
 func test_mobile_animation_falls_back_to_desktop_texture_when_phone_download_fails():
 	var animation_path := "res://assets/character_animations/test_phone_fallback/animations.tres"
@@ -388,6 +395,7 @@ func test_mobile_animation_falls_back_to_desktop_texture_when_phone_download_fai
 	CdnAssetLoader.loaded_textures[texture_url] = ImageTexture.create_from_image(source_image)
 
 	var character := TestMobileCharacter.new()
+	autofree(character)
 	var frames := await character._load_cdn_sprite_frames(animation_path, false)
 
 	assert_not_null(frames)
@@ -400,21 +408,28 @@ func test_mobile_animation_falls_back_to_desktop_texture_when_phone_download_fai
 func test_mobile_emogine_idle_uses_metadata_scaling_without_runtime_compensation():
 	var character := _instantiate_mobile_character_scene()
 	add_child_autofree(character)
-	await character.load_character(TestMobileCardImageLoader.new(false), {"id": "emogine"}, "emogine", false)
+	var loader := TestMobileCardImageLoader.new(false)
+	add_child_autofree(loader)
+	await character.load_character(loader, {"id": "emogine"}, "emogine", false)
 	assert_almost_eq(character.runtime_texture_scale_compensation, 1.0, 0.01)
 	var expected_scaling := 0.065 / Character._get_phone_character_texture_scale("res://assets/character_animations/emogine/emogine.png")
 	assert_almost_eq(character.animation.sprite_frames.get_meta("scaling"), expected_scaling, 0.01)
+	loader.teardown()
 
 func test_mobile_reese_idle_uses_report_scale_when_desktop_reference_incomplete():
 	var character := _instantiate_mobile_character_scene()
 	add_child_autofree(character)
-	await character.load_character(TestMobileCardImageLoader.new(false), {"id": "reese"}, "reese", false)
+	var loader := TestMobileCardImageLoader.new(false)
+	add_child_autofree(loader)
+	await character.load_character(loader, {"id": "reese"}, "reese", false)
 	var expected_scale := Character._get_phone_character_texture_scale("res://assets/character_animations/reese/reese.png")
 	assert_almost_eq(character.runtime_texture_scale_compensation, 1.0, 0.01)
 	assert_almost_eq(character.animation.sprite_frames.get_meta("scaling"), 0.25 / expected_scale, 0.01)
+	loader.teardown()
 
 func test_mobile_animation_metadata_scaling_uses_report_ratio():
 	var character := TestMobileCharacter.new()
+	autofree(character)
 	var frames := SpriteFrames.new()
 	frames.set_meta("scaling", 0.14)
 	character._apply_mobile_animation_scaling_metadata(frames, 0.79)
@@ -449,11 +464,14 @@ func test_mobile_animation_final_scaling_adjust_preserves_bottom_alignment():
 func test_mobile_animation_final_scaling_adjust_applies_to_loaded_vertical_offset():
 	var character := _instantiate_mobile_character_scene()
 	add_child_autofree(character)
-	await character.load_character(TestMobileCardImageLoader.new(false), {"id": "emogine"}, "emogine_exceed", false)
+	var loader := TestMobileCardImageLoader.new(false)
+	add_child_autofree(loader)
+	await character.load_character(loader, {"id": "emogine"}, "emogine_exceed", false)
 	var authored_offset := -20.0
 	var unadjusted_display_height: float = character.get_size().y * character.scale.y
 	var expected_offset: float = authored_offset + unadjusted_display_height * (GlobalSettings.phone_animation_final_scaling_adjust - 1.0) / 2.0
 	assert_almost_eq(character.vertical_offset, expected_offset, 0.001)
+	loader.teardown()
 
 func test_mobile_animation_texture_uses_reported_output_size():
 	var source_path := "res://assets/character_animations/example/atlas.png"
@@ -465,8 +483,10 @@ func test_mobile_animation_texture_uses_reported_output_size():
 	Character.phone_animation_output_size_by_path.erase(source_path)
 
 func test_mobile_character_sprite_frames_scale_shared_atlas_and_preserve_animation():
-	var character := TestMobileCharacter.new()
+	var character := _instantiate_mobile_character_scene()
 	add_child_autofree(character)
+	assert_not_null(character.animation)
+	assert_not_null(character.exceed_icon)
 	var source_image := Image.create(200, 100, false, Image.FORMAT_RGBA8)
 	source_image.fill(Color.WHITE)
 	var source_atlas := ImageTexture.create_from_image(source_image)
@@ -485,6 +505,7 @@ func test_mobile_character_sprite_frames_scale_shared_atlas_and_preserve_animati
 	source_frames.set_meta("scaling", 0.75)
 
 	var optimized_frames := await character._prepare_sprite_frames_for_runtime(source_frames, false)
+	await get_tree().process_frame
 	var optimized_first := optimized_frames.get_frame_texture(&"idle", 0) as AtlasTexture
 	var optimized_second := optimized_frames.get_frame_texture(&"idle", 1) as AtlasTexture
 
@@ -552,8 +573,10 @@ func test_mobile_atlas_source_size_fallback_is_shared_by_texture():
 	assert_eq(atlas_sizes["last"], Vector2(553, 112))
 
 func test_mobile_character_uses_minimum_phone_scale_for_display_compensation():
-	var character := TestMobileCharacter.new()
+	var character := _instantiate_mobile_character_scene()
 	add_child_autofree(character)
+	assert_not_null(character.animation)
+	assert_not_null(character.exceed_icon)
 	var base_image_a := Image.create(30, 30, false, Image.FORMAT_RGBA8)
 	base_image_a.fill(Color.WHITE)
 	var base_image_b := Image.create(30, 30, false, Image.FORMAT_RGBA8)
@@ -574,6 +597,7 @@ func test_mobile_character_uses_minimum_phone_scale_for_display_compensation():
 	source_frames.add_frame(&"idle", frame_b)
 
 	await character._prepare_sprite_frames_for_runtime(source_frames, false)
+	await get_tree().process_frame
 
 	var expected_min_scale := minf(
 		Character._get_phone_character_texture_scale("res://assets/character_animations/emogine/emogine.png"),
@@ -592,7 +616,10 @@ func test_web_runtime_backlog_budget_only_engages_for_real_backlog():
 
 func test_match_entry_processing_hold_can_be_toggled():
 	var game_ui : Game = GameScene.instantiate()
+	game_ui.set_not_started_directly()
+	game_ui.add_child(game_ui.game_wrapper)
 	add_child_autofree(game_ui)
+	game_ui.set_process(false)
 	await get_tree().process_frame
 
 	assert_false(game_ui.hold_match_entry_processing)
@@ -747,7 +774,10 @@ func test_card_popout_mobile_scene_keeps_reference_cards_inside_viewport():
 
 func test_guided_selection_refreshes_matching_existing_popout():
 	var game_ui : Game = GameScene.instantiate()
+	game_ui.set_not_started_directly()
+	game_ui.add_child(game_ui.game_wrapper)
 	add_child_autofree(game_ui)
+	game_ui.set_process(false)
 	await get_tree().process_frame
 
 	assert_false(game_ui._should_open_or_refresh_popout(false, game_ui.CardPopoutType.CardPopoutType_ReferenceOpponent))
@@ -781,7 +811,10 @@ func test_card_popout_does_not_connect_click_for_character_and_buddy_reference_c
 
 func test_can_select_card_rejects_character_and_buddy_reference_cards():
 	var game_ui : Game = GameScene.instantiate()
+	game_ui.set_not_started_directly()
+	game_ui.add_child(game_ui.game_wrapper)
 	add_child_autofree(game_ui)
+	game_ui.set_process(false)
 	await get_tree().process_frame
 
 	var character_card = _make_reference_source_card(CardBase.CharacterCardReferenceId)
@@ -871,6 +904,7 @@ func test_card_image_loader_invalidates_stale_reference_atlas_before_rebuild():
 	loader.invalidate_loaded_image(atlas_url)
 	loader.load_image_page(atlas_data)
 	await loader.get_card_image(atlas_url, 0, atlas_data)
+	await get_tree().process_frame # GUT must not free a loader still emitting this completion.
 
 	var textures = loader.loaded_images[atlas_url]
 	assert_eq(textures.size(), 8)
@@ -926,6 +960,7 @@ func test_card_database_can_defer_registered_card_image_requests():
 	card_database.add_card(game_card)
 	assert_true(loader.image_load_queue.is_empty())
 	assert_true(loader.image_load_requested_indices.is_empty())
+	card_database.teardown()
 	loader.teardown()
 
 func test_lazy_multi_card_loader_materializes_requested_indices_incrementally():
@@ -1111,8 +1146,8 @@ func test_s0_s2_s5_mobile_atlases_follow_report_scale_and_season_layout():
 		0, "jinglechunshui", "decks_custom/jinglechunshui/normals.jpg",
 		Vector2i(1502, 1024), Vector2(375, 512))
 	await _assert_report_scaled_atlas_card_size(
-		2, "carlswangee", "decks_official/carlswangee/normals.jpg",
-		Vector2i(1200, 1229), Vector2(300, 410))
+		2, "carlswangee", "decks_official/carlswangee/specials.jpg",
+		Vector2i(1200, 1640), Vector2(300, 410))
 	await _assert_report_scaled_atlas_card_size(
 		3, "akuma", "decks_official/akuma/normals.jpg",
 		Vector2i(1500, 1024), Vector2(375, 512))
@@ -1122,6 +1157,37 @@ func test_s0_s2_s5_mobile_atlases_follow_report_scale_and_season_layout():
 	await _assert_report_scaled_atlas_card_size(
 		5, "arakune", "decks_official/arakune/normals_specials.jpg",
 		Vector2i(900, 1537), Vector2(225, 307))
+
+func test_carlswangee_current_combined_atlas_preserves_all_deck_indices():
+	var deck = CardDataManager.get_deck("carlswangee")
+	var original_url = CardImageLoader.CDN_IMAGE_ROOT + "decks_official/carlswangee/specials.jpg"
+	assert_eq(deck["image_resources"]["specials"]["url"], original_url)
+	assert_eq(deck["image_resources"]["normals"]["url"], original_url,
+		"The current deck uses the combined 4x4 atlas, not the legacy normals-only 4x3 image.")
+	var phone_url = CardImageLoader.CDN_PHONE_IMAGE_ROOT + "decks_official/carlswangee/specials.jpg"
+	var loader = TestMobileCardImageLoader.new(false)
+	add_child_autoqfree(loader)
+	var image = Image.create(1200, 1640, false, Image.FORMAT_RGBA8)
+	for index in range(16):
+		image.fill_rect(Rect2i((index % 4) * 300, (index / 4) * 410, 300, 410),
+				_make_distinct_index_color(index))
+	ImageCache.cache_image(phone_url, image)
+	var atlas = {"url": original_url, "multiple_cards": true, "season": 2, "deck_id": "carlswangee"}
+	for card in deck["cards"]:
+		loader.load_image_page_indexed(atlas, int(card["image_index"]))
+	await loader._process_request_queue()
+	assert_eq(loader.loaded_images[phone_url].size(), 16)
+	var seen = {}
+	for card in deck["cards"]:
+		var index = int(card["image_index"])
+		var texture = loader.loaded_images[phone_url][index]
+		assert_not_null(texture)
+		assert_eq(texture.get_size(), Vector2(300, 410))
+		_assert_color_close(_get_texture_center_color(texture), _make_distinct_index_color(index))
+		seen[index] = true
+	assert_eq(seen.size(), 15)
+	loader.teardown()
+	ImageCache.remove_cached_image(phone_url)
 
 func test_s6_non_divisible_atlas_uses_fixed_floor_slices_and_ignores_remainder():
 	var loader = TestDesktopCardImageLoader.new(false)
@@ -1236,6 +1302,7 @@ func test_shared_url_multi_card_atlas_keeps_correct_textures_across_late_request
 	_assert_color_close(_get_texture_center_color(textures[15]), expected_index_15)
 
 	var late_texture = await loader.get_card_image(atlas_url, 15)
+	await get_tree().process_frame
 	assert_not_null(late_texture)
 	_assert_color_close(_get_texture_center_color(late_texture), expected_index_15)
 	loader.teardown()

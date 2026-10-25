@@ -826,6 +826,58 @@ func test_demonhide_with_demonheart():
 	validate_life(player1, 12, player2, 8)
 	assert_eq(player1.bonus_armor_counters, 0) # reset at cleanup
 
+func _assert_demonhide_cleanup_pause(faster: bool, accept: bool):
+	position_players(player1, 4, player2, 5)
+	add_transform(player1, "taisei_dusttodust")
+	var boost_id = give_player_specific_card(player1, "taisei_blackvolt")
+	var definition = CardDataManager.get_card("taisei_blackvolt")
+	assert_eq(definition["boost"]["effects"][1]["timing"], "cleanup")
+	assert_true(game_logic.do_boost(player1, boost_id))
+	advance_turn(player2)
+	execute_strike(player1, player2,
+		"standard_normal_assault" if faster else "standard_normal_sweep",
+		"standard_normal_sweep" if faster else "standard_normal_assault",
+		false, false, [0], [0], true)
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PlayerDecision)
+	assert_eq(game_logic.get_current_strike_timing(), "cleanup",
+		"Both attacks must finish before the return/payment decision.")
+	assert_eq(game_logic.decision_info.player, player1.my_id)
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ChooseSimultaneousEffect)
+	assert_true(player1.is_card_in_continuous_boosts(boost_id))
+	var life_before_payment = 12 if faster else 14
+	validate_life(player1, life_before_payment, player2, 11 if faster else 9)
+	assert_eq(player1.bonus_armor_counters, 0, "No life was spent during either attack.")
+	var return_index = -1
+	for index in range(game_logic.decision_info.choice.size()):
+		if game_logic.decision_info.choice[index].get("effect_type") == "choice":
+			return_index = index
+	assert_ne(return_index, -1)
+	assert_true(game_logic.do_choice(player1, return_index))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_EffectChoice)
+	assert_eq(game_logic.decision_info.player, player1.my_id)
+	assert_eq(player1.life, life_before_payment)
+	assert_true(player1.is_card_in_continuous_boosts(boost_id))
+	assert_true(game_logic.do_choice(player1, 0 if accept else 1))
+	assert_eq(player1.life, life_before_payment - (2 if accept else 0))
+	assert_eq(player2.life, 11 if faster else 9, "Late counters cannot alter resolved damage.")
+	assert_eq(player1.bonus_armor_counters, 0, "Demonheart counters reset during this cleanup.")
+	assert_eq(player1.is_card_in_hand(boost_id), accept)
+	assert_eq(player1.is_card_in_discards(boost_id), not accept)
+	assert_false(player1.is_card_in_continuous_boosts(boost_id))
+	assert_null(game_logic.active_strike)
+
+func test_demonhide_cleanup_faster_return_preserves_armor_until_damage():
+	_assert_demonhide_cleanup_pause(true, true)
+
+func test_demonhide_cleanup_slower_return_preserves_armor_until_damage():
+	_assert_demonhide_cleanup_pause(false, true)
+
+func test_demonhide_cleanup_faster_decline_spends_no_life():
+	_assert_demonhide_cleanup_pause(true, false)
+
+func test_demonhide_cleanup_slower_decline_spends_no_life():
+	_assert_demonhide_cleanup_pause(false, false)
+
 ## ===== DEMONHIDE ARMOR PERSISTS THROUGH STRIKE =====
 ## With cleanup timing, Demonhide's +3A protects through the entire strike.
 ## The return-to-hand choice fires at cleanup (after all damage resolved).
