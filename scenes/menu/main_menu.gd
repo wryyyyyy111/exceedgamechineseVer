@@ -20,8 +20,8 @@ const MatchQueueItemScene = preload("res://scenes/menu/match_queue_item.tscn")
 const CardPopoutScene = preload("res://scenes/game/card_popout.tscn")
 const CardBaseScene = preload("res://scenes/card/card_base.tscn")
 const CharSelectScenePath = "res://scenes/menu/char_select.tscn"
-const TierlistImageUrl = "https://cdn.exceedcntyd.com/decks_official/tierlist/chinese2610v5simple.png"
-#? const TierlistImageUrl = "https://cdn.exceedcntyd.com/decks_official/tierlist/chinese2610v4.png"
+const TierlistImageUrl = "https://cdn.exceedcntyd.com/decks_official/tierlist/chinese2611v11simple.png"
+
 const BackgroundManager = preload("res://globals/game_background_manager.gd")
 const MatchAvailableAudioPath = "res://assets/sounds/match_available.mp3"
 const MatchStartingAudioPath = "res://assets/sounds/match_notification.mp3"
@@ -34,6 +34,7 @@ const QueueNotifyGroupId := 1064964514
 
 var _dialog_handler : Callable
 var _pending_reconnect_match : Dictionary = {}
+var _pending_replay_data : Dictionary = {}
 var _custom_deck_definition = null
 var _custom_buffer = null
 const MainMenuUiOpacityExcludedTopLevelNodes := {
@@ -42,6 +43,7 @@ const MainMenuUiOpacityExcludedTopLevelNodes := {
 	"CharSelectBackdrop": true,
 	"CardPopoutParent": true,
 	"CardZone": true,
+	"TierListDialog": true,
 }
 const ReplayDirectory := "user://replays/"
 var image_loader : CardImageLoader
@@ -187,6 +189,7 @@ func _ready():
 
 func _apply_main_menu_ui_opacity() -> void:
 	var opacity := GlobalSettings.MainMenuUiOpacity
+	tier_list_dialog.set_background_opacity(opacity)
 	for child in get_children():
 		if child == null:
 			continue
@@ -481,9 +484,18 @@ func returned_from_game():
 	start_music()
 	if OS.has_feature("web"):
 		window.setupFileLoad(file_load_callback)
+	# 进战斗前释放过主菜单背景，回到主菜单时补回来（背景是 CDN 纹理，不释放会一直占显存）。
+	if background != null and background.texture == null:
+		_apply_main_menu_background()
 
 func release_reference_card_cache():
 	_on_popout_close_window()
+
+func release_match_start_background():
+	# 进战斗前释放主菜单背景图，避免战斗全程白占显存；返回时由 returned_from_game 重新加载。
+	if background != null and background.texture != null:
+		background.texture = null
+	BackgroundManager.clear_main_menu_texture_cache()
 
 func _on_start_button_pressed():
 	# For local play, random selection is still random at this point.
@@ -518,7 +530,7 @@ func _on_connected(player_name):
 		$ServerStatusLabel.text = "正在恢复连接"
 		return
 	player_name_box.text = player_name
-	$ServerStatusLabel.text = "Connected to server."
+	$ServerStatusLabel.text = "已连接服务器"
 	if GlobalSettings.DefaultPlayerName:
 		player_name_box.text = GlobalSettings.DefaultPlayerName
 		NetworkManager.set_player_name(player_name_box.text)
@@ -539,7 +551,7 @@ func _on_disconnected():
 	elif reconnect_state["is_auto_reconnecting"]:
 		$ServerStatusLabel.text = "正在尝试重新连接"
 	else:
-		$ServerStatusLabel.text = "Disconnected from server."
+		$ServerStatusLabel.text = "已断开服务器连接"
 	just_clicked_matchmake = false
 	_on_players_update([], [], [], false)
 
@@ -555,7 +567,7 @@ func _on_reconnect_state_changed(state : Dictionary):
 		$ReconnectToServerButton.disabled = NetworkManager.network_state == NetworkManager.NetworkState.NetworkState_Connecting
 		return
 	if NetworkManager.is_server_connected():
-		$ServerStatusLabel.text = "Connected to server."
+		$ServerStatusLabel.text = "已连接服务器"
 		$ReconnectToServerButton.visible = false
 	else:
 		$ReconnectToServerButton.visible = true
@@ -583,7 +595,7 @@ func get_deck_id_without_random_tag(deck_id):
 		return deck_id.split("#")[1]
 	return deck_id
 
-func _on_observe_game_started(data, is_replay = false):
+func _on_observe_game_started(data, is_replay = false, replay_player_number : int = 0):
 	just_clicked_matchmake = false
 
 	# Observe games pass in the full message log up to this point.
@@ -597,30 +609,40 @@ func _on_observe_game_started(data, is_replay = false):
 		else:
 			assert(false, "Unexpected data")
 			return
-	var start_data = message_log[0]
+	var start_data = message_log[0].duplicate(true)
 
-	# The observer will view from player 1's perspective.
-	var player_deck = start_data['player1_deck_id']
-	var player_name = start_data['player1_name']
-	var opponent_deck = start_data['player2_deck_id']
-	var opponent_name = start_data['player2_name']
+	var primary_player = "player2" if is_replay and replay_player_number == 2 else "player1"
+	var other_player = "player1" if primary_player == "player2" else "player2"
+	var player_deck = start_data[primary_player + '_deck_id']
+	var player_name = start_data[primary_player + '_name']
+	var opponent_deck = start_data[other_player + '_deck_id']
+	var opponent_name = start_data[other_player + '_name']
+	var player_deck_object = _get_deck_object(player_deck, start_data.get(primary_player + '_custom_deck'))
+	var opponent_deck_object = _get_deck_object(opponent_deck, start_data.get(other_player + '_custom_deck'))
+	if is_replay and replay_player_number == 0:
+		_pending_reconnect_match = {}
+		_pending_replay_data = {'messages': message_log.duplicate(true)}
+		modal_dialog.set_choice_fields(
+			"选择载入回放的主视角",
+			"player1(%s)" % player_deck_object['display_name'],
+			"player2(%s)" % opponent_deck_object['display_name'],
+			"取消"
+		)
+		return
+
 	# For remote play, random was decided locally first
 	# and the deck id is random#deck_id.
 	var player_random_tag = get_random_tag(player_deck)
-	var player_deck_no_random = get_deck_id_without_random_tag(player_deck)
 	var opponent_random_tag = get_random_tag(opponent_deck)
-	var opponent_deck_no_random = get_deck_id_without_random_tag(opponent_deck)
 
-	start_data['player1_deck_id'] = player_deck_no_random
-	start_data['player2_deck_id'] = opponent_deck_no_random
+	start_data['player1_deck_id'] = get_deck_id_without_random_tag(start_data['player1_deck_id'])
+	start_data['player2_deck_id'] = get_deck_id_without_random_tag(start_data['player2_deck_id'])
 
 	start_data['observer_mode'] = true
 	start_data['replay_mode'] = is_replay
 	start_data['observer_log'] = message_log.slice(1)
-	start_data['your_player_id'] = start_data['player1_id']
+	start_data['your_player_id'] = start_data[primary_player + '_id']
 
-	var player_deck_object = _get_deck_object(player_deck, start_data.get('player1_custom_deck'))
-	var opponent_deck_object = _get_deck_object(opponent_deck, start_data.get('player2_custom_deck'))
 	start_remote_game.emit(get_vs_info(player_name, player_deck_object,
 		player_random_tag, opponent_name, opponent_deck_object, opponent_random_tag), start_data)
 
@@ -701,7 +723,8 @@ func _on_remote_game_started(data):
 
 func _on_name_update(new_name):
 	player_name_box.text = new_name
-	GlobalSettings.set_player_name(new_name)
+	if not NetworkManager.is_reconnect_active():
+		GlobalSettings.set_player_name(new_name)
 
 func _update_hp_rank_mode_entry_state() -> void:
 	if hp_rank_mode_quick_join_button:
@@ -1167,6 +1190,7 @@ func _check_banned():
 	return false
 
 func _on_modal_list_join_match_pressed(row_index):
+	_pending_replay_data = {}
 	var matches = NetworkManager.get_match_list()
 	var selected_match = matches[row_index]
 	room_select.text = selected_match['name']
@@ -1188,13 +1212,25 @@ func _on_modal_list_join_match_pressed(row_index):
 		_join_named_room(selected_match['name'])
 
 func _on_modal_dialog_accept_button_pressed():
-	_join_pending_reconnect_seat(0)
+	if not _pending_replay_data.is_empty():
+		_start_pending_replay(1)
+	else:
+		_join_pending_reconnect_seat(0)
 
 func _on_modal_dialog_secondary_button_pressed():
-	_join_pending_reconnect_seat(1)
+	if not _pending_replay_data.is_empty():
+		_start_pending_replay(2)
+	else:
+		_join_pending_reconnect_seat(1)
 
 func _on_modal_dialog_close_button_pressed():
 	_pending_reconnect_match = {}
+	_pending_replay_data = {}
+
+func _start_pending_replay(player_number : int):
+	var replay_data = _pending_replay_data
+	_pending_replay_data = {}
+	_on_observe_game_started(replay_data, true, player_number)
 
 func _get_reconnect_seat_button_text(match_info : Dictionary, seat_index : int) -> String:
 	var character_name = "未知角色"
@@ -1269,6 +1305,8 @@ func window_file_load_handler(data):
 	_dialog_handler.call(data)
 
 func load_replay(data):
+	_pending_replay_data = {}
+	_pending_reconnect_match = {}
 	var json = JSON.new()
 	if json.parse(data[0]) == OK:
 		var replay_data = json.data
@@ -1529,8 +1567,6 @@ func spawn_deck(
 func _get_reference_buddy_graphics(deck_def) -> Array:
 	var buddy_graphics = []
 	if deck_def.get('hide_buddy_reference'):
-		return buddy_graphics
-	if deck_def.get('no_buddy_card_graphics', false):
 		return buddy_graphics
 	if 'buddy_card' in deck_def:
 		buddy_graphics.append(deck_def['buddy_card'])

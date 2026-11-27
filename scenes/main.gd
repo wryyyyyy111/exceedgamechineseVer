@@ -63,7 +63,7 @@ func _process(delta: float):
 		_update_memory_usage_label()
 
 func _update_memory_usage_label():
-	memory_usage_label.text = "资源预算: %.1fMB/50MB" % MobileResourceBudget.get_total_budget_mb()
+	memory_usage_label.text = "资源预算: %.1fMB" % MobileResourceBudget.get_total_budget_mb()
 
 func _is_mobile_web_runtime() -> bool:
 	return OS.has_feature("web") and (
@@ -217,6 +217,7 @@ static func get_versus_splash_timeout(mobile_web_runtime : bool) -> float:
 
 func _on_main_menu_start_game(vs_info):
 	$MainMenu.release_reference_card_cache()
+	$MainMenu.release_match_start_background()
 	await get_tree().process_frame
 	$MainMenu.visible = false
 	$MainMenu.stop_music()
@@ -242,6 +243,7 @@ func _on_main_menu_start_remote_game(vs_info, data):
 		game = null
 		await get_tree().process_frame
 	$MainMenu.release_reference_card_cache()
+	$MainMenu.release_match_start_background()
 	await get_tree().process_frame
 	$MainMenu.visible = false
 	$MainMenu.stop_music()

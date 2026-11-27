@@ -10,15 +10,44 @@ extends GutTest
 
 const DECK_DIRS := ["res://data/decks", "res://data/decks_skin"]
 
+func _find_blank_effect_order_options(value: Variant, source: String, failures: Array[String]):
+	if value is Array:
+		for item in value:
+			_find_blank_effect_order_options(item, source, failures)
+	elif value is Dictionary:
+		if value.has("id"):
+			source += ":" + str(value["id"])
+		var timing: String = value.get("timing", "").trim_prefix("both_players_").trim_prefix("opponent_")
+		if value.has("effect_type") and timing in ["on_strike_reveal", "before", "hit", "after", "cleanup", "endofstrike"]:
+			if not LocalGame.is_automatic_simultaneous_effect(value) \
+					and GameStrings.get_effect_text(value, false, true).strip_edges().is_empty():
+				failures.append("%s: %s" % [source, JSON.stringify(value)])
+		for key in value:
+			_find_blank_effect_order_options(value[key], source, failures)
 
-func test_deck_dirs_contain_only_json_files():
+func test_all_card_and_character_effect_order_options_have_text_or_resolve_automatically():
+	var failures: Array[String] = []
+	_find_blank_effect_order_options(CardDataManager.card_data, "cards", failures)
+	_find_blank_effect_order_options(CardDataManager.decks, "decks", failures)
+	for file in DirAccess.get_files_at("res://data/decks_EnVersion"):
+		if file.ends_with(".json"):
+			var path = "res://data/decks_EnVersion".path_join(file)
+			var data = CardDataManager.load_json_file(path)
+			assert_not_null(data, path)
+			_find_blank_effect_order_options(data, path, failures)
+	assert_eq(failures, [], "Blank simultaneous-effect options must not reach the client")
+
+
+func test_deck_dirs_contain_only_json_and_card_name_index_files():
 	for dir_path in DECK_DIRS:
 		var offenders := []
 		for f in DirAccess.get_files_at(dir_path):
+			if dir_path == "res://data/decks" and f in ["_card_name_index.gd", "_card_name_index.gd.uid"]:
+				continue
 			if not f.ends_with(".json"):
 				offenders.append(f)
 		assert_eq(offenders.size(), 0,
-			"%s 下存在非 .json 文件，会被加载器误当成卡组并覆盖正式定义：%s（备份请放到项目根的 _backups/）"
+			"%s 下存在未授权的非 .json 文件：%s（备份请放到项目根的 _backups/）"
 			% [dir_path, str(offenders)])
 
 

@@ -215,6 +215,97 @@ func test_compulsive_purification_negate_boost_decline_cancel():
 	assert_eq(game_logic.game_state, Enums.GameState.GameState_PickAction)
 	assert_eq(game_logic.get_active_player(), player1.my_id)
 
+func test_compulsive_purification_negates_testament_attack_boost_before_effect():
+	default_game_setup("testament")
+	position_players(player1, 4, player2, 6)
+	add_transform(player1, "geoffrey_inquisition")
+	var force1 = give_player_specific_card(player1, "standard_normal_sweep")
+	var force2 = give_player_specific_card(player1, "standard_normal_cross")
+	var diver_id = give_player_specific_card(player2, "testament_unholydiver")
+	var focus_id = give_player_specific_card(player1, "standard_normal_focus")
+	advance_turn(player1)
+
+	assert_true(game_logic.do_strike(player2, diver_id, false, -1))
+	assert_true(game_logic.do_strike(player1, focus_id, false, -1))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_EffectChoice)
+	assert_eq(game_logic.decision_info.player, player2.my_id)
+	assert_true(game_logic.do_choice(player2, 0))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ForceForEffect)
+	assert_eq(game_logic.decision_info.player, player1.my_id)
+	assert_true(game_logic.do_force_for_effect(player1, [force1, force2], false))
+
+	assert_true(player2.is_card_in_discards(diver_id))
+	assert_false(player2.is_card_in_continuous_boosts(diver_id))
+	assert_eq(player2.arena_location, 6,
+		"Unholy Diver 的加成移动应在 Compulsive Purification 后才执行")
+
+func test_compulsive_purification_declined_allows_testament_attack_boost():
+	default_game_setup("testament")
+	position_players(player1, 4, player2, 6)
+	add_transform(player1, "geoffrey_inquisition")
+	var diver_id = give_player_specific_card(player2, "testament_unholydiver")
+	var focus_id = give_player_specific_card(player1, "standard_normal_focus")
+	advance_turn(player1)
+
+	assert_true(game_logic.do_strike(player2, diver_id, false, -1))
+	assert_true(game_logic.do_strike(player1, focus_id, false, -1))
+	assert_true(game_logic.do_choice(player2, 0))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ForceForEffect)
+	assert_true(game_logic.do_force_for_effect(player1, [], false, true))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_EffectChoice)
+	assert_eq(game_logic.decision_info.player, player2.my_id)
+	assert_true(game_logic.do_choice(player2, 0))
+
+	assert_true(player2.is_card_in_continuous_boosts(diver_id))
+	assert_eq(player2.arena_location, 5)
+
+func test_compulsive_purification_negates_gulbjarn_attack_boost_before_passive():
+	default_game_setup("gulbjarn")
+	position_players(player1, 4, player2, 5)
+	add_transform(player1, "geoffrey_inquisition")
+	var force1 = give_player_specific_card(player1, "standard_normal_sweep")
+	var force2 = give_player_specific_card(player1, "standard_normal_cross")
+	var gauge_ids = give_gauge(player2, 3)
+	var frenzy_id = give_player_specific_card(player2, "gulbjarn_feralfrenzy")
+	var focus_id = give_player_specific_card(player1, "standard_normal_focus")
+	advance_turn(player1)
+
+	assert_true(game_logic.do_strike(player2, frenzy_id, false, -1))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_GaugeForEffect)
+	assert_true(game_logic.do_gauge_for_effect(player2, []))
+	assert_true(game_logic.do_strike(player1, focus_id, false, -1))
+	assert_true(game_logic.do_pay_strike_cost(player2, gauge_ids, false, true))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ForceForEffect)
+	assert_true(game_logic.do_force_for_effect(player1, [force1, force2], false))
+
+	assert_true(player2.is_card_in_discards(frenzy_id))
+	assert_false(player2.is_card_in_continuous_boosts(frenzy_id))
+	assert_eq(player2.cannot_draw, 0)
+
+func test_compulsive_purification_counters_platinum_overdrive_boost():
+	default_game_setup("platinum")
+	add_transform(player1, "geoffrey_inquisition")
+	advance_turn(player1)
+	var grasp_id = give_player_specific_card(player2, "standard_normal_grasp")
+	var dive_id = give_player_specific_card(player2, "standard_normal_dive")
+	var spike_id = give_player_specific_card(player2, "standard_normal_spike")
+	player2.move_card_from_hand_to_gauge(grasp_id)
+	player2.move_card_from_hand_to_gauge(dive_id)
+	player2.move_card_from_hand_to_gauge(spike_id)
+	var overdrive_cards = [grasp_id, dive_id, spike_id]
+	var force1 = give_player_specific_card(player1, "standard_normal_sweep")
+	var force2 = give_player_specific_card(player1, "standard_normal_cross")
+
+	assert_true(game_logic.do_exceed(player2, overdrive_cards))
+	advance_turn(player1)
+	assert_true(game_logic.do_choose_from_discard(player2, [overdrive_cards[0]]))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ForceForEffect)
+	assert_eq(game_logic.decision_info.player, player1.my_id)
+	assert_true(game_logic.do_force_for_effect(player1, [force1, force2], false))
+
+	assert_true(player2.is_card_in_discards(overdrive_cards[0]))
+	assert_false(player2.is_card_in_continuous_boosts(overdrive_cards[0]))
+
 func test_compulsive_purification_does_not_trigger_on_king_decree_boosts():
 	default_game_setup("king")
 	position_players(player1, 4, player2, 6)
@@ -572,6 +663,18 @@ func test_holy_wings_move_no_gauge():
 
 ## ===== UNTAINTED TRANSFORM: passive: if life≤5 and no strike → choice =====
 ## Choice: gain 1 life (skip draw) OR normal draw
+
+func test_untainted_transform_description():
+	var definition = CardDataManager.get_card("geoffrey_bastionstance")
+	var boost = definition["boost"]
+	var effect = definition["boost"]["effects"][0]
+	var expected = "生命值小于等于5，回合结束可以用回复1点生命代替摸牌。"
+
+	assert_eq(boost["description"], expected)
+	assert_false(effect.get("show_in_boost_summary", false),
+		"Untainted 应通过转化加成级描述显示，避免 now 效果重复出现在摘要中")
+	assert_eq(effect["description"], expected)
+	assert_eq(GameStrings.get_effect_text(effect, false, true), expected)
 
 func test_untainted_gain_life():
 	position_players(player1, 4, player2, 5)

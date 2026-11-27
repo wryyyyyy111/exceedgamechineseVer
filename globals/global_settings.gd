@@ -9,7 +9,7 @@ const UseECSServerAlways = true # If true, always defaults to the ECS server (ev
 const CenterAllSceneText = false #不要开，开了 虽然全部的文本居中 但是主页面的已经居中还是偏上 + 游戏卡卡的。
 const ShowMobileResourceBudget = false #todo 显示右侧的移动端资源加载预算。
 var MuteEmotes = false
-const ClientVersionString : String = "261025.1020" # YYMMDD.HHMM #!最后版本改动时间261020
+const ClientVersionString : String = "261126.1020" # YYMMDD.HHMM #!最后版本改动时间261123
 const ReplayVersion : int = 1
 
 # Web 端动画播放速度倍率：手机端（web_android/web_ios/mobile）默认 1.5x。

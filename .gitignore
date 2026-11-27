@@ -1,6 +1,26 @@
+# Only manage core source, data, tests, and project configuration.
+/*
+!/.gitattributes
+!/.gitignore
+!/CORE_UPLOAD.md
+!/README.md
+!/project.godot
+!/export_presets.cfg
+!/runtests.cmd
+!/globals/
+!/scenes/
+!/data/
+!/test/
+
+# Local caches, exports, backups, and temporary files.
 .godot/
 .tmp
 /export/
 /export_native/
 .gut_editor_config.json
 /godotexe/
+__pycache__/
+*.pyc
+*.bak_*
+*.tmp
+tmp_*

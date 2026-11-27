@@ -88,7 +88,7 @@
 		},
 		{
 			"character": "cviper",
-			"tier": "A"
+			"tier": "A+"
 		},
 		{
 			"character": "djanette",
@@ -108,7 +108,7 @@
 		},
 		{
 			"character": "emogine",
-			"tier": "S"
+			"tier": "S-"
 		},
 		{
 			"character": "eugenia",
@@ -140,7 +140,7 @@
 		},
 		{
 			"character": "geoffrey",
-			"tier": "S"
+			"tier": "S-"
 		},
 		{
 			"character": "giovanna",
@@ -160,7 +160,7 @@
 		},
 		{
 			"character": "hakumen",
-			"tier": "EX-"
+			"tier": "S+"
 		},
 		{
 			"character": "happychaos",
@@ -184,7 +184,7 @@
 		},
 		{
 			"character": "iaquis",
-			"tier": "S+"
+			"tier": "S"
 		},
 		{
 			"character": "ino",
@@ -212,7 +212,7 @@
 		},
 		{
 			"character": "kykisuke",
-			"tier": "A"
+			"tier": "A+"
 		},
 		{
 			"character": "leo",
@@ -228,7 +228,7 @@
 		},
 		{
 			"character": "litchi",
-			"tier": "S"
+			"tier": "A+"
 		},
 		{
 			"character": "londrekia",
@@ -236,7 +236,7 @@
 		},
 		{
 			"character": "luciya",
-			"tier": "EX-"
+			"tier": "S"
 		},
 		{
 			"character": "may",
@@ -244,7 +244,7 @@
 		},
 		{
 			"character": "meilian",
-			"tier": "EX-"
+			"tier": "S+"
 		},
 		{
 			"character": "merkava",
@@ -256,11 +256,11 @@
 		},
 		{
 			"character": "millia",
-			"tier": "EX-"
+			"tier": "S+"
 		},
 		{
 			"character": "minato",
-			"tier": "EX-"
+			"tier": "S"
 		},
 		{
 			"character": "mole",
@@ -312,7 +312,7 @@
 		},
 		{
 			"character": "plague",
-			"tier": "S+"
+			"tier": "S-"
 		},
 		{
 			"character": "platinum",
@@ -320,7 +320,7 @@
 		},
 		{
 			"character": "polar",
-			"tier": "A+"
+			"tier": "S-"
 		},
 		{
 			"character": "pooky",
@@ -360,7 +360,7 @@
 		},
 		{
 			"character": "remiliss",
-			"tier": "EX-"
+			"tier": "S+"
 		},
 		{
 			"character": "ryu",
@@ -372,7 +372,7 @@
 		},
 		{
 			"character": "seijun",
-			"tier": "EX-"
+			"tier": "S+"
 		},
 		{
 			"character": "seth",
@@ -384,7 +384,7 @@
 		},
 		{
 			"character": "shovelshield",
-			"tier": "A"
+			"tier": "A+"
 		},
 		{
 			"character": "solbadguy",
@@ -404,7 +404,7 @@
 		},
 		{
 			"character": "sydney",
-			"tier": "A"
+			"tier": "A+"
 		},
 		{
 			"character": "syrus",
@@ -446,7 +446,7 @@
 		},
 		{
 			"character": "umina",
-			"tier": "EX-"
+			"tier": "S+"
 		},
 		{
 			"character": "vatista",
@@ -470,7 +470,7 @@
 		},
 		{
 			"character": "yuzu",
-			"tier": "A"
+			"tier": "A+"
 		},
 		{
 			"character": "zangief",
@@ -498,11 +498,11 @@
 		},
 		{
 			"character": "doomies",
-			"tier": "A+"
+			"tier": "A"
 		},
 		{
 			"character": "gulbjarn",
-			"tier": "A+"
+			"tier": "S-"
 		},
 		{
 			"character": "heraal",
@@ -530,7 +530,7 @@
 		},
 		{
 			"character": "nantaca",
-			"tier": "A+"
+			"tier": "S-"
 		},
 		{
 			"character": "shafathi",
@@ -550,7 +550,7 @@
 		},
 		{
 			"character": "zacoal",
-			"tier": "S-"
+			"tier": "A+"
 		}
 	],
 	"common_rule": [
@@ -579,12 +579,8 @@
 			"hp_start": "34 - 24"
 		},
 		{
-			"rule": "A- vs EX-",
-			"hp_start": "34 - 22"
-		},
-		{
 			"rule": "A- vs EX",
-			"hp_start": "34 - 20"
+			"hp_start": "35 - 23"
 		},
 		{
 			"rule": "A vs A",
@@ -607,12 +603,8 @@
 			"hp_start": "32 - 24"
 		},
 		{
-			"rule": "A vs EX-",
-			"hp_start": "33 - 23"
-		},
-		{
 			"rule": "A vs EX",
-			"hp_start": "34 - 22"
+			"hp_start": "33 - 23"
 		},
 		{
 			"rule": "A+ vs A+",
@@ -631,12 +623,8 @@
 			"hp_start": "32 - 26"
 		},
 		{
-			"rule": "A+ vs EX-",
-			"hp_start": "32 - 24"
-		},
-		{
 			"rule": "A+ vs EX",
-			"hp_start": "32 - 22"
+			"hp_start": "33 - 25"
 		},
 		{
 			"rule": "S- vs S-",
@@ -651,12 +639,8 @@
 			"hp_start": "30 - 26"
 		},
 		{
-			"rule": "S- vs EX-",
-			"hp_start": "31 - 25"
-		},
-		{
 			"rule": "S- vs EX",
-			"hp_start": "31 - 23"
+			"hp_start": "31 - 25"
 		},
 		{
 			"rule": "S vs S",
@@ -667,31 +651,15 @@
 			"hp_start": "30 - 28"
 		},
 		{
-			"rule": "S vs EX-",
-			"hp_start": "30 - 26"
-		},
-		{
 			"rule": "S vs EX",
-			"hp_start": "30 - 24"
+			"hp_start": "30 - 26"
 		},
 		{
 			"rule": "S+ vs S+",
 			"hp_start": "30 - 30"
 		},
 		{
-			"rule": "S+ vs EX-",
-			"hp_start": "30 - 28"
-		},
-		{
 			"rule": "S+ vs EX",
-			"hp_start": "30 - 26"
-		},
-		{
-			"rule": "EX- vs EX-",
-			"hp_start": "30 - 30"
-		},
-		{
-			"rule": "EX- vs EX",
 			"hp_start": "30 - 28"
 		},
 		{
@@ -754,10 +722,6 @@
 					"hp_start": "15"
 				},
 				{
-					"tier": "EX-",
-					"hp_start": "16"
-				},
-				{
 					"tier": "EX",
 					"hp_start": "16"
 				}
@@ -785,10 +749,6 @@
 				},
 				{
 					"tier": "S+",
-					"hp_start": "10"
-				},
-				{
-					"tier": "EX-",
 					"hp_start": "10"
 				},
 				{
@@ -821,10 +781,6 @@
 				},
 				{
 					"tier": "S+",
-					"hp_start": "17"
-				},
-				{
-					"tier": "EX-",
 					"hp_start": "17"
 				},
 				{

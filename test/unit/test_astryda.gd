@@ -71,6 +71,50 @@ func test_astryda_drown_discard():
 
 	advance_turn(player2)
 
+func test_lust_for_power_ai_discards_own_gauge_with_empty_opponent_gauge():
+	_verify_lust_for_power_ai_gauge_discard(1, 0)
+
+func test_lust_for_power_ai_discards_own_gauge_with_both_gauges_populated():
+	_verify_lust_for_power_ai_gauge_discard(3, 1)
+
+func _verify_lust_for_power_ai_gauge_discard(ai_gauge_count: int, opponent_gauge_count: int):
+	position_players(player1, 3, player2, 7)
+	var infuse_gauge = give_gauge(player1, 1)
+	var ai_gauge = give_gauge(player2, ai_gauge_count)
+	var boost_card = give_player_specific_card(player1, "astryda_bewitchingsong")
+	assert_true(game_logic.do_boost(player1, boost_card, [player1.hand[0].id]))
+	assert_true(game_logic.do_gauge_for_effect(player1, []))
+	advance_turn(player2)
+	assert_true(game_logic.do_character_action(player1, infuse_gauge, 1))
+	var opponent_gauge = give_gauge(player1, opponent_gauge_count)
+
+	var attack = give_player_specific_card(player1, "standard_normal_dive")
+	var response = give_player_specific_card(player2, "standard_normal_sweep")
+	do_and_validate_strike(player1, attack)
+	do_strike_response(player2, response)
+	assert_true(game_logic.do_gauge_for_effect(player2, []))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ChooseDiscardOpponentGauge)
+	assert_eq(game_logic.decision_info.player, player2.my_id)
+
+	var action: AIPlayer.DiscardGaugeAction
+	for policy_type in [AIPolicyRules, AIPolicyOmniscient, AIPolicyRandom]:
+		var ai = AIPlayer.new(game_logic, player2, policy_type.new())
+		action = ai.pick_discard_opponent_gauge()
+		ai.ai_policy.free()
+		assert_not_null(action, "AI must choose from its own gauge even if the opponent's gauge is empty")
+		if action == null:
+			return
+		assert_has(ai_gauge, action.card_id, "AI must discard its own gauge, not the attacker's")
+		if action.card_id not in ai_gauge:
+			return
+	assert_true(game_logic.do_boost_name_card_choice_effect(player2, action.card_id))
+	assert_true(player2.is_card_in_discards(action.card_id))
+	assert_eq(player2.gauge.size(), ai_gauge_count - 1)
+	for card_id in opponent_gauge:
+		assert_true(player1.is_card_in_gauge(card_id))
+	assert_null(game_logic.active_strike, "The hit decision must resolve and let the strike finish")
+	advance_turn(player2)
+
 # empty hand case
 
 func test_astryda_drown_empty_hand():
@@ -101,6 +145,7 @@ func test_astryda_lust_for_power():
 	
 	var boost_card = give_player_specific_card(player1, "astryda_bewitchingsong")
 	assert_true(game_logic.do_boost(player1, boost_card, [player1.hand[0].id]))
+	assert_true(game_logic.do_gauge_for_effect(player1, []))
 	advance_turn(player2)
 	
 	# infuse

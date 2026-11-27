@@ -398,7 +398,7 @@ func _build_fallback_card_text(card_name: String, boost_name: String, definition
 	var gauge_cost := int(definition.get("gauge_cost", 0))
 	var force_cost := int(definition.get("force_cost", 0))
 	var cost_text := "[color=#3399ff]怒气 %d[/color]" % gauge_cost if gauge_cost > 0 else "[color=#ef4444]能量 %d[/color]" % force_cost
-	var range_text := str(definition.get("range_min", 0))
+	var range_text := GameStrings.format_number(definition.get("range_min", 0))
 	var range_max := int(definition.get("range_max", definition.get("range_min", 0)))
 	if range_max != int(definition.get("range_min", 0)):
 		range_text += "-%d" % range_max
@@ -419,10 +419,10 @@ func _build_fallback_card_text(card_name: String, boost_name: String, definition
 	var title_font_size := _card_title_font_size(card_name)
 
 	var stats := "[color=#3399ff][b]距离[/b]  %s[/color]\n" % range_text
-	stats += "[color=#ef4444][b]威力[/b]  %s[/color]\n" % str(definition.get("power", 0))
-	stats += "[color=#facc15][b]速度[/b]  %s[/color]\n" % str(definition.get("speed", 0))
-	stats += "[color=#a855f7][b]护甲[/b]  %s[/color]\n" % str(definition.get("armor", 0))
-	stats += "[color=#22c55e][b]霸体[/b]  %s[/color]" % str(definition.get("guard", 0))
+	stats += "[color=#ef4444][b]威力[/b]  %s[/color]\n" % GameStrings.format_number(definition.get("power", 0))
+	stats += "[color=#facc15][b]速度[/b]  %s[/color]\n" % GameStrings.format_number(definition.get("speed", 0))
+	stats += "[color=#a855f7][b]护甲[/b]  %s[/color]\n" % GameStrings.format_number(definition.get("armor", 0))
+	stats += "[color=#22c55e][b]霸体[/b]  %s[/color]" % GameStrings.format_number(definition.get("guard", 0))
 
 	return ("[center][font_size=%d][b]%s[/b][/font_size]\n%s[/center]"
 		+ "[table=2][cell border=#555555 bg=#171717 padding=7]%s[/cell]"
@@ -439,7 +439,7 @@ func _build_reference_card_text(card_name: String, definition: Dictionary) -> St
 	var reference_label := str(definition.get("reference_label", "角色卡"))
 	var cost_text := ""
 	if definition.has("exceed_cost"):
-		cost_text = "[color=#ef4444]觉醒能量 %s[/color]\n" % str(definition["exceed_cost"])
+		cost_text = "[color=#ef4444]觉醒能量 %s[/color]\n" % GameStrings.format_number(definition["exceed_cost"])
 
 	var stat_lines: Array[String] = []
 	var stat_definitions := [
@@ -452,7 +452,7 @@ func _build_reference_card_text(card_name: String, definition: Dictionary) -> St
 	for stat_definition in stat_definitions:
 		var stat_key: String = stat_definition[0]
 		if definition.has(stat_key):
-			stat_lines.append("[color=%s][b]%s[/b]  %s[/color]" % [stat_definition[2], stat_definition[1], str(definition[stat_key])])
+			stat_lines.append("[color=%s][b]%s[/b]  %s[/color]" % [stat_definition[2], stat_definition[1], GameStrings.format_number(definition[stat_key])])
 	var stats_text := "\n".join(stat_lines)
 	if not stats_text.is_empty():
 		stats_text += "\n"

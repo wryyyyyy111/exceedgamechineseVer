@@ -110,11 +110,11 @@
   ],
   "image_resources": {
     "character_default": {
-      "url": "https://cdn.exceedcntyd.com/character_skin/doomies_1/character_exceeded.jpg",
+      "url": "https://cdn.exceedcntyd.com/character_skin/doomies_1/character_default1.jpg",
       "multiple_cards": false
     },
     "character_exceeded": {
-      "url": "https://cdn.exceedcntyd.com/character_skin/doomies_1/character_default.jpg",
+      "url": "https://cdn.exceedcntyd.com/character_skin/doomies_1/character_exceeded1.jpg",
       "multiple_cards": false
     },
     "cardback": {

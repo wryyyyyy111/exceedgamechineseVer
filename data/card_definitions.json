@@ -3622,6 +3622,7 @@
                 {
                     "timing": "before",
                     "effect_type": "choice",
+                    "override_description": "前置: 你可以封印How Shall I Cook You? (特5速) 来 前进、后退、击退或拉近1格。",
                     "choice": [
                         {
                             "effect_type": "advance",
@@ -3664,6 +3665,7 @@
                     "timing": "cleanup",
                     "skip_if_boost_sustained": true,
                     "effect_type": "choice",
+                    "override_description": "整理: 花费1点生命 维持How Shall I Cook You?(特5速) 或 跳过。",
                     "choice": [
                         {
                             "effect_type": "spend_life",
@@ -10044,7 +10046,7 @@
                     "effect_type": "choice",
                     "choice": [
                         {
-                            "_choice_text": "Draw 0",
+                            "_choice_text": "抽0",
                             "effect_type": "draw",
                             "amount": 0,
                             "and": {
@@ -10053,7 +10055,7 @@
                             }
                         },
                         {
-                            "_choice_text": "Draw 1",
+                            "_choice_text": "抽1",
                             "effect_type": "draw",
                             "amount": 1,
                             "and": {
@@ -10062,7 +10064,7 @@
                             }
                         },
                         {
-                            "_choice_text": "Draw 2",
+                            "_choice_text": "抽2",
                             "effect_type": "draw",
                             "amount": 2,
                             "and": {
@@ -10071,7 +10073,7 @@
                             }
                         },
                         {
-                            "_choice_text": "Draw 3",
+                            "_choice_text": "抽3",
                             "effect_type": "draw",
                             "amount": 3,
                             "and": {
@@ -10080,7 +10082,7 @@
                             }
                         },
                         {
-                            "_choice_text": "Draw 4",
+                            "_choice_text": "抽4",
                             "effect_type": "draw",
                             "amount": 4,
                             "and": {
@@ -10097,7 +10099,7 @@
                     "preserve_source_on_choices": true,
                     "choice": [
                         {
-                            "_choice_text": "Draw 0",
+                            "_choice_text": "抽0",
                             "effect_type": "draw",
                             "amount": 0,
                             "and": {
@@ -10106,7 +10108,7 @@
                             }
                         },
                         {
-                            "_choice_text": "Draw 1",
+                            "_choice_text": "抽1",
                             "effect_type": "draw",
                             "amount": 1,
                             "and": {
@@ -10115,7 +10117,7 @@
                             }
                         },
                         {
-                            "_choice_text": "Draw 2",
+                            "_choice_text": "抽2",
                             "effect_type": "draw",
                             "amount": 2,
                             "and": {
@@ -10124,7 +10126,7 @@
                             }
                         },
                         {
-                            "_choice_text": "Draw 3",
+                            "_choice_text": "抽3",
                             "effect_type": "draw",
                             "amount": 3,
                             "and": {
@@ -10133,7 +10135,7 @@
                             }
                         },
                         {
-                            "_choice_text": "Draw 4",
+                            "_choice_text": "抽4",
                             "effect_type": "draw",
                             "amount": 4,
                             "and": {
@@ -10416,6 +10418,7 @@
                 {
                     "timing": "cleanup",
                     "effect_type": "discard_this",
+                    "resolve_before_simultaneous_effects": true,
                     "hide_effect": true
                 }
             ]
@@ -13478,7 +13481,8 @@
                     "timing": "now",
                     "effect_type": "add_passive",
                     "passive": "skip_eot_draw_and_discard",
-                    "description": "跳过回合结束的抽牌和弃牌"
+                    "show_in_boost_summary": true,
+                    "description": "跳过回合结束的抽牌和弃牌。"
                 }
             ]
         }
@@ -14469,12 +14473,13 @@
             "force_cost": -1,
             "cancel_cost": -1,
             "display_name": "Untainted",
+            "description": "生命值小于等于5，回合结束可以用回复1点生命代替摸牌。",
             "effects": [
                 {
                     "timing": "now",
                     "effect_type": "add_passive",
                     "passive": "geoffrey_untainted_passive",
-                    "description": "可改为恢复1点生命替代抽牌。"
+                    "description": "生命值小于等于5，回合结束可以用回复1点生命代替摸牌。"
                 }
             ]
         }
@@ -28538,6 +28543,7 @@
                 {
                     "timing": "immediate",
                     "effect_type": "gauge_for_effect",
+                    "UI_instruction_text": "将你怒气区的1张牌和它在弃牌区的同名牌全部移回手牌。",
                     "per_gauge_effect": null,
                     "overall_effect": {
                         "effect_type": "return_all_copies_of_top_discard_to_hand"
@@ -43051,6 +43057,7 @@
             {
                 "timing": "hit",
                 "effect_type": "powerup_per_card_in_hand",
+                "override_description": "你每有一张手牌，威力+1。",
                 "amount": 1
             }
         ],
@@ -44733,7 +44740,7 @@
                     }
                 ],
                 "and": {
-                    "override_description": "You may return a card from Gauge to hand",
+                    "override_description": "你可以从怒气中拿取一张卡加入手牌",
                     "effect_type": "gauge_for_effect",
                     "per_gauge_effect": null,
                     "overall_effect": {
@@ -44957,7 +44964,7 @@
                     {
                         "effect_type": "discard_attack",
                         "and": {
-                            "override_description": "Return a card from Gauge to hand",
+                            "override_description": "可以从怒气中拿取一张卡加入手牌",
                             "effect_type": "gauge_for_effect",
                             "per_gauge_effect": null,
                             "overall_effect": {
@@ -45469,10 +45476,12 @@
             {
                 "timing": "hit",
                 "condition": "is_infused",
-                "effect_type": "discard_opponent_gauge",
-                "opponent_chooses": true,
-                "amount": 1,
-                "amount2": 1
+                "effect_type": "choose_discard",
+                "opponent": true,
+                "source": "gauge",
+                "destination": "discard",
+                "limitation": "",
+                "amount": 1
             }
         ],
         "boost": {
@@ -46508,7 +46517,7 @@
                         "choice": [
                             {
                                 "effect_type": "add_to_gauge_boost_play_cleanup",
-                                "override_description": "Add Preparatory Rite to Gauge"
+                                "override_description": "将 Preparatory Rite(必速3) 置入怒气区"
                             },
                             {
                                 "effect_type": "discard_continuous_boost",
@@ -46516,7 +46525,7 @@
                                 "limitation": "mine",
                                 "destination": "gauge",
                                 "amount": 1,
-                                "override_description": "Add a different Continuous Boost you have in play to Gauge"
+                                "override_description": "将你场上的一张其他加成置入怒气区"
                             }
                         ]
                     }
@@ -47252,7 +47261,7 @@
                 "limitation": "",
                 "destination": "reveal",
                 "discard_effect": {
-                    "override_description": "You may reveal a card from hand; gain its printed Range, Power, and effects.",
+                    "override_description": "你可以展示一张手牌(无视费用)，获得其印刷的距离、威力和效果。",
                     "suppress_and_description": true,
                     "effect_type": "rangeup_discarded_card_printed_range",
                     "pass_discards_to_and": true,
@@ -47356,7 +47365,7 @@
             "effects": [
                 {
                     "timing": "immediate",
-                    "override_description": "Search deck for up to 2 cards to add to hand.",
+                    "override_description": "从牌堆中选择至多2张牌加入手牌。",
                     "effect_type": "choose_cards_from_top_deck",
                     "look_amount": 30,
                     "action_choices": [
@@ -49365,7 +49374,7 @@
         "NOTE": "GG NORMALS START",
         "id": "gg_normal_grasp",
         "type": "normal",
-        "display_name": "Grasp",
+        "display_name": "投技",
         "force_cost": 0,
         "gauge_cost": 0,
         "range_min": 1,
@@ -49424,7 +49433,7 @@
     {
         "id": "gg_normal_cross",
         "type": "normal",
-        "display_name": "Cross",
+        "display_name": "游击",
         "force_cost": 0,
         "gauge_cost": 0,
         "range_min": 1,
@@ -49471,7 +49480,7 @@
     {
         "id": "gg_normal_slash",
         "type": "normal",
-        "display_name": "Slash",
+        "display_name": "突袭",
         "force_cost": 0,
         "gauge_cost": 0,
         "range_min": 1,
@@ -49508,7 +49517,7 @@
     {
         "id": "gg_normal_dive",
         "type": "normal",
-        "display_name": "Dive",
+        "display_name": "越击",
         "force_cost": 0,
         "gauge_cost": 0,
         "range_min": 1,
@@ -49547,7 +49556,7 @@
     {
         "id": "gg_normal_dust",
         "type": "normal",
-        "display_name": "Dust",
+        "display_name": "刺拳",
         "force_cost": 0,
         "gauge_cost": 0,
         "range_min": 2,
@@ -49586,7 +49595,7 @@
     {
         "id": "gg_normal_sweep",
         "type": "normal",
-        "display_name": "Sweep",
+        "display_name": "横扫",
         "force_cost": 0,
         "gauge_cost": 0,
         "range_min": 1,
@@ -49618,7 +49627,7 @@
     {
         "id": "gg_normal_focus",
         "type": "normal",
-        "display_name": "Focus",
+        "display_name": "专注",
         "force_cost": 0,
         "gauge_cost": 0,
         "range_min": 1,
@@ -49655,7 +49664,7 @@
         "NOTE": "GG NORMALS END",
         "id": "gg_normal_block",
         "type": "normal",
-        "display_name": "Block",
+        "display_name": "格挡",
         "force_cost": 0,
         "gauge_cost": 0,
         "range_min": -1,

@@ -1,11 +1,27 @@
 extends Node
 
+const CardNameIndexScript = preload("res://data/decks/_card_name_index.gd")
+
 var card_data = {}
 
 var card_definitions_path = "res://data/card_definitions.json"
 var decks_path = "res://data/decks"
 var skin_decks_path = "res://data/decks_skin"
 var decks = {}  # A dictionary of (JSON) dictionaries
+var _card_name_index := CardNameIndexScript.new()
+var _card_name_index_dirty := true
+var _custom_card_name_decks := {}
+
+func get_card_name_index() -> CardNameIndexScript:
+	if _card_name_index_dirty:
+		var indexed_decks: Dictionary = decks.duplicate()
+		indexed_decks.merge(_custom_card_name_decks, true)
+		_card_name_index.rebuild(card_data, indexed_decks)
+		_card_name_index_dirty = false
+	return _card_name_index
+
+func invalidate_card_name_index():
+	_card_name_index_dirty = true
 
 func get_deck_test_deck():
 	return decks.get("rachel", get_random_deck(-1))
@@ -105,8 +121,10 @@ func _ready():
 		_load_card_definition(card, card_definitions_path)
 	_load_decks_from_path(decks_path, false)
 	_load_decks_from_path(skin_decks_path, true)
+	get_card_name_index()
 
 func _load_decks_from_path(path: String, use_file_name_as_id: bool) -> void:
+	invalidate_card_name_index()
 	var deck_files = DirAccess.get_files_at(path)
 	for deck_file in deck_files:
 		if deck_file[0] == "_":
@@ -170,6 +188,8 @@ func load_deck_if_custom(deck_definition):
 	var custom_cards = deck_definition.get("custom_card_definitions")
 	if custom_cards:
 		load_custom_cards(custom_cards)
+		_custom_card_name_decks[deck_definition["id"]] = deck_definition
+		invalidate_card_name_index()
 
 	# Sanitize deck definition fields
 	sanitize_bonus_effects_in_data(deck_definition.get("on_exceed"))
@@ -196,6 +216,7 @@ func _load_card_definition(card, source_name : String):
 		push_warning("Skipping card definition without id from %s." % source_name)
 		return
 	card_data[card['id']] = card
+	invalidate_card_name_index()
 
 func sanitize_bonus_effects_in_data(data):
 	if data == null:

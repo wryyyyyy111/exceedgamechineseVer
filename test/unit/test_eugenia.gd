@@ -608,6 +608,62 @@ func test_cats_cradle_boost_is_not_an_active_strike_card():
 	assert_false(game_logic.has_active_strike(),
 			"No active strike should exist after playing a boost")
 
+func _play_edge_of_sanity():
+	var boost_id = give_player_specific_card(player1, "eugenia_cats_cradle")
+	assert_true(game_logic.do_boost(player1, boost_id, []))
+	if game_logic.game_state == Enums.GameState.GameState_PlayerDecision \
+			and game_logic.decision_info.type == Enums.DecisionType.DecisionType_EffectChoice:
+		assert_true(game_logic.do_choice(player1, 0))
+	assert_true(player1.is_card_in_continuous_boosts(boost_id))
+	advance_turn(player2)
+	return boost_id
+
+func test_edge_of_sanity_copies_cleanup_without_effect_order_choice():
+	player1.hand = []
+	player2.hand = []
+	position_players(player1, 1, player2, 9)
+	var first_boost = _play_edge_of_sanity()
+	var second_boost = _play_edge_of_sanity()
+	assert_true(player1.reduce_opponent_prepare_draw)
+	game_logic.get_latest_events()
+
+	execute_strike(player1, player2, "standard_normal_spike", "standard_normal_spike")
+
+	assert_false(game_logic.has_active_strike())
+	assert_true(player1.is_card_in_discards(first_boost))
+	assert_true(player1.is_card_in_discards(second_boost))
+	assert_false(player1.reduce_opponent_prepare_draw)
+	var effect_order_events = game_logic.get_latest_events().filter(func(event):
+		return event['event_type'] == Enums.EventType.EventType_Strike_EffectChoice \
+			and event['reason'] == "EffectOrder"
+	)
+	assert_eq(effect_order_events.size(), 0)
+
+func test_edge_of_sanity_cleanup_keeps_attack_transform_choice():
+	player1.hand = []
+	player2.hand = []
+	position_players(player1, 3, player2, 4)
+	var boost_id = _play_edge_of_sanity()
+	game_logic.get_latest_events()
+
+	var strike_ids = execute_strike(player1, player2,
+		"eugenia_colorful_mist", "standard_normal_spike", false, false, [], [], true)
+
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_EffectChoice)
+	assert_eq(game_logic.decision_info.player, player1.my_id)
+	if game_logic.decision_info.type != Enums.DecisionType.DecisionType_EffectChoice:
+		return
+	assert_true(player1.is_card_in_discards(boost_id))
+	assert_false(player1.reduce_opponent_prepare_draw)
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_true(player1.is_card_in_transforms(strike_ids[0]))
+	assert_false(game_logic.has_active_strike())
+	var effect_order_events = game_logic.get_latest_events().filter(func(event):
+		return event['event_type'] == Enums.EventType.EventType_Strike_EffectChoice \
+			and event['reason'] == "EffectOrder"
+	)
+	assert_eq(effect_order_events.size(), 0)
+
 func test_cats_cradle_as_attack_is_an_active_strike_card():
 	# When Cat's Cradle is actually set as the attack card, it must be
 	# recognized as an active strike attack card.

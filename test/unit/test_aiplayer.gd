@@ -49,6 +49,28 @@ func after_all():
 
 ### Actual tests
 
+func test_ai_chooses_opponent_gauge_when_effect_owner_chooses():
+	game_setup()
+	game_logic.do_mulligan(player1, [])
+	game_logic.do_mulligan(player2, [])
+	var opponent_gauge_ids = []
+	player1.add_to_gauge(player1.deck.pop_front())
+	for i in range(3):
+		var card = player2.deck.pop_front()
+		player2.add_to_gauge(card)
+		opponent_gauge_ids.append(card.id)
+	game_logic.handle_strike_effect(-1, {
+		"effect_type": StrikeEffects.DiscardOpponentGauge,
+		"amount2": 1,
+	}, player1)
+	assert_eq(game_logic.decision_info.player, player1.my_id)
+	for policy_type in [AIPolicyRules, AIPolicyOmniscient, AIPolicyRandom]:
+		ai1.set_ai_policy(policy_type.new())
+		var action = ai1.pick_discard_opponent_gauge()
+		assert_not_null(action)
+		if action != null:
+			assert_has(opponent_gauge_ids, action.card_id)
+
 func test_list_cards():
 	default_deck = CardDataManager.get_deck_from_str_id('ryu')
 	game_setup()

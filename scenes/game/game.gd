@@ -16,6 +16,8 @@ const CardPopoutScene = preload("res://scenes/game/card_popout.tscn")
 const CharacterScene = preload("res://scenes/game/character.tscn")
 const BackgroundManager = preload("res://globals/game_background_manager.gd")
 const HpRankModeManagerScript = preload("res://globals/hp_rank_mode_manager.gd")
+const RuntimeResourceCleanupScript = preload("res://globals/runtime_resource_cleanup.gd")
+const StreamingFrameAnimationScript = preload("res://scenes/game/streaming_frame_animation.gd")
 
 @onready var player_emote : EmoteDisplay = $PlayerEmote
 @onready var opponent_emote : EmoteDisplay = $OpponentEmote
@@ -165,6 +167,7 @@ var select_gauge_valid_card_types = []
 var select_boost_options = {}
 var select_card_name_boost_restriction = ""
 var selected_boost_to_pay_for = -1
+var pending_boost_infuse : Dictionary = {}
 var selected_boost_facedown_override = null
 var instructions_ok_allowed = false
 var instructions_cancel_allowed = false
@@ -188,6 +191,9 @@ var cached_opponent_location = 0
 var reference_popout_toggle_enabled = false
 var reference_popout_toggle = false
 var opponent_cards_before_reshuffle = []
+var player_reference_popout_toggle_enabled = false
+var player_reference_popout_toggle = false
+var player_cards_before_reshuffle = []
 var treat_ultras_as_single_force = false
 var discard_ex_first_for_strike = false
 var use_free_force = false
@@ -368,6 +374,14 @@ const IaquisFaceupBonusFrameBase = "res://assets/entrance_animations/iaquis/iaqu
 const IaquisFaceupFps = 10.0
 const EntranceScreenWidth = 1280.0
 const EntranceScreenHeight = 720.0
+
+enum StreamingEffectLayout {
+	CENTER_CONTAIN,
+	CENTER_COVER,
+	BOTTOM_LEFT_CONTAIN,
+	BOTTOM_RIGHT_CONTAIN,
+	TOP_SIDE_CONTAIN,
+}
 
 var entrance_animation : AnimatedSprite2D
 var entrance_animation_layer : CanvasLayer
@@ -800,6 +814,75 @@ func _is_local_player_iaquis() -> bool:
 		return false
 	return str(player_deck.get("base_id", player_deck.get("id", ""))) == "iaquis"
 
+func _start_streaming_effect(
+		animation_property: StringName,
+		layer_property: StringName,
+		animation_name: StringName,
+		frame_base: String,
+		frame_count: int,
+		fps: float,
+		layout: StreamingEffectLayout,
+		finished_callback: Callable,
+		is_local_side := true):
+	if get(animation_property) != null or get(layer_property) != null:
+		return
+	var layer := CanvasLayer.new()
+	layer.layer = 100
+	add_child(layer)
+	set(layer_property, layer)
+	var sprite := StreamingFrameAnimationScript.new() as StreamingFrameAnimation
+	layer.add_child(sprite)
+	set(animation_property, sprite)
+	var prepared := await sprite.prepare(animation_name, frame_base, frame_count, fps)
+	if not prepared or not is_instance_valid(sprite) or get(animation_property) != sprite:
+		if is_instance_valid(layer):
+			layer.queue_free()
+		if get(animation_property) == sprite:
+			set(animation_property, null)
+		if get(layer_property) == layer:
+			set(layer_property, null)
+		return
+	_layout_streaming_effect(sprite, sprite.get_frame_size(), layout, is_local_side)
+	sprite.animation_finished.connect(finished_callback, CONNECT_ONE_SHOT)
+	sprite.start()
+
+func _layout_streaming_effect(
+		sprite: StreamingFrameAnimation,
+		frame_size: Vector2,
+		layout: StreamingEffectLayout,
+		is_local_side: bool):
+	if frame_size.x <= 0.0 or frame_size.y <= 0.0:
+		return
+	var contain_scale: float = minf(
+		float(EntranceScreenWidth) / frame_size.x,
+		float(EntranceScreenHeight) / frame_size.y) * 0.98
+	var cover_scale: float = maxf(
+		float(EntranceScreenWidth) / frame_size.x,
+		float(EntranceScreenHeight) / frame_size.y)
+	match layout:
+		StreamingEffectLayout.CENTER_CONTAIN:
+			sprite.scale = Vector2(contain_scale, contain_scale)
+			sprite.position = Vector2(EntranceScreenWidth * 0.5, EntranceScreenHeight * 0.5)
+		StreamingEffectLayout.CENTER_COVER:
+			sprite.scale = Vector2(cover_scale, cover_scale)
+			sprite.position = Vector2(EntranceScreenWidth * 0.5, EntranceScreenHeight * 0.5)
+		StreamingEffectLayout.BOTTOM_LEFT_CONTAIN:
+			sprite.scale = Vector2(contain_scale, contain_scale)
+			sprite.position = Vector2(
+				frame_size.x * contain_scale * 0.5,
+				EntranceScreenHeight - frame_size.y * contain_scale * 0.5)
+		StreamingEffectLayout.BOTTOM_RIGHT_CONTAIN:
+			sprite.scale = Vector2(contain_scale, contain_scale)
+			sprite.position = Vector2(
+				EntranceScreenWidth - frame_size.x * contain_scale * 0.5,
+				EntranceScreenHeight - frame_size.y * contain_scale * 0.5)
+		StreamingEffectLayout.TOP_SIDE_CONTAIN:
+			sprite.scale = Vector2(contain_scale, contain_scale)
+			var displayed_size: Vector2 = frame_size * contain_scale
+			sprite.position = Vector2(
+				EntranceScreenWidth - displayed_size.x * 0.5 if is_local_side else displayed_size.x * 0.5,
+				displayed_size.y * 0.5)
+
 func try_play_match_start_entrance():
 	if not GlobalSettings.AnimationsEnabled:
 		return
@@ -826,34 +909,15 @@ func try_play_match_start_entrance():
 		fps = IaquisEntranceFps
 	else:
 		return
-	var sf := SpriteFrames.new()
-	sf.add_animation("entrance")
-	sf.set_animation_loop("entrance", false)
-	sf.set_animation_speed("entrance", fps)
-	for i in range(frame_count):
-		var tex = load(frame_base % i)
-		if tex:
-			sf.add_frame("entrance", tex)
-	if sf.get_frame_count("entrance") == 0:
-		return
-	entrance_animation_layer = CanvasLayer.new()
-	entrance_animation_layer.layer = 100
-	add_child(entrance_animation_layer)
-	entrance_animation = AnimatedSprite2D.new()
-	entrance_animation.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("entrance", 0).get_size()
-	var scale_factor = 1.0
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		entrance_animation.scale = Vector2(scale_factor, scale_factor)
-	# Align the entrance closeup to the bottom-right corner of the screen.
-	entrance_animation.position = Vector2(
-		EntranceScreenWidth - frame_size.x * scale_factor * 0.5,
-		EntranceScreenHeight - frame_size.y * scale_factor * 0.5
-	)
-	entrance_animation_layer.add_child(entrance_animation)
-	entrance_animation.animation_finished.connect(_on_entrance_animation_finished)
-	entrance_animation.play("entrance")
+	_start_streaming_effect(
+		&"entrance_animation",
+		&"entrance_animation_layer",
+		&"entrance",
+		frame_base,
+		frame_count,
+		fps,
+		StreamingEffectLayout.BOTTOM_RIGHT_CONTAIN,
+		_on_entrance_animation_finished)
 
 func _on_entrance_animation_finished():
 	if entrance_animation_layer:
@@ -895,37 +959,15 @@ func _play_awaken_entrance():
 		is_bottom_right = true
 	else:
 		return
-	var sf := SpriteFrames.new()
-	sf.add_animation("awaken")
-	sf.set_animation_loop("awaken", false)
-	sf.set_animation_speed("awaken", fps)
-	for i in range(frame_count):
-		var tex = load(frame_base % i)
-		if tex:
-			sf.add_frame("awaken", tex)
-	if sf.get_frame_count("awaken") == 0:
-		return
-	awaken_animation_layer = CanvasLayer.new()
-	awaken_animation_layer.layer = 100
-	add_child(awaken_animation_layer)
-	awaken_animation = AnimatedSprite2D.new()
-	awaken_animation.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("awaken", 0).get_size()
-	var scale_factor = 1.0
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		awaken_animation.scale = Vector2(scale_factor, scale_factor)
-	if is_bottom_right:
-		# Zsolt awaken closeup aligns to the bottom-right corner.
-		awaken_animation.position = Vector2(
-			EntranceScreenWidth - frame_size.x * scale_factor * 0.5,
-			EntranceScreenHeight - frame_size.y * scale_factor * 0.5
-		)
-	else:
-		awaken_animation.position = Vector2(EntranceScreenWidth * 0.5, EntranceScreenHeight * 0.5)
-	awaken_animation_layer.add_child(awaken_animation)
-	awaken_animation.animation_finished.connect(_on_awaken_animation_finished)
-	awaken_animation.play("awaken")
+	_start_streaming_effect(
+		&"awaken_animation",
+		&"awaken_animation_layer",
+		&"awaken",
+		frame_base,
+		frame_count,
+		fps,
+		StreamingEffectLayout.BOTTOM_RIGHT_CONTAIN if is_bottom_right else StreamingEffectLayout.CENTER_CONTAIN,
+		_on_awaken_animation_finished)
 
 func _on_awaken_animation_finished():
 	if awaken_animation_layer:
@@ -955,41 +997,16 @@ func _play_cats_cradle_entrance(is_local : bool):
 		if cats_cradle_animation_left:
 			return
 		frame_base = EugeniaCatsCradleLeftFrameBase
-	var sf := SpriteFrames.new()
-	sf.add_animation("cats_cradle")
-	sf.set_animation_loop("cats_cradle", false)
-	sf.set_animation_speed("cats_cradle", EugeniaCatsCradleFps)
-	for i in range(EugeniaCatsCradleFrameCount):
-		var tex = load(frame_base % i)
-		if tex:
-			sf.add_frame("cats_cradle", tex)
-	if sf.get_frame_count("cats_cradle") == 0:
-		return
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	add_child(layer)
-	var sprite := AnimatedSprite2D.new()
-	sprite.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("cats_cradle", 0).get_size()
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		var scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		sprite.scale = Vector2(scale_factor, scale_factor)
-		# Corner alignment: the LOCAL player's ultra effect closeup hugs the
-		# TOP-RIGHT corner, the opponent's version hugs the TOP-LEFT corner.
-		var displayed_size = frame_size * scale_factor
-		if is_local:
-			sprite.position = Vector2(EntranceScreenWidth - displayed_size.x * 0.5, displayed_size.y * 0.5)
-		else:
-			sprite.position = Vector2(displayed_size.x * 0.5, displayed_size.y * 0.5)
-	layer.add_child(sprite)
-	sprite.animation_finished.connect(_on_cats_cradle_animation_finished.bind(is_local))
-	sprite.play("cats_cradle")
-	if is_local:
-		cats_cradle_animation_right = sprite
-		cats_cradle_animation_layer_right = layer
-	else:
-		cats_cradle_animation_left = sprite
-		cats_cradle_animation_layer_left = layer
+	_start_streaming_effect(
+		&"cats_cradle_animation_right" if is_local else &"cats_cradle_animation_left",
+		&"cats_cradle_animation_layer_right" if is_local else &"cats_cradle_animation_layer_left",
+		&"cats_cradle",
+		frame_base,
+		EugeniaCatsCradleFrameCount,
+		EugeniaCatsCradleFps,
+		StreamingEffectLayout.TOP_SIDE_CONTAIN,
+		_on_cats_cradle_animation_finished.bind(is_local),
+		is_local)
 
 func _on_cats_cradle_animation_finished(is_local : bool):
 	if is_local:
@@ -1041,41 +1058,16 @@ func _play_qoh_entrance(is_local : bool):
 		if qoh_animation_left:
 			return
 		frame_base = EugeniaQohLeftFrameBase
-	var sf := SpriteFrames.new()
-	sf.add_animation("qoh")
-	sf.set_animation_loop("qoh", false)
-	sf.set_animation_speed("qoh", EugeniaQohFps)
-	for i in range(EugeniaQohFrameCount):
-		var tex = load(frame_base % i)
-		if tex:
-			sf.add_frame("qoh", tex)
-	if sf.get_frame_count("qoh") == 0:
-		return
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	add_child(layer)
-	var sprite := AnimatedSprite2D.new()
-	sprite.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("qoh", 0).get_size()
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		var scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		sprite.scale = Vector2(scale_factor, scale_factor)
-		# Corner alignment: the LOCAL player's ultra effect closeup hugs the
-		# TOP-RIGHT corner, the opponent's version hugs the TOP-LEFT corner.
-		var displayed_size = frame_size * scale_factor
-		if is_local:
-			sprite.position = Vector2(EntranceScreenWidth - displayed_size.x * 0.5, displayed_size.y * 0.5)
-		else:
-			sprite.position = Vector2(displayed_size.x * 0.5, displayed_size.y * 0.5)
-	layer.add_child(sprite)
-	sprite.animation_finished.connect(_on_qoh_animation_finished.bind(is_local))
-	sprite.play("qoh")
-	if is_local:
-		qoh_animation_right = sprite
-		qoh_animation_layer_right = layer
-	else:
-		qoh_animation_left = sprite
-		qoh_animation_layer_left = layer
+	_start_streaming_effect(
+		&"qoh_animation_right" if is_local else &"qoh_animation_left",
+		&"qoh_animation_layer_right" if is_local else &"qoh_animation_layer_left",
+		&"qoh",
+		frame_base,
+		EugeniaQohFrameCount,
+		EugeniaQohFps,
+		StreamingEffectLayout.TOP_SIDE_CONTAIN,
+		_on_qoh_animation_finished.bind(is_local),
+		is_local)
 
 func _on_qoh_animation_finished(is_local : bool):
 	if is_local:
@@ -1113,31 +1105,15 @@ func _play_qoh_damage_effect():
 		return
 	if qoh_damage_animation:
 		return
-	var sf := SpriteFrames.new()
-	sf.add_animation("qoh_damage")
-	sf.set_animation_loop("qoh_damage", false)
-	sf.set_animation_speed("qoh_damage", EugeniaQohDamageFps)
-	for i in range(EugeniaQohDamageFrameCount):
-		var tex = load(EugeniaQohDamageFrameBase % i)
-		if tex:
-			sf.add_frame("qoh_damage", tex)
-	if sf.get_frame_count("qoh_damage") == 0:
-		return
-	qoh_damage_animation_layer = CanvasLayer.new()
-	qoh_damage_animation_layer.layer = 100
-	add_child(qoh_damage_animation_layer)
-	qoh_damage_animation = AnimatedSprite2D.new()
-	qoh_damage_animation.sprite_frames = sf
-	qoh_damage_animation.position = Vector2(EntranceScreenWidth * 0.5, EntranceScreenHeight * 0.5)
-	var frame_size = sf.get_frame_texture("qoh_damage", 0).get_size()
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		# Cover the whole screen (no letterboxing, edges overflow and get
-		# cropped instead of leaving black bars).
-		var scale_factor = max(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y)
-		qoh_damage_animation.scale = Vector2(scale_factor, scale_factor)
-	qoh_damage_animation_layer.add_child(qoh_damage_animation)
-	qoh_damage_animation.animation_finished.connect(_on_qoh_damage_effect_finished)
-	qoh_damage_animation.play("qoh_damage")
+	_start_streaming_effect(
+		&"qoh_damage_animation",
+		&"qoh_damage_animation_layer",
+		&"qoh_damage",
+		EugeniaQohDamageFrameBase,
+		EugeniaQohDamageFrameCount,
+		EugeniaQohDamageFps,
+		StreamingEffectLayout.CENTER_COVER,
+		_on_qoh_damage_effect_finished)
 
 func _on_qoh_damage_effect_finished():
 	if qoh_damage_animation_layer:
@@ -1154,30 +1130,15 @@ func _play_cats_cradle_hit():
 		return
 	if cats_cradle_hit_animation:
 		return
-	var sf := SpriteFrames.new()
-	sf.add_animation("cats_cradle_hit")
-	sf.set_animation_loop("cats_cradle_hit", false)
-	sf.set_animation_speed("cats_cradle_hit", EugeniaCatsCradleHitFps)
-	for i in range(EugeniaCatsCradleHitFrameCount):
-		var tex = load(EugeniaCatsCradleHitFrameBase % i)
-		if tex:
-			sf.add_frame("cats_cradle_hit", tex)
-	if sf.get_frame_count("cats_cradle_hit") == 0:
-		return
-	cats_cradle_hit_animation_layer = CanvasLayer.new()
-	cats_cradle_hit_animation_layer.layer = 100
-	add_child(cats_cradle_hit_animation_layer)
-	cats_cradle_hit_animation = AnimatedSprite2D.new()
-	cats_cradle_hit_animation.sprite_frames = sf
-	cats_cradle_hit_animation.position = Vector2(EntranceScreenWidth * 0.5, EntranceScreenHeight * 0.5)
-	var frame_size = sf.get_frame_texture("cats_cradle_hit", 0).get_size()
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		# Cover the whole screen (no letterboxing).
-		var scale_factor = max(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y)
-		cats_cradle_hit_animation.scale = Vector2(scale_factor, scale_factor)
-	cats_cradle_hit_animation_layer.add_child(cats_cradle_hit_animation)
-	cats_cradle_hit_animation.animation_finished.connect(_on_cats_cradle_hit_animation_finished)
-	cats_cradle_hit_animation.play("cats_cradle_hit")
+	_start_streaming_effect(
+		&"cats_cradle_hit_animation",
+		&"cats_cradle_hit_animation_layer",
+		&"cats_cradle_hit",
+		EugeniaCatsCradleHitFrameBase,
+		EugeniaCatsCradleHitFrameCount,
+		EugeniaCatsCradleHitFps,
+		StreamingEffectLayout.CENTER_COVER,
+		_on_cats_cradle_hit_animation_finished)
 
 func _on_cats_cradle_hit_animation_finished():
 	if cats_cradle_hit_animation_layer:
@@ -1193,34 +1154,15 @@ func _play_tea_time_entrance():
 		return
 	if tea_time_animation:
 		return
-	var sf := SpriteFrames.new()
-	sf.add_animation("tea_time")
-	sf.set_animation_loop("tea_time", false)
-	sf.set_animation_speed("tea_time", EugeniaTeaTimeFps)
-	for i in range(EugeniaTeaTimeFrameCount):
-		var tex = load(EugeniaTeaTimeFrameBase % i)
-		if tex:
-			sf.add_frame("tea_time", tex)
-	if sf.get_frame_count("tea_time") == 0:
-		return
-	tea_time_animation_layer = CanvasLayer.new()
-	tea_time_animation_layer.layer = 100
-	add_child(tea_time_animation_layer)
-	tea_time_animation = AnimatedSprite2D.new()
-	tea_time_animation.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("tea_time", 0).get_size()
-	var scale_factor = 1.0
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		tea_time_animation.scale = Vector2(scale_factor, scale_factor)
-	# Align the tea time closeup to the bottom-left corner of the screen.
-	tea_time_animation.position = Vector2(
-		frame_size.x * scale_factor * 0.5,
-		EntranceScreenHeight - frame_size.y * scale_factor * 0.5
-	)
-	tea_time_animation_layer.add_child(tea_time_animation)
-	tea_time_animation.animation_finished.connect(_on_tea_time_animation_finished)
-	tea_time_animation.play("tea_time")
+	_start_streaming_effect(
+		&"tea_time_animation",
+		&"tea_time_animation_layer",
+		&"tea_time",
+		EugeniaTeaTimeFrameBase,
+		EugeniaTeaTimeFrameCount,
+		EugeniaTeaTimeFps,
+		StreamingEffectLayout.BOTTOM_LEFT_CONTAIN,
+		_on_tea_time_animation_finished)
 
 func _on_tea_time_animation_finished():
 	if tea_time_animation_layer:
@@ -1237,34 +1179,15 @@ func _play_zsolt_fatal_eye():
 		return
 	if fatal_eye_animation:
 		return
-	var sf := SpriteFrames.new()
-	sf.add_animation("fatal_eye")
-	sf.set_animation_loop("fatal_eye", false)
-	sf.set_animation_speed("fatal_eye", ZsoltFatalEyeFps)
-	for i in range(ZsoltFatalEyeFrameCount):
-		var tex = load(ZsoltFatalEyeFrameBase % i)
-		if tex:
-			sf.add_frame("fatal_eye", tex)
-	if sf.get_frame_count("fatal_eye") == 0:
-		return
-	fatal_eye_animation_layer = CanvasLayer.new()
-	fatal_eye_animation_layer.layer = 100
-	add_child(fatal_eye_animation_layer)
-	fatal_eye_animation = AnimatedSprite2D.new()
-	fatal_eye_animation.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("fatal_eye", 0).get_size()
-	var scale_factor = 1.0
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		fatal_eye_animation.scale = Vector2(scale_factor, scale_factor)
-	# Align the Fatal Eye closeup to the bottom-left corner of the screen.
-	fatal_eye_animation.position = Vector2(
-		frame_size.x * scale_factor * 0.5,
-		EntranceScreenHeight - frame_size.y * scale_factor * 0.5
-	)
-	fatal_eye_animation_layer.add_child(fatal_eye_animation)
-	fatal_eye_animation.animation_finished.connect(_on_zsolt_fatal_eye_animation_finished)
-	fatal_eye_animation.play("fatal_eye")
+	_start_streaming_effect(
+		&"fatal_eye_animation",
+		&"fatal_eye_animation_layer",
+		&"fatal_eye",
+		ZsoltFatalEyeFrameBase,
+		ZsoltFatalEyeFrameCount,
+		ZsoltFatalEyeFps,
+		StreamingEffectLayout.BOTTOM_LEFT_CONTAIN,
+		_on_zsolt_fatal_eye_animation_finished)
 
 func _on_zsolt_fatal_eye_animation_finished():
 	if fatal_eye_animation_layer:
@@ -1305,39 +1228,16 @@ func _play_zsolt_wild_hunt_entrance(is_local : bool):
 		if wild_hunt_animation_left:
 			return
 		frame_base = ZsoltWildHuntLeftFrameBase
-	var sf := SpriteFrames.new()
-	sf.add_animation("wild_hunt")
-	sf.set_animation_loop("wild_hunt", false)
-	sf.set_animation_speed("wild_hunt", ZsoltWildHuntFps)
-	for i in range(ZsoltWildHuntFrameCount):
-		var tex = load(frame_base % i)
-		if tex:
-			sf.add_frame("wild_hunt", tex)
-	if sf.get_frame_count("wild_hunt") == 0:
-		return
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	add_child(layer)
-	var sprite := AnimatedSprite2D.new()
-	sprite.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("wild_hunt", 0).get_size()
-	var scale_factor = 1.0
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		sprite.scale = Vector2(scale_factor, scale_factor)
-	# Top corner alignment: right frames -> top-right, left frames -> top-left.
-	var displayed_size = frame_size * scale_factor
-	if is_local:
-		sprite.position = Vector2(EntranceScreenWidth - displayed_size.x * 0.5, displayed_size.y * 0.5)
-		wild_hunt_animation_right = sprite
-		wild_hunt_animation_layer_right = layer
-	else:
-		sprite.position = Vector2(displayed_size.x * 0.5, displayed_size.y * 0.5)
-		wild_hunt_animation_left = sprite
-		wild_hunt_animation_layer_left = layer
-	layer.add_child(sprite)
-	sprite.animation_finished.connect(_on_zsolt_wild_hunt_animation_finished.bind(is_local))
-	sprite.play("wild_hunt")
+	_start_streaming_effect(
+		&"wild_hunt_animation_right" if is_local else &"wild_hunt_animation_left",
+		&"wild_hunt_animation_layer_right" if is_local else &"wild_hunt_animation_layer_left",
+		&"wild_hunt",
+		frame_base,
+		ZsoltWildHuntFrameCount,
+		ZsoltWildHuntFps,
+		StreamingEffectLayout.TOP_SIDE_CONTAIN,
+		_on_zsolt_wild_hunt_animation_finished.bind(is_local),
+		is_local)
 
 func _on_zsolt_wild_hunt_animation_finished(is_local : bool):
 	if is_local:
@@ -1385,30 +1285,15 @@ func _play_zsolt_wild_hunt_damage():
 		return
 	if wild_hunt_damage_animation:
 		return
-	var sf := SpriteFrames.new()
-	sf.add_animation("wild_hunt_damage")
-	sf.set_animation_loop("wild_hunt_damage", false)
-	sf.set_animation_speed("wild_hunt_damage", ZsoltWildHuntDamageFps)
-	for i in range(ZsoltWildHuntDamageFrameCount):
-		var tex = load(ZsoltWildHuntDamageFrameBase % i)
-		if tex:
-			sf.add_frame("wild_hunt_damage", tex)
-	if sf.get_frame_count("wild_hunt_damage") == 0:
-		return
-	wild_hunt_damage_animation_layer = CanvasLayer.new()
-	wild_hunt_damage_animation_layer.layer = 100
-	add_child(wild_hunt_damage_animation_layer)
-	wild_hunt_damage_animation = AnimatedSprite2D.new()
-	wild_hunt_damage_animation.sprite_frames = sf
-	wild_hunt_damage_animation.position = Vector2(EntranceScreenWidth * 0.5, EntranceScreenHeight * 0.5)
-	var frame_size = sf.get_frame_texture("wild_hunt_damage", 0).get_size()
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		# Cover the whole screen (no letterboxing).
-		var scale_factor = max(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y)
-		wild_hunt_damage_animation.scale = Vector2(scale_factor, scale_factor)
-	wild_hunt_damage_animation_layer.add_child(wild_hunt_damage_animation)
-	wild_hunt_damage_animation.animation_finished.connect(_on_zsolt_wild_hunt_damage_finished)
-	wild_hunt_damage_animation.play("wild_hunt_damage")
+	_start_streaming_effect(
+		&"wild_hunt_damage_animation",
+		&"wild_hunt_damage_animation_layer",
+		&"wild_hunt_damage",
+		ZsoltWildHuntDamageFrameBase,
+		ZsoltWildHuntDamageFrameCount,
+		ZsoltWildHuntDamageFps,
+		StreamingEffectLayout.CENTER_COVER,
+		_on_zsolt_wild_hunt_damage_finished)
 
 func _on_zsolt_wild_hunt_damage_finished():
 	if wild_hunt_damage_animation_layer:
@@ -1438,39 +1323,16 @@ func _play_zsolt_purification_entrance(is_local : bool):
 		if purification_animation_left:
 			return
 		frame_base = ZsoltPurificationLeftFrameBase
-	var sf := SpriteFrames.new()
-	sf.add_animation("purification")
-	sf.set_animation_loop("purification", false)
-	sf.set_animation_speed("purification", ZsoltPurificationFps)
-	for i in range(ZsoltPurificationFrameCount):
-		var tex = load(frame_base % i)
-		if tex:
-			sf.add_frame("purification", tex)
-	if sf.get_frame_count("purification") == 0:
-		return
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	add_child(layer)
-	var sprite := AnimatedSprite2D.new()
-	sprite.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("purification", 0).get_size()
-	var scale_factor = 1.0
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		sprite.scale = Vector2(scale_factor, scale_factor)
-	# Top corner alignment: right frames -> top-right, left frames -> top-left.
-	var displayed_size = frame_size * scale_factor
-	if is_local:
-		sprite.position = Vector2(EntranceScreenWidth - displayed_size.x * 0.5, displayed_size.y * 0.5)
-		purification_animation_right = sprite
-		purification_animation_layer_right = layer
-	else:
-		sprite.position = Vector2(displayed_size.x * 0.5, displayed_size.y * 0.5)
-		purification_animation_left = sprite
-		purification_animation_layer_left = layer
-	layer.add_child(sprite)
-	sprite.animation_finished.connect(_on_zsolt_purification_animation_finished.bind(is_local))
-	sprite.play("purification")
+	_start_streaming_effect(
+		&"purification_animation_right" if is_local else &"purification_animation_left",
+		&"purification_animation_layer_right" if is_local else &"purification_animation_layer_left",
+		&"purification",
+		frame_base,
+		ZsoltPurificationFrameCount,
+		ZsoltPurificationFps,
+		StreamingEffectLayout.TOP_SIDE_CONTAIN,
+		_on_zsolt_purification_animation_finished.bind(is_local),
+		is_local)
 
 func _on_zsolt_purification_animation_finished(is_local : bool):
 	if is_local:
@@ -1517,30 +1379,15 @@ func _play_zsolt_purification_damage():
 		return
 	if purification_damage_animation:
 		return
-	var sf := SpriteFrames.new()
-	sf.add_animation("purification_damage")
-	sf.set_animation_loop("purification_damage", false)
-	sf.set_animation_speed("purification_damage", ZsoltPurificationDamageFps)
-	for i in range(ZsoltPurificationDamageFrameCount):
-		var tex = load(ZsoltPurificationDamageFrameBase % i)
-		if tex:
-			sf.add_frame("purification_damage", tex)
-	if sf.get_frame_count("purification_damage") == 0:
-		return
-	purification_damage_animation_layer = CanvasLayer.new()
-	purification_damage_animation_layer.layer = 100
-	add_child(purification_damage_animation_layer)
-	purification_damage_animation = AnimatedSprite2D.new()
-	purification_damage_animation.sprite_frames = sf
-	purification_damage_animation.position = Vector2(EntranceScreenWidth * 0.5, EntranceScreenHeight * 0.5)
-	var frame_size = sf.get_frame_texture("purification_damage", 0).get_size()
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		# Cover the whole screen (no letterboxing).
-		var scale_factor = max(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y)
-		purification_damage_animation.scale = Vector2(scale_factor, scale_factor)
-	purification_damage_animation_layer.add_child(purification_damage_animation)
-	purification_damage_animation.animation_finished.connect(_on_zsolt_purification_damage_finished)
-	purification_damage_animation.play("purification_damage")
+	_start_streaming_effect(
+		&"purification_damage_animation",
+		&"purification_damage_animation_layer",
+		&"purification_damage",
+		ZsoltPurificationDamageFrameBase,
+		ZsoltPurificationDamageFrameCount,
+		ZsoltPurificationDamageFps,
+		StreamingEffectLayout.CENTER_COVER,
+		_on_zsolt_purification_damage_finished)
 
 func _on_zsolt_purification_damage_finished():
 	if purification_damage_animation_layer:
@@ -1592,39 +1439,16 @@ func _play_geoffrey_judgment_entrance(is_local : bool):
 		if judgment_animation_left:
 			return
 		frame_base = GeoffreyJudgmentLeftFrameBase
-	var sf := SpriteFrames.new()
-	sf.add_animation("judgment")
-	sf.set_animation_loop("judgment", false)
-	sf.set_animation_speed("judgment", GeoffreyJudgmentFps)
-	for i in range(GeoffreyJudgmentFrameCount):
-		var tex = load(frame_base % i)
-		if tex:
-			sf.add_frame("judgment", tex)
-	if sf.get_frame_count("judgment") == 0:
-		return
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	add_child(layer)
-	var sprite := AnimatedSprite2D.new()
-	sprite.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("judgment", 0).get_size()
-	var scale_factor = 1.0
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		sprite.scale = Vector2(scale_factor, scale_factor)
-	# Top corner alignment: right frames -> top-right, left frames -> top-left.
-	var displayed_size = frame_size * scale_factor
-	if is_local:
-		sprite.position = Vector2(EntranceScreenWidth - displayed_size.x * 0.5, displayed_size.y * 0.5)
-		judgment_animation_right = sprite
-		judgment_animation_layer_right = layer
-	else:
-		sprite.position = Vector2(displayed_size.x * 0.5, displayed_size.y * 0.5)
-		judgment_animation_left = sprite
-		judgment_animation_layer_left = layer
-	layer.add_child(sprite)
-	sprite.animation_finished.connect(_on_geoffrey_judgment_animation_finished.bind(is_local))
-	sprite.play("judgment")
+	_start_streaming_effect(
+		&"judgment_animation_right" if is_local else &"judgment_animation_left",
+		&"judgment_animation_layer_right" if is_local else &"judgment_animation_layer_left",
+		&"judgment",
+		frame_base,
+		GeoffreyJudgmentFrameCount,
+		GeoffreyJudgmentFps,
+		StreamingEffectLayout.TOP_SIDE_CONTAIN,
+		_on_geoffrey_judgment_animation_finished.bind(is_local),
+		is_local)
 
 func _on_geoffrey_judgment_animation_finished(is_local : bool):
 	if is_local:
@@ -1649,30 +1473,15 @@ func _play_geoffrey_judgment_damage():
 		return
 	if judgment_damage_animation:
 		return
-	var sf := SpriteFrames.new()
-	sf.add_animation("judgment_damage")
-	sf.set_animation_loop("judgment_damage", false)
-	sf.set_animation_speed("judgment_damage", GeoffreyJudgmentDamageFps)
-	for i in range(GeoffreyJudgmentDamageFrameCount):
-		var tex = load(GeoffreyJudgmentDamageFrameBase % i)
-		if tex:
-			sf.add_frame("judgment_damage", tex)
-	if sf.get_frame_count("judgment_damage") == 0:
-		return
-	judgment_damage_animation_layer = CanvasLayer.new()
-	judgment_damage_animation_layer.layer = 100
-	add_child(judgment_damage_animation_layer)
-	judgment_damage_animation = AnimatedSprite2D.new()
-	judgment_damage_animation.sprite_frames = sf
-	judgment_damage_animation.position = Vector2(EntranceScreenWidth * 0.5, EntranceScreenHeight * 0.5)
-	var frame_size = sf.get_frame_texture("judgment_damage", 0).get_size()
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		# Cover the whole screen (no letterboxing).
-		var scale_factor = max(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y)
-		judgment_damage_animation.scale = Vector2(scale_factor, scale_factor)
-	judgment_damage_animation_layer.add_child(judgment_damage_animation)
-	judgment_damage_animation.animation_finished.connect(_on_geoffrey_judgment_damage_finished)
-	judgment_damage_animation.play("judgment_damage")
+	_start_streaming_effect(
+		&"judgment_damage_animation",
+		&"judgment_damage_animation_layer",
+		&"judgment_damage",
+		GeoffreyJudgmentDamageFrameBase,
+		GeoffreyJudgmentDamageFrameCount,
+		GeoffreyJudgmentDamageFps,
+		StreamingEffectLayout.CENTER_COVER,
+		_on_geoffrey_judgment_damage_finished)
 
 func _on_geoffrey_judgment_damage_finished():
 	if judgment_damage_animation_layer:
@@ -1722,39 +1531,16 @@ func _play_geoffrey_crusader_entrance(is_local : bool):
 		if crusader_animation_left:
 			return
 		frame_base = GeoffreyCrusaderLeftFrameBase
-	var sf := SpriteFrames.new()
-	sf.add_animation("crusader")
-	sf.set_animation_loop("crusader", false)
-	sf.set_animation_speed("crusader", GeoffreyCrusaderFps)
-	for i in range(GeoffreyCrusaderFrameCount):
-		var tex = load(frame_base % i)
-		if tex:
-			sf.add_frame("crusader", tex)
-	if sf.get_frame_count("crusader") == 0:
-		return
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	add_child(layer)
-	var sprite := AnimatedSprite2D.new()
-	sprite.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("crusader", 0).get_size()
-	var scale_factor = 1.0
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		sprite.scale = Vector2(scale_factor, scale_factor)
-	# Top corner alignment: right frames -> top-right, left frames -> top-left.
-	var displayed_size = frame_size * scale_factor
-	if is_local:
-		sprite.position = Vector2(EntranceScreenWidth - displayed_size.x * 0.5, displayed_size.y * 0.5)
-		crusader_animation_right = sprite
-		crusader_animation_layer_right = layer
-	else:
-		sprite.position = Vector2(displayed_size.x * 0.5, displayed_size.y * 0.5)
-		crusader_animation_left = sprite
-		crusader_animation_layer_left = layer
-	layer.add_child(sprite)
-	sprite.animation_finished.connect(_on_geoffrey_crusader_animation_finished.bind(is_local))
-	sprite.play("crusader")
+	_start_streaming_effect(
+		&"crusader_animation_right" if is_local else &"crusader_animation_left",
+		&"crusader_animation_layer_right" if is_local else &"crusader_animation_layer_left",
+		&"crusader",
+		frame_base,
+		GeoffreyCrusaderFrameCount,
+		GeoffreyCrusaderFps,
+		StreamingEffectLayout.TOP_SIDE_CONTAIN,
+		_on_geoffrey_crusader_animation_finished.bind(is_local),
+		is_local)
 
 func _on_geoffrey_crusader_animation_finished(is_local : bool):
 	if is_local:
@@ -1779,30 +1565,15 @@ func _play_geoffrey_crusader_damage():
 		return
 	if crusader_damage_animation:
 		return
-	var sf := SpriteFrames.new()
-	sf.add_animation("crusader_damage")
-	sf.set_animation_loop("crusader_damage", false)
-	sf.set_animation_speed("crusader_damage", GeoffreyCrusaderDamageFps)
-	for i in range(GeoffreyCrusaderDamageFrameCount):
-		var tex = load(GeoffreyCrusaderDamageFrameBase % i)
-		if tex:
-			sf.add_frame("crusader_damage", tex)
-	if sf.get_frame_count("crusader_damage") == 0:
-		return
-	crusader_damage_animation_layer = CanvasLayer.new()
-	crusader_damage_animation_layer.layer = 100
-	add_child(crusader_damage_animation_layer)
-	crusader_damage_animation = AnimatedSprite2D.new()
-	crusader_damage_animation.sprite_frames = sf
-	crusader_damage_animation.position = Vector2(EntranceScreenWidth * 0.5, EntranceScreenHeight * 0.5)
-	var frame_size = sf.get_frame_texture("crusader_damage", 0).get_size()
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		# Cover the whole screen (no letterboxing).
-		var scale_factor = max(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y)
-		crusader_damage_animation.scale = Vector2(scale_factor, scale_factor)
-	crusader_damage_animation_layer.add_child(crusader_damage_animation)
-	crusader_damage_animation.animation_finished.connect(_on_geoffrey_crusader_damage_finished)
-	crusader_damage_animation.play("crusader_damage")
+	_start_streaming_effect(
+		&"crusader_damage_animation",
+		&"crusader_damage_animation_layer",
+		&"crusader_damage",
+		GeoffreyCrusaderDamageFrameBase,
+		GeoffreyCrusaderDamageFrameCount,
+		GeoffreyCrusaderDamageFps,
+		StreamingEffectLayout.CENTER_COVER,
+		_on_geoffrey_crusader_damage_finished)
 
 func _on_geoffrey_crusader_damage_finished():
 	if crusader_damage_animation_layer:
@@ -1843,34 +1614,15 @@ func _play_geoffrey_purification(bonus_roll : float = -1.0):
 	var frame_base = GeoffreyPurificationFrameBase
 	if use_bonus:
 		frame_base = GeoffreyPurificationBonusFrameBase
-	var sf := SpriteFrames.new()
-	sf.add_animation("geoffrey_purification")
-	sf.set_animation_loop("geoffrey_purification", false)
-	sf.set_animation_speed("geoffrey_purification", GeoffreyPurificationFps)
-	for i in range(GeoffreyPurificationFrameCount):
-		var tex = load(frame_base % i)
-		if tex:
-			sf.add_frame("geoffrey_purification", tex)
-	if sf.get_frame_count("geoffrey_purification") == 0:
-		return
-	geoffrey_purification_animation_layer = CanvasLayer.new()
-	geoffrey_purification_animation_layer.layer = 100
-	add_child(geoffrey_purification_animation_layer)
-	geoffrey_purification_animation = AnimatedSprite2D.new()
-	geoffrey_purification_animation.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("geoffrey_purification", 0).get_size()
-	var scale_factor = 1.0
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		geoffrey_purification_animation.scale = Vector2(scale_factor, scale_factor)
-	# Bottom-left corner alignment (same as Fatal Eye / tea time).
-	geoffrey_purification_animation.position = Vector2(
-		frame_size.x * scale_factor * 0.5,
-		EntranceScreenHeight - frame_size.y * scale_factor * 0.5
-	)
-	geoffrey_purification_animation_layer.add_child(geoffrey_purification_animation)
-	geoffrey_purification_animation.animation_finished.connect(_on_geoffrey_purification_animation_finished)
-	geoffrey_purification_animation.play("geoffrey_purification")
+	_start_streaming_effect(
+		&"geoffrey_purification_animation",
+		&"geoffrey_purification_animation_layer",
+		&"geoffrey_purification",
+		frame_base,
+		GeoffreyPurificationFrameCount,
+		GeoffreyPurificationFps,
+		StreamingEffectLayout.BOTTOM_LEFT_CONTAIN,
+		_on_geoffrey_purification_animation_finished)
 
 func _on_geoffrey_purification_animation_finished():
 	if geoffrey_purification_animation_layer:
@@ -1930,39 +1682,16 @@ func _play_iaquis_heart_entrance(is_local : bool):
 		if heart_animation_left:
 			return
 		frame_base = IaquisHeartLeftFrameBase
-	var sf := SpriteFrames.new()
-	sf.add_animation("heart")
-	sf.set_animation_loop("heart", false)
-	sf.set_animation_speed("heart", IaquisHeartFps)
-	for i in range(IaquisHeartFrameCount):
-		var tex = load(frame_base % i)
-		if tex:
-			sf.add_frame("heart", tex)
-	if sf.get_frame_count("heart") == 0:
-		return
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	add_child(layer)
-	var sprite := AnimatedSprite2D.new()
-	sprite.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("heart", 0).get_size()
-	var scale_factor = 1.0
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		sprite.scale = Vector2(scale_factor, scale_factor)
-	# Top corner alignment: right frames -> top-right, left frames -> top-left.
-	var displayed_size = frame_size * scale_factor
-	if is_local:
-		sprite.position = Vector2(EntranceScreenWidth - displayed_size.x * 0.5, displayed_size.y * 0.5)
-		heart_animation_right = sprite
-		heart_animation_layer_right = layer
-	else:
-		sprite.position = Vector2(displayed_size.x * 0.5, displayed_size.y * 0.5)
-		heart_animation_left = sprite
-		heart_animation_layer_left = layer
-	layer.add_child(sprite)
-	sprite.animation_finished.connect(_on_iaquis_heart_animation_finished.bind(is_local))
-	sprite.play("heart")
+	_start_streaming_effect(
+		&"heart_animation_right" if is_local else &"heart_animation_left",
+		&"heart_animation_layer_right" if is_local else &"heart_animation_layer_left",
+		&"heart",
+		frame_base,
+		IaquisHeartFrameCount,
+		IaquisHeartFps,
+		StreamingEffectLayout.TOP_SIDE_CONTAIN,
+		_on_iaquis_heart_animation_finished.bind(is_local),
+		is_local)
 
 func _on_iaquis_heart_animation_finished(is_local : bool):
 	if is_local:
@@ -1987,30 +1716,15 @@ func _play_iaquis_heart_damage():
 		return
 	if heart_damage_animation:
 		return
-	var sf := SpriteFrames.new()
-	sf.add_animation("heart_damage")
-	sf.set_animation_loop("heart_damage", false)
-	sf.set_animation_speed("heart_damage", IaquisHeartDamageFps)
-	for i in range(IaquisHeartDamageFrameCount):
-		var tex = load(IaquisHeartDamageFrameBase % i)
-		if tex:
-			sf.add_frame("heart_damage", tex)
-	if sf.get_frame_count("heart_damage") == 0:
-		return
-	heart_damage_animation_layer = CanvasLayer.new()
-	heart_damage_animation_layer.layer = 100
-	add_child(heart_damage_animation_layer)
-	heart_damage_animation = AnimatedSprite2D.new()
-	heart_damage_animation.sprite_frames = sf
-	heart_damage_animation.position = Vector2(EntranceScreenWidth * 0.5, EntranceScreenHeight * 0.5)
-	var frame_size = sf.get_frame_texture("heart_damage", 0).get_size()
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		# Cover the whole screen (no letterboxing).
-		var scale_factor = max(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y)
-		heart_damage_animation.scale = Vector2(scale_factor, scale_factor)
-	heart_damage_animation_layer.add_child(heart_damage_animation)
-	heart_damage_animation.animation_finished.connect(_on_iaquis_heart_damage_finished)
-	heart_damage_animation.play("heart_damage")
+	_start_streaming_effect(
+		&"heart_damage_animation",
+		&"heart_damage_animation_layer",
+		&"heart_damage",
+		IaquisHeartDamageFrameBase,
+		IaquisHeartDamageFrameCount,
+		IaquisHeartDamageFps,
+		StreamingEffectLayout.CENTER_COVER,
+		_on_iaquis_heart_damage_finished)
 
 func _on_iaquis_heart_damage_finished():
 	if heart_damage_animation_layer:
@@ -2060,39 +1774,16 @@ func _play_iaquis_descent_entrance(is_local : bool):
 		if descent_animation_left:
 			return
 		frame_base = IaquisDescentLeftFrameBase
-	var sf := SpriteFrames.new()
-	sf.add_animation("descent")
-	sf.set_animation_loop("descent", false)
-	sf.set_animation_speed("descent", IaquisDescentFps)
-	for i in range(IaquisDescentFrameCount):
-		var tex = load(frame_base % i)
-		if tex:
-			sf.add_frame("descent", tex)
-	if sf.get_frame_count("descent") == 0:
-		return
-	var layer := CanvasLayer.new()
-	layer.layer = 100
-	add_child(layer)
-	var sprite := AnimatedSprite2D.new()
-	sprite.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("descent", 0).get_size()
-	var scale_factor = 1.0
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		sprite.scale = Vector2(scale_factor, scale_factor)
-	# Top corner alignment: right frames -> top-right, left frames -> top-left.
-	var displayed_size = frame_size * scale_factor
-	if is_local:
-		sprite.position = Vector2(EntranceScreenWidth - displayed_size.x * 0.5, displayed_size.y * 0.5)
-		descent_animation_right = sprite
-		descent_animation_layer_right = layer
-	else:
-		sprite.position = Vector2(displayed_size.x * 0.5, displayed_size.y * 0.5)
-		descent_animation_left = sprite
-		descent_animation_layer_left = layer
-	layer.add_child(sprite)
-	sprite.animation_finished.connect(_on_iaquis_descent_animation_finished.bind(is_local))
-	sprite.play("descent")
+	_start_streaming_effect(
+		&"descent_animation_right" if is_local else &"descent_animation_left",
+		&"descent_animation_layer_right" if is_local else &"descent_animation_layer_left",
+		&"descent",
+		frame_base,
+		IaquisDescentFrameCount,
+		IaquisDescentFps,
+		StreamingEffectLayout.TOP_SIDE_CONTAIN,
+		_on_iaquis_descent_animation_finished.bind(is_local),
+		is_local)
 
 func _on_iaquis_descent_animation_finished(is_local : bool):
 	if is_local:
@@ -2117,30 +1808,15 @@ func _play_iaquis_descent_damage():
 		return
 	if descent_damage_animation:
 		return
-	var sf := SpriteFrames.new()
-	sf.add_animation("descent_damage")
-	sf.set_animation_loop("descent_damage", false)
-	sf.set_animation_speed("descent_damage", IaquisDescentDamageFps)
-	for i in range(IaquisDescentDamageFrameCount):
-		var tex = load(IaquisDescentDamageFrameBase % i)
-		if tex:
-			sf.add_frame("descent_damage", tex)
-	if sf.get_frame_count("descent_damage") == 0:
-		return
-	descent_damage_animation_layer = CanvasLayer.new()
-	descent_damage_animation_layer.layer = 100
-	add_child(descent_damage_animation_layer)
-	descent_damage_animation = AnimatedSprite2D.new()
-	descent_damage_animation.sprite_frames = sf
-	descent_damage_animation.position = Vector2(EntranceScreenWidth * 0.5, EntranceScreenHeight * 0.5)
-	var frame_size = sf.get_frame_texture("descent_damage", 0).get_size()
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		# Cover the whole screen (no letterboxing).
-		var scale_factor = max(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y)
-		descent_damage_animation.scale = Vector2(scale_factor, scale_factor)
-	descent_damage_animation_layer.add_child(descent_damage_animation)
-	descent_damage_animation.animation_finished.connect(_on_iaquis_descent_damage_finished)
-	descent_damage_animation.play("descent_damage")
+	_start_streaming_effect(
+		&"descent_damage_animation",
+		&"descent_damage_animation_layer",
+		&"descent_damage",
+		IaquisDescentDamageFrameBase,
+		IaquisDescentDamageFrameCount,
+		IaquisDescentDamageFps,
+		StreamingEffectLayout.CENTER_COVER,
+		_on_iaquis_descent_damage_finished)
 
 func _on_iaquis_descent_damage_finished():
 	if descent_damage_animation_layer:
@@ -2168,31 +1844,15 @@ func _play_iaquis_faceup(bonus : bool = false):
 			return
 		_on_iaquis_faceup_animation_finished()
 	var frame_base = IaquisFaceupBonusFrameBase if bonus else IaquisFaceupFrameBase
-	var sf := SpriteFrames.new()
-	sf.add_animation("iaquis_faceup")
-	sf.set_animation_loop("iaquis_faceup", false)
-	sf.set_animation_speed("iaquis_faceup", IaquisFaceupFps)
-	for i in range(IaquisFaceupFrameCount):
-		var tex = load(frame_base % i)
-		if tex:
-			sf.add_frame("iaquis_faceup", tex)
-	if sf.get_frame_count("iaquis_faceup") == 0:
-		return
-	iaquis_faceup_animation_layer = CanvasLayer.new()
-	iaquis_faceup_animation_layer.layer = 100
-	add_child(iaquis_faceup_animation_layer)
-	iaquis_faceup_animation = AnimatedSprite2D.new()
-	iaquis_faceup_animation.sprite_frames = sf
-	var frame_size = sf.get_frame_texture("iaquis_faceup", 0).get_size()
-	var scale_factor = 1.0
-	if frame_size.x > 0.0 and frame_size.y > 0.0:
-		scale_factor = min(EntranceScreenWidth / frame_size.x, EntranceScreenHeight / frame_size.y) * 0.98
-		iaquis_faceup_animation.scale = Vector2(scale_factor, scale_factor)
-	# Screen center.
-	iaquis_faceup_animation.position = Vector2(EntranceScreenWidth * 0.5, EntranceScreenHeight * 0.5)
-	iaquis_faceup_animation_layer.add_child(iaquis_faceup_animation)
-	iaquis_faceup_animation.animation_finished.connect(_on_iaquis_faceup_animation_finished)
-	iaquis_faceup_animation.play("iaquis_faceup")
+	_start_streaming_effect(
+		&"iaquis_faceup_animation",
+		&"iaquis_faceup_animation_layer",
+		&"iaquis_faceup",
+		frame_base,
+		IaquisFaceupFrameCount,
+		IaquisFaceupFps,
+		StreamingEffectLayout.CENTER_CONTAIN,
+		_on_iaquis_faceup_animation_finished)
 
 func _on_iaquis_faceup_animation_finished():
 	if iaquis_faceup_animation_layer:
@@ -2408,7 +2068,15 @@ func _release_match_resources():
 	if resources_released:
 		return
 	resources_released = true
-	BackgroundManager.clear_match_texture_cache()
+	exiting = true
+	visible = false
+	set_process(false)
+	set_process_input(false)
+	set_process_unhandled_input(false)
+	events_to_process.clear()
+	runtime_event_batch_in_progress = false
+	restore_fast_forward_pending = false
+	restore_fast_forwarding = false
 	if NetworkManager.is_connected("players_update", _on_players_update):
 		NetworkManager.disconnect("players_update", _on_players_update)
 	if NetworkManager.is_connected("reconnect_state_changed", _on_reconnect_state_changed):
@@ -2419,12 +2087,32 @@ func _release_match_resources():
 		NetworkManager.disconnect("matchlog_upload_finished", _on_matchlog_upload_finished)
 	close_popout()
 	clear_choice_zone()
+	_release_match_visual_resources()
 	if game_wrapper and game_wrapper.current_game:
 		game_wrapper.end_game()
 	if image_loader:
 		image_loader.teardown()
 		image_loader.queue_free()
 		image_loader = null
+	BackgroundManager.clear_match_texture_cache()
+	CdnAssetLoader.trim_texture_cache()
+
+func _release_match_visual_resources():
+	RuntimeResourceCleanupScript.release_character_resources(self)
+	RuntimeResourceCleanupScript.release_node_texture_references(self)
+	_clear_track_overlays(friend_track_overlay_layers)
+	_clear_track_overlays(enemy_track_overlay_layers)
+	friend_track_overlay_layers.clear()
+	enemy_track_overlay_layers.clear()
+	damage_popup_pool.clear()
+	selected_cards.clear()
+	mulligan_selected_card_ids_tmp.clear()
+	strike_attack_card_ids.clear()
+	strike_activated_card_ids.clear()
+
+	for child in get_children():
+		if child is CanvasLayer and child.layer == 100:
+			child.queue_free()
 
 func initialization_after_begin_game():
 	surrender_in_progress = false
@@ -3430,8 +3118,6 @@ func spawn_all_cards():
 	for deck_graphic_pair in [[player_deck, player_buddy_graphics], [opponent_deck, opponent_buddy_graphics]]:
 		var deck = deck_graphic_pair[0]
 		var graphic_list = deck_graphic_pair[1]
-		if deck.get("no_buddy_card_graphics", false) and not deck.get("show_buddy_cards_in_extra_popout", false):
-			continue
 		if 'hide_buddy_reference' in deck and deck['hide_buddy_reference']:
 			continue
 		elif 'buddy_card' in deck:
@@ -4160,6 +3846,8 @@ func is_card_in_player_reference(reference_cards, card_id):
 	return false
 
 func can_select_card(card):
+	if pending_boost_infuse.get("awaiting_confirmation", false):
+		return false
 	if observer_mode:
 		return false
 	# Character card and buddy placeholder reference cards are display-only and must never be selectable.
@@ -4282,6 +3970,8 @@ func can_select_card(card):
 				new_force = max(new_force, force_player.get_gauge_card_force_value_for(card.card_id))
 			return in_force_payment and can_selected_cards_pay_force(select_card_require_force, new_force)
 		UISubState.UISubState_SelectCards_CharacterAction_Gauge:
+			if pending_boost_infuse:
+				return in_gauge_payment and card.card_id not in pending_boost_infuse["card_ids"] and len(selected_cards) < select_card_require_max
 			return in_gauge_payment and len(selected_cards) < select_card_require_max
 		UISubState.UISubState_SelectCards_ForceForEffect:
 			if is_tournelouse_ouroboros_force_choice() and in_hand and game_wrapper.get_player_hand_size(Enums.PlayerId.PlayerId_Player) <= 1:
@@ -4341,8 +4031,12 @@ func can_select_card(card):
 				valid_card = game_wrapper.can_player_boost(Enums.PlayerId.PlayerId_Player, card.card_id, select_boost_valid_zones, select_boost_limitation, select_boost_ignore_costs)
 			return valid_amount and valid_card
 		UISubState.UISubState_SelectCards_ForceForBoost:
+			if pending_boost_infuse and card.card_id in pending_boost_infuse.get("payment", []):
+				return false
 			return in_force_payment and selected_boost_to_pay_for != card.card_id
 		UISubState.UISubState_SelectCards_GaugeForBoost:
+			if pending_boost_infuse and card.card_id in pending_boost_infuse.get("payment", []):
+				return false
 			return in_gauge_payment and selected_boost_to_pay_for != card.card_id
 		UISubState.UISubState_SelectCards_DiscardContinuousBoost:
 			var limitation = game_wrapper.get_decision_info().limitation
@@ -4697,6 +4391,7 @@ func get_notice_position(notice_player : Enums.PlayerId):
 		return $OpponentCharacter.position
 
 func _stat_notice_event(event):
+	event = CardDataManager.convert_floats_to_ints(event.duplicate(true))
 	var player = event['event_player']
 	var number = event['number']
 	var notice_text = ""
@@ -5089,9 +4784,9 @@ func _on_boost_played(event):
 		target_zone = $OpponentStrike/StrikeZone
 	_move_card_to_strike_area(card, target_zone, $AllCards/Striking, is_player, false)
 
-	var boost_text = "Boost!"
+	var boost_text = "加成!"
 	if is_transform:
-		boost_text = "Transform!"
+		boost_text = "转化!"
 	spawn_damage_popup(boost_text, player)
 	return BoostDelay
 
@@ -5281,6 +4976,7 @@ func begin_choose_from_topdeck(action_choices, look_amount, can_pass, player = E
 	current_topdeck_choosing_player = player
 	var card_ids = game_wrapper.get_player_top_cards(player, look_amount)
 	var card_db = game_wrapper.get_card_database()
+	_park_stale_choice_zone_cards(card_ids)
 	var is_wanderlust_choose = _is_wanderlust_choose_from_topdeck()
 	if is_wanderlust_choose:
 		var reference_order = _get_deck_reference_order_for_player(player)
@@ -5401,6 +5097,38 @@ func _get_deck_reference_order_for_player(player : Enums.PlayerId) -> Dictionary
 			order_map[card_str_id] = order_index
 			order_index += 1
 	return order_map
+
+# 「看牌库顶 N 张」若以洗牌收尾（draw_selected_from_top / move_selected_directly_to_hand），
+# 引擎不会为没被选中的牌发出 Draw 事件，那些牌的可视节点就会一直留在 ChoiceZone。
+# 下一次填充选择区之前把不属于本次的牌放回牌库，否则弹窗里会混进上一次的牌，
+# 表现成「本来只看顶 5 张，却变成整个牌库都能选」。
+func _park_stale_choice_zone_cards(keep_card_ids : Array):
+	if choice_zone_parent.get_child_count() == 0:
+		return
+	var keep := {}
+	for card_id in keep_card_ids:
+		keep[card_id] = true
+	var player_deck_ids := {}
+	for card in game_wrapper.get_player_deck_list(Enums.PlayerId.PlayerId_Player):
+		player_deck_ids[card.id] = true
+	var opponent_deck_ids := {}
+	for card in game_wrapper.get_player_deck_list(Enums.PlayerId.PlayerId_Opponent):
+		opponent_deck_ids[card.id] = true
+	for child in choice_zone_parent.get_children().duplicate():
+		if not (child is CardBase):
+			continue
+		if keep.has(child.card_id):
+			continue
+		var is_player_card = player_deck_ids.has(child.card_id)
+		var is_opponent_card = opponent_deck_ids.has(child.card_id)
+		if not is_player_card and not is_opponent_card:
+			# 复制卡 / 参考区卡牌不是真实牌库卡，交给各自的清理逻辑处理。
+			continue
+		choice_zone_parent.remove_child(child)
+		var deck_zone = $AllCards/PlayerDeck if is_player_card else $AllCards/OpponentDeck
+		deck_zone.add_child(child)
+		child.flip_card_to_front(false)
+		child.reset(OffScreen)
 
 func _clear_choice_zone_remaining_labels():
 	for card in choice_zone_parent.get_children():
@@ -5836,8 +5564,8 @@ func _on_strike_from_gauge(event):
 	var player = event['event_player']
 	spawn_damage_popup("战斗！", player)
 
-	var decision_info = game_wrapper.get_decision_info()
-	var source = decision_info.source
+	# Network actions can advance the decision while this event waits for animations.
+	var source : String = event['extra_info']
 	if player == Enums.PlayerId.PlayerId_Player and not observer_mode:
 		begin_gauge_strike_choosing(false, false, source)
 	else:
@@ -6070,7 +5798,7 @@ func update_discard_to_gauge_selection_message():
 		"topdeck":
 			phrase = "放到你的牌库顶"
 		"bottomdeck":
-			phrase = "放到你的牌库底（按选择顺序）"
+			phrase = "放到你的牌库底(若多张则按选择顺序，后选的牌会在先选的牌的下方)"
 		"deck":
 			phrase = "放入你的牌库"
 		"stored_cards":
@@ -6130,6 +5858,9 @@ func gauge_selection_meets_requirement() -> bool:
 	return gauge_range[0] <= select_card_require_max and gauge_range[1] >= select_card_require_min
 
 func update_gauge_selection_message():
+	if pending_boost_infuse and ui_sub_state == UISubState.UISubState_SelectCards_CharacterAction_Gauge:
+		set_instructions("选择1张怒气牌来灌注本次加成。")
+		return
 	if ui_sub_state == UISubState.UISubState_SelectCards_GaugeForArmor:
 		# 用怒气卡顶能量换护甲（没有上限，付得越多护甲越高）：按面值取满，
 		# 所以这里直接用选中的合计面值，而不是带需求上限的 get_gauge_generated()。
@@ -6160,6 +5891,9 @@ func update_gauge_for_effect_message():
 	var decision_effect = game_wrapper.get_decision_info().effect
 	if preparing_character_action:
 		decision_effect = prepared_character_action_data['effect']
+	if decision_effect.get("UI_instruction_text", "") != "":
+		set_instructions(decision_effect["UI_instruction_text"])
+		return
 	var to_hand = 'spent_cards_to_hand' in decision_effect and decision_effect['spent_cards_to_hand']
 	var source_card_name = game_wrapper.get_card_database().get_card_name(game_wrapper.get_decision_info().choice_card_id)
 	var is_shunko_payment = decision_effect.get("valid_zone", "gauge") == "bleach" \
@@ -6370,12 +6104,8 @@ func begin_generate_force_selection(amount, can_cancel : bool = true, wild_swing
 		reason = "CHANGE_CARDS"
 	# Zsolt Battle Instinct: let player choose how much free force to use
 	var p = game_wrapper._get_player(Enums.PlayerId.PlayerId_Player)
-	# Treasure exceeded UA: on your turn, each boost action gets -1 Force cost.
-	if ui_sub_state == UISubState.UISubState_SelectCards_ForceForBoost \
-			and p.deck_def.get("id") == "treasure" \
-			and p.exceeded \
-			and game_wrapper.get_active_player() == Enums.PlayerId.PlayerId_Player:
-		required_force = max(0, required_force - 1)
+	# 宝藏骑士觉醒后的「白送 1 点」来自 generate_free_force（free_force），
+	# 不再单独扣减需求，否则勾选「使用免费能量」时需求与可支付值会差 1，导致无法确认。
 	# During strike resolution, auto-use the pool to avoid await freeze
 	var in_strike = game_wrapper.has_active_strike()
 	if p.zsolt_force_pool > 0 and in_strike and not skip_zsolt_popup:
@@ -6603,6 +6333,7 @@ func begin_boost_choosing(can_cancel : bool, valid_zones : Array, limitation : S
 		_on_player_bleach_clicked(false)
 	elif 'deck' in valid_zones:
 		var deck_card_ids = game_wrapper.get_player_deck_card_ids_for_boost(Enums.PlayerId.PlayerId_Player, limitation)
+		_park_stale_choice_zone_cards(deck_card_ids)
 		for card_id in deck_card_ids:
 			var card = find_card_on_board(card_id)
 			if card:
@@ -6628,12 +6359,12 @@ func _on_move_event(event):
 		or (destination < original_position and other_player_location < original_position))
 	match event['reason']:
 		"advance":
-			spawn_damage_popup("前进 %s" % str(move_amount), player)
+			spawn_damage_popup("前进 %s" % GameStrings.format_number(move_amount), player)
 			move_anim = Character.CharacterAnim.CharacterAnim_WalkForward
 			if is_far:
 				move_anim = Character.CharacterAnim.CharacterAnim_Run
 		"close":
-			spawn_damage_popup("逼近 %s" % str(move_amount), player)
+			spawn_damage_popup("逼近 %s" % GameStrings.format_number(move_amount), player)
 			move_anim = Character.CharacterAnim.CharacterAnim_WalkForward
 			if is_far:
 				move_anim = Character.CharacterAnim.CharacterAnim_Run
@@ -6648,13 +6379,13 @@ func _on_move_event(event):
 				if is_far:
 					move_anim = Character.CharacterAnim.CharacterAnim_DashBack
 		"push":
-			spawn_damage_popup("被击退 %s" % str(move_amount), player)
+			spawn_damage_popup("被击退 %s" % GameStrings.format_number(move_amount), player)
 			move_anim = Character.CharacterAnim.CharacterAnim_Pushed
 		"pull":
-			spawn_damage_popup("被拉近 %s" % str(move_amount), player)
+			spawn_damage_popup("被拉近 %s" % GameStrings.format_number(move_amount), player)
 			move_anim = Character.CharacterAnim.CharacterAnim_Pulled
 		"retreat":
-			spawn_damage_popup("后退 %s" % str(move_amount), player)
+			spawn_damage_popup("后退 %s" % GameStrings.format_number(move_amount), player)
 			move_anim = Character.CharacterAnim.CharacterAnim_WalkBackward
 			if is_far:
 				move_anim = Character.CharacterAnim.CharacterAnim_DashBack
@@ -6690,6 +6421,8 @@ func _on_reshuffle_discard(event):
 	var player = event['event_player']
 	spawn_damage_popup("洗牌！", player)
 	if player == Enums.PlayerId.PlayerId_Player:
+		player_reference_popout_toggle_enabled = true
+		player_cards_before_reshuffle = event['extra_info']
 		var cards = $AllCards/PlayerDiscards.get_children()
 		for card in cards:
 			card.get_parent().remove_child(card)
@@ -6811,7 +6544,10 @@ func _on_swap_deck_and_discard(event):
 			reparent_to_zone(card, deck_zone)
 
 	update_card_counts()
-	if not is_player:
+	if is_player:
+		player_reference_popout_toggle_enabled = true
+		player_cards_before_reshuffle = event.get("extra_info", [])
+	else:
 		reference_popout_toggle_enabled = true
 		opponent_cards_before_reshuffle = event.get("extra_info", [])
 	if is_player:
@@ -8109,6 +7845,8 @@ func _update_buttons(no_number_picker_update : bool = false):
 		action_menu_container.visible = false
 		current_action_menu_choices = []
 		return
+	if pending_boost_infuse.get("awaiting_confirmation", false):
+		return
 
 	var action_buttons_visible = ui_state == UIState.UIState_PickTurnAction
 	if action_buttons_visible:
@@ -8131,7 +7869,7 @@ func _update_buttons(no_number_picker_update : bool = false):
 			if game_wrapper.can_do_reshuffle(Enums.PlayerId.PlayerId_Player):
 				button_choices.append({ "text": "手动重洗", "action": _on_reshuffle_button_pressed, "disabled": false })
 			var ex_transform_available = game_wrapper.can_do_ex_transform(Enums.PlayerId.PlayerId_Player)
-			var ex_transform_text = "/Transform" if ex_transform_available else ""
+			var ex_transform_text = "/转化" if ex_transform_available else ""
 			button_choices.append({ "text": "加成" + ex_transform_text, "action": _wrap_with_confirmation("加成", _on_boost_button_pressed), "disabled": not (game_wrapper.can_do_boost(Enums.PlayerId.PlayerId_Player) or ex_transform_available) })
 			var turn_strike_action : Callable = _on_strike_button_pressed
 			if show_chaos_direct_strike_prompt:
@@ -8550,7 +8288,9 @@ func _update_buttons(no_number_picker_update : bool = false):
 		instructions_number_picker_max,
 		ex_discard_order_toggle,
 		free_force_toggle,
-		no_number_picker_update
+		no_number_picker_update,
+		-1,
+		game_wrapper.get_card_database().list_all_cards().map(func(card): return card.definition)
 	)
 	current_action_menu_choices = button_choices
 
@@ -8561,6 +8301,10 @@ func get_effect_text_with_card_name(effect, current_text, skip_condition : bool 
 	if 'card_name' in effect:
 		card_name = effect['card_name']
 	card_text += GameStrings.get_effect_text(effect, false, true, skip_condition, card_name)
+	if effect.get("card_id", -1) != -1:
+		var source_card = game_wrapper.get_card_database().get_card(effect["card_id"])
+		if source_card:
+			card_text = GameStrings.add_card_id_speed_hints(card_text, [source_card.definition])
 	if len(_choice_text_without_tags(card_text)) > ChoiceTextLengthSoftCap:
 		var real_break_idx = 0
 		var visible_break_idx = 0
@@ -8846,7 +8590,7 @@ func update_boost_summary(player_id, boosts_card_holder, boost_box):
 				boost_summary += "[color=green](可以将 %s（位置%s） 设为攻击！)[/color]\n" % [attack_name, str(boost_location)]
 			else:
 				boost_summary += "[color=green](可以将 %s 设为攻击！)[/color]\n" % attack_name
-	boost_box.set_text(boost_summary)
+	boost_box.set_text(boost_summary, card_db.list_all_cards().map(func(card): return card.definition))
 
 func update_arena_squares():
 	var arena_style := resolved_arena_style
@@ -8896,6 +8640,17 @@ func selected_cards_between_min_and_max() -> bool:
 func can_press_ok():
 	if observer_mode:
 		return false
+	if pending_boost_infuse.get("awaiting_confirmation", false):
+		return false
+
+	if pending_boost_infuse:
+		for card_id in get_selected_card_ids():
+			if ui_sub_state == UISubState.UISubState_SelectCards_CharacterAction_Gauge \
+					and card_id in pending_boost_infuse["card_ids"]:
+				return false
+			if ui_sub_state in [UISubState.UISubState_SelectCards_ForceForBoost, UISubState.UISubState_SelectCards_GaugeForBoost] \
+					and card_id in pending_boost_infuse.get("payment", []):
+				return false
 
 	if ui_state == UIState.UIState_SelectCards:
 		match ui_sub_state:
@@ -9152,7 +8907,8 @@ func _show_action_confirmation(action_text: String, action: Callable) -> void:
 	action_menu.set_choices(
 		"你确认要进行\"%s\"?" % action_text,
 		confirm_choices,
-		false, -1, -1, false, false, false, 2
+		false, -1, -1, false, false, false, 2,
+		game_wrapper.get_card_database().list_all_cards().map(func(card): return card.definition)
 	)
 	action_menu.visible = true
 
@@ -9184,6 +8940,7 @@ func _on_reshuffle_button_pressed():
 	_update_buttons()
 
 func _on_boost_button_pressed():
+	pending_boost_infuse = {}
 	var valid_zones = ['hand']
 	if game_wrapper.can_player_boost_from_extra(Enums.PlayerId.PlayerId_Player):
 		# Renea: briefcase boost limited to once per turn
@@ -9193,6 +8950,66 @@ func _on_boost_button_pressed():
 	if game_wrapper.can_player_boost_from_gauge(Enums.PlayerId.PlayerId_Player):
 		valid_zones.append('gauge')
 	begin_boost_choosing(true, valid_zones, "", false, 1)
+
+func _begin_boost_payment(card_ids : Array, facedown_override, ignore_costs : bool, spent_life : int = 0):
+	var player = game_wrapper._get_player(Enums.PlayerId.PlayerId_Player)
+	var options = player.get_boost_infuse_payment_options(card_ids, [], spent_life)
+	if not options.is_empty():
+		pending_boost_infuse = {
+			"card_ids": card_ids,
+			"facedown_override": facedown_override,
+			"ignore_costs": ignore_costs,
+			"spent_life": spent_life,
+			"awaiting_confirmation": true
+		}
+		var choices = []
+		for option in options:
+			if option["effect_type"] == StrikeEffects.GaugeForEffect:
+				choices.append({"text": "花费%s怒气灌注" % option["gauge_max"], "action": func():
+					pending_boost_infuse["awaiting_confirmation"] = false
+					if player.free_gauge >= option["gauge_max"]:
+						pending_boost_infuse["payment"] = {"free_gauge": option["gauge_max"]}
+						_continue_boost_payment(card_ids, facedown_override, ignore_costs, spent_life)
+					else:
+						begin_gauge_selection(option["gauge_max"], false, UISubState.UISubState_SelectCards_CharacterAction_Gauge)
+						_update_buttons(true)})
+			else:
+				choices.append({"text": "支付%s生命灌注" % option["amount"], "action": func():
+					pending_boost_infuse["awaiting_confirmation"] = false
+					pending_boost_infuse["payment"] = {"life": option["amount"]}
+					_continue_boost_payment(card_ids, facedown_override, ignore_costs, spent_life)})
+		choices.append({"text": "跳过", "action": func():
+				pending_boost_infuse["awaiting_confirmation"] = false
+				pending_boost_infuse["payment"] = []
+				_continue_boost_payment(card_ids, facedown_override, ignore_costs, spent_life)})
+		current_action_menu_choices = choices
+		action_menu.set_choices("是否要灌注？", choices, false, -1, -1, false, false, false, 2)
+		action_menu.visible = true
+		return
+	pending_boost_infuse = {}
+	if player.get_boost_infuse_effect(card_ids):
+		pending_boost_infuse = {"card_ids": card_ids, "payment": []}
+	_continue_boost_payment(card_ids, facedown_override, ignore_costs, spent_life)
+
+func _continue_boost_payment(card_ids : Array, facedown_override, ignore_costs : bool, spent_life : int):
+	var card_id = card_ids[0]
+	var gauge_cost = game_wrapper.get_card_database().get_card_boost_gauge_cost(card_id)
+	var force_cost = game_wrapper.get_card_database().get_card_boost_force_cost(card_id)
+	selected_boost_to_pay_for = card_id
+	selected_boost_facedown_override = facedown_override
+	if not ignore_costs and gauge_cost > 0:
+		assert(card_ids.size() <= 1, "WARNING: Can't currently handle gauge costs for multiple boosts")
+		begin_gauge_selection(gauge_cost, false, UISubState.UISubState_SelectCards_GaugeForBoost)
+	elif not ignore_costs and force_cost > 0:
+		assert(card_ids.size() <= 1, "WARNING: Can't currently handle force costs for multiple boosts")
+		change_ui_state(null, UISubState.UISubState_SelectCards_ForceForBoost)
+		begin_generate_force_selection(force_cost)
+	else:
+		var payment = pending_boost_infuse.get("payment")
+		if game_wrapper.submit_boost(Enums.PlayerId.PlayerId_Player, card_id, [], use_free_force, spent_life, card_ids.slice(1), facedown_override, payment):
+			pending_boost_infuse = {}
+			change_ui_state(UIState.UIState_WaitForGameServer)
+	_update_buttons(true)
 
 func _show_boost_placement_choice():
 	# Renea: choose face-up or face-down placement for continuous boosts
@@ -9534,6 +9351,11 @@ func _on_instructions_ok_button_pressed(index : int):
 			finish_preparing_character_action(selected_card_ids)
 			return
 
+		if pending_boost_infuse and ui_sub_state == UISubState.UISubState_SelectCards_CharacterAction_Gauge:
+			pending_boost_infuse["payment"] = selected_card_ids
+			_continue_boost_payment(pending_boost_infuse["card_ids"], pending_boost_infuse["facedown_override"], pending_boost_infuse["ignore_costs"], pending_boost_infuse["spent_life"])
+			return
+
 		match ui_sub_state:
 			UISubState.UISubState_SelectCards_BoostCancel:
 				success = game_wrapper.submit_boost_cancel(Enums.PlayerId.PlayerId_Player, selected_card_ids, true)
@@ -9609,27 +9431,12 @@ func _on_instructions_ok_button_pressed(index : int):
 						ex_transform_id = game_wrapper.get_ex_transform_copy(Enums.PlayerId.PlayerId_Player, single_card_id)
 					success = game_wrapper.submit_boost(Enums.PlayerId.PlayerId_Player, single_card_id, [ex_transform_id], false, spent_life_for_force, [])
 				else:
-					var gauge_cost = game_wrapper.get_card_database().get_card_boost_gauge_cost(single_card_id)
-					var force_cost = game_wrapper.get_card_database().get_card_boost_force_cost(single_card_id)
-					if not select_boost_options['ignore_costs'] and gauge_cost > 0:
-						assert(select_boost_options['boost_amount'] <= 1, "WARNING: Can't currently handle gauge costs for multiple boosts")
-						selected_boost_to_pay_for = single_card_id
-						selected_boost_facedown_override = facedown_override
-						change_ui_state(null, UISubState.UISubState_SelectCards_GaugeForBoost)
-						begin_gauge_selection(gauge_cost, false, UISubState.UISubState_SelectCards_GaugeForBoost)
-					elif not select_boost_options['ignore_costs'] and force_cost > 0:
-						assert(select_boost_options['boost_amount'] <= 1, "WARNING: Can't currently handle force costs for multiple boosts")
-						selected_boost_to_pay_for = single_card_id
-						selected_boost_facedown_override = facedown_override
-						change_ui_state(null, UISubState.UISubState_SelectCards_ForceForBoost)
-						begin_generate_force_selection(force_cost)
-					else:
-						var additional_boost_ids = selected_card_ids.slice(1)
-						success = game_wrapper.submit_boost(Enums.PlayerId.PlayerId_Player, single_card_id, [], use_free_force, spent_life_for_force, additional_boost_ids, facedown_override)
+					_begin_boost_payment(selected_card_ids, facedown_override, select_boost_options['ignore_costs'], spent_life_for_force)
+					return
 			UISubState.UISubState_SelectCards_ForceForBoost:
-				success = game_wrapper.submit_boost(Enums.PlayerId.PlayerId_Player, selected_boost_to_pay_for, selected_card_ids, use_free_force, spent_life_for_force, [], selected_boost_facedown_override)
+				success = game_wrapper.submit_boost(Enums.PlayerId.PlayerId_Player, selected_boost_to_pay_for, selected_card_ids, use_free_force, spent_life_for_force, [], selected_boost_facedown_override, pending_boost_infuse.get("payment"))
 			UISubState.UISubState_SelectCards_GaugeForBoost:
-				success = game_wrapper.submit_boost(Enums.PlayerId.PlayerId_Player, selected_boost_to_pay_for, selected_card_ids, false, false, [], selected_boost_facedown_override)
+				success = game_wrapper.submit_boost(Enums.PlayerId.PlayerId_Player, selected_boost_to_pay_for, selected_card_ids, false, false, [], selected_boost_facedown_override, pending_boost_infuse.get("payment"))
 			UISubState.UISubState_PickNumberFromRange:
 				success = handle_pick_range_ok()
 
@@ -9639,6 +9446,7 @@ func _on_instructions_ok_button_pressed(index : int):
 			minato_sealed_gauge = 0
 
 		if success:
+			pending_boost_infuse = {}
 			popout_instruction_info = null
 			change_ui_state(UIState.UIState_WaitForGameServer)
 		_update_buttons()
@@ -9665,6 +9473,17 @@ func _on_instructions_cancel_button_pressed():
 		instructions_number_picker_max = -1
 	can_seal_for_force = false
 	can_seal_for_gauge = false
+
+	if pending_boost_infuse:
+		pending_boost_infuse = {}
+		deselect_all_cards()
+		close_popout()
+		if select_boost_options:
+			begin_boost_choosing(select_boost_options["can_cancel"], select_boost_options["valid_zones"], select_boost_options["limitation"], select_boost_options["ignore_costs"], select_boost_options["boost_amount"])
+		else:
+			change_ui_state(UIState.UIState_PickTurnAction, UISubState.UISubState_None)
+		_update_buttons(true)
+		return
 
 	if preparing_character_action:
 		deselect_all_cards()
@@ -9887,6 +9706,7 @@ func _on_shortcut_strike_pressed():
 	_update_buttons()
 
 func _on_shortcut_boost_pressed():
+	pending_boost_infuse = {}
 	var selected_card_ids = []
 	for card in selected_cards:
 		selected_card_ids.append(card.card_id)
@@ -9917,22 +9737,9 @@ func _on_shortcut_boost_pressed():
 			ex_transform_id = game_wrapper.get_ex_transform_copy(Enums.PlayerId.PlayerId_Player, card_id)
 		success = game_wrapper.submit_boost(Enums.PlayerId.PlayerId_Player, card_id, [ex_transform_id], false, 0)
 	else:
-		var gauge_cost = game_wrapper.get_card_database().get_card_boost_gauge_cost(card_id)
-		var force_cost = game_wrapper.get_card_database().get_card_boost_force_cost(card_id)
-		if gauge_cost > 0:
-			select_boost_options = {}
-			selected_boost_to_pay_for = card_id
-			selected_boost_facedown_override = facedown_override
-			change_ui_state(null, UISubState.UISubState_SelectCards_GaugeForBoost)
-			begin_gauge_selection(gauge_cost, false, UISubState.UISubState_SelectCards_GaugeForBoost)
-		elif force_cost > 0:
-			select_boost_options = null
-			selected_boost_to_pay_for = card_id
-			selected_boost_facedown_override = facedown_override
-			change_ui_state(null, UISubState.UISubState_SelectCards_ForceForBoost)
-			begin_generate_force_selection(force_cost)
-		else:
-			success = game_wrapper.submit_boost(Enums.PlayerId.PlayerId_Player, card_id, [], use_free_force, 0, [], facedown_override)
+		select_boost_options = {}
+		_begin_boost_payment([card_id], facedown_override, false)
+		return
 
 	if success:
 		change_ui_state(UIState.UIState_WaitForGameServer)
@@ -10422,12 +10229,14 @@ func _update_popout_cards(cards_in_popout : Array, filtering_allowed : bool = fa
 func close_popout():
 	while card_popout_parent.get_child_count() > 0:
 		var child = card_popout_parent.get_child(0)
+		RuntimeResourceCleanupScript.release_node_texture_references(child)
 		card_popout_parent.remove_child(child)
 		child.queue_free()
 
 func clear_choice_zone():
 	while choice_zone_parent.get_child_count() > 0:
 		var child = choice_zone_parent.get_child(0)
+		RuntimeResourceCleanupScript.release_node_texture_references(child)
 		choice_zone_parent.remove_child(child)
 		child.queue_free()
 
@@ -10464,10 +10273,13 @@ func show_popout(popout_type : CardPopoutType, popout_title : String, card_node,
 
 	var toggle_text = ""
 	var toggle_visible = false
-	if popout_type == CardPopoutType.CardPopoutType_ReferenceOpponent and not force_hide_reshuffle:
+	if popout_type in [CardPopoutType.CardPopoutType_ReferencePlayer, CardPopoutType.CardPopoutType_ReferenceOpponent] and not force_hide_reshuffle:
 		toggle_visible = true
-		if reference_popout_toggle_enabled:
-			if reference_popout_toggle:
+		var is_player_reference = popout_type == CardPopoutType.CardPopoutType_ReferencePlayer
+		var toggle_enabled = player_reference_popout_toggle_enabled if is_player_reference else reference_popout_toggle_enabled
+		var showing_before_reshuffle = player_reference_popout_toggle if is_player_reference else reference_popout_toggle
+		if toggle_enabled:
+			if showing_before_reshuffle:
 				toggle_text = "展示当前卡牌"
 			else:
 				toggle_text = "展示重洗前的卡牌"
@@ -10628,9 +10440,13 @@ func _try_reopen_special_search_deck_popout() -> bool:
 	_on_choice_popout_show_button_pressed()
 	return true
 
-func _on_player_reference_button_pressed(open_popout : bool = true):
+func _on_player_reference_button_pressed(open_popout : bool = true, switch_toggle : bool = false):
 	if _try_reopen_special_search_deck_popout():
 		return
+	if switch_toggle:
+		player_reference_popout_toggle = not player_reference_popout_toggle
+	else:
+		player_reference_popout_toggle = false
 	await _refresh_problematic_reference_normals(player_deck['image_resources'])
 	await rebuild_reference_copy_zone(
 		game_wrapper.get_player_deck_list(Enums.PlayerId.PlayerId_Player),
@@ -10642,7 +10458,8 @@ func _on_player_reference_button_pressed(open_popout : bool = true):
 		player_deck['image_resources'],
 		player_deck)
 	var topdeck_seen_card_id = game_wrapper.get_player_seen_topdeck(Enums.PlayerId.PlayerId_Player)
-	var topdeck_seen_card_definition_id = ""
+	var public_hand_info = game_wrapper.get_player_public_hand_info(Enums.PlayerId.PlayerId_Player)
+	var topdeck_seen_card_definition_id = public_hand_info['topdeck']
 	if topdeck_seen_card_id != -1:
 		var topdeck_seen_card = game_wrapper.get_card_database().get_card(topdeck_seen_card_id)
 		topdeck_seen_card_definition_id = topdeck_seen_card.definition['id']
@@ -10652,11 +10469,14 @@ func _on_player_reference_button_pressed(open_popout : bool = true):
 		var id = card.card_id - ReferenceScreenIdRangeStart
 		var logic_card = game_wrapper.get_card_database().get_card(id)
 		var card_str_id = logic_card.definition['id']
-		var count = game_wrapper.count_cards_in_deck_and_hand(Enums.PlayerId.PlayerId_Player, card_str_id)
+		var override_card_list = player_cards_before_reshuffle if player_reference_popout_toggle else null
+		var count = game_wrapper.count_cards_in_deck_and_hand(Enums.PlayerId.PlayerId_Player, card_str_id, override_card_list)
 		card.set_remaining_count(count)
-		var on_topdeck = topdeck_seen_card_definition_id != "" and topdeck_seen_card_definition_id == card_str_id
+		var on_topdeck = not player_reference_popout_toggle and topdeck_seen_card_definition_id != "" and topdeck_seen_card_definition_id == card_str_id
 		card.update_hand_icons(0, 0, on_topdeck, false)
 	var reference_title = "你的牌库参考（显示牌库+手牌中剩余卡牌数量"
+	if player_reference_popout_toggle:
+		reference_title = "你洗牌前的卡牌（牌库+手牌中剩余"
 	if game_wrapper.is_player_sealed_area_secret(Enums.PlayerId.PlayerId_Player):
 		reference_title += "+封印区"
 	if game_wrapper.has_facedown_boosts(Enums.PlayerId.PlayerId_Player):
@@ -10824,7 +10644,10 @@ func _on_card_popout_pressed_cancel():
 	_on_instructions_cancel_button_pressed()
 
 func _on_card_popout_pressed_toggle():
-	_on_opponent_reference_button_pressed(true)
+	if popout_type_showing == CardPopoutType.CardPopoutType_ReferencePlayer:
+		_on_player_reference_button_pressed(true, true)
+	else:
+		_on_opponent_reference_button_pressed(true)
 
 
 func _on_combat_log_button_pressed():
@@ -10930,15 +10753,17 @@ func _show_replay_save_status(message : String):
 
 func _on_matchlog_upload_finished(success : bool, uploaded : bool, error_message : String):
 	save_replay_button.disabled = false
+	_show_replay_save_status(_get_replay_upload_status_text(success, uploaded, error_message))
+
+func _get_replay_upload_status_text(success : bool, uploaded : bool, error_message : String) -> String:
 	if success and uploaded:
-		_show_replay_save_status("回放已保存本地且上传OSS。")
+		return "回放已上传OSS。\n本地保存已触发，请以下载或保存结果为准。"
 	elif success:
-		_show_replay_save_status("回放上传请求已登记，\n该局结算后上传。\n本地文件保存触发。")
-	else:
-		var failure_text := "回放本地保存已触发，但上传OSS失败。"
-		if not error_message.is_empty():
-			failure_text += "\n" + error_message
-		_show_replay_save_status(failure_text)
+		return "回放上传请求已登记，\n该局结算后上传。\n本地文件保存触发。"
+	var failure_text := "回放云端上传失败，不影响已保存的本地回放。"
+	if error_message.strip_edges().is_empty():
+		error_message = "[UPLOAD_REASON_MISSING] 未收到具体失败原因，请结合失败时间查看服务端上传日志。"
+	return failure_text + "\n" + error_message
 
 func save_current_replay():
 	var should_upload : bool = not bool(game_wrapper.is_ai_game()) and not observer_mode and not replay_mode
@@ -10948,11 +10773,12 @@ func save_current_replay():
 	if OS.has_feature("web"):
 		var replay_string = generate_replay_string()
 		var local_save_started := _download_web_replay(replay_string, get_replay_filename())
+		var local_status := "已触发本地回放保存。" if local_save_started else "无法触发本地回放保存。"
 		if should_upload and upload_requested:
 			save_replay_button.disabled = true
-			_show_replay_save_status("已触发本地回放保存，正在上传到OSS……")
+			_show_replay_save_status(local_status + "\n正在请求上传到OSS……")
 		elif should_upload:
-			_show_replay_save_status("已触发本地回放保存，但上传请求发送失败。")
+			_show_replay_save_status(local_status + "\n[REQUEST_SEND_FAILED] 云端上传请求未发送成功。\n" + NetworkManager.get_last_socket_send_error())
 		elif local_save_started:
 			_show_replay_save_status("已触发本地回放保存。")
 		else:

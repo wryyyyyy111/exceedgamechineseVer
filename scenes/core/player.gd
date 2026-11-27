@@ -958,6 +958,8 @@ func remove_card_from_deck(id : int):
 	for i in range(len(deck)):
 		if deck[i].id == id:
 			deck.remove_at(i)
+			if i == 0:
+				public_topdeck_id = -1
 			return
 
 func get_copy_in_discards(definition_id : String):
@@ -1358,6 +1360,7 @@ func move_card_from_sealed_to_gauge(id : int):
 
 func remove_top_card_from_deck():
 	deck.remove_at(0)
+	public_topdeck_id = -1
 	update_public_hand_if_deck_empty()
 
 func add_top_deck_to_bottom():
@@ -1365,6 +1368,8 @@ func add_top_deck_to_bottom():
 		var card = deck[0]
 		deck.append(card)
 		deck.remove_at(0)
+		if deck.size() > 1:
+			public_topdeck_id = -1
 	parent._append_log_full(Enums.LogType.LogType_CardInfo, self, "将其牌堆顶的牌移到牌堆底。")
 
 func add_top_deck_to_gauge(amount : int):
@@ -2390,17 +2395,9 @@ func get_extra_strike_options_count():
 	return effects.size()
 
 func draw(num_to_draw : int, is_fake_draw : bool = false, from_bottom: bool = false, update_if_empty : bool = true):
-	if num_to_draw > 0:
-		if cannot_draw and not is_fake_draw:
-			parent._append_log_full(Enums.LogType.LogType_Effect, self, "is unable to draw cards.")
-			num_to_draw = 0
-		if is_fake_draw:
-			# Used by topdeck boost as an easy way to get it in your hand to boost.
-			# This will add it, then it gets removed publicly by boost.
-			on_hand_add_public_card(deck[0].id)
-		elif public_topdeck_id != -1:
-			on_hand_add_public_card(public_topdeck_id)
-		public_topdeck_id = -1
+	if num_to_draw > 0 and cannot_draw and not is_fake_draw:
+		parent._append_log_full(Enums.LogType.LogType_Effect, self, "is unable to draw cards.")
+		num_to_draw = 0
 
 	var draw_from_index = 0
 	for i in range(num_to_draw):
@@ -2411,6 +2408,10 @@ func draw(num_to_draw : int, is_fake_draw : bool = false, from_bottom: bool = fa
 
 			if len(deck) > 0:
 				var card = deck[draw_from_index]
+				if draw_from_index == 0:
+					if is_fake_draw or public_topdeck_id == card.id:
+						on_hand_add_public_card(card.id)
+					public_topdeck_id = -1
 				hand.append(card)
 				deck.remove_at(draw_from_index)
 				if draw_from_index == 0:
@@ -2658,9 +2659,6 @@ func move_cards_to_overdrive(card_ids : Array, source : String):
 				source_array = discards
 			"deck":
 				source_array = deck
-				# Only tests currently use this, but
-				# presumably these would be coming from top deck
-				public_topdeck_id = -1
 			"opponent_discard":
 				source_array = opposing_player.discards
 			"_":
@@ -2670,6 +2668,8 @@ func move_cards_to_overdrive(card_ids : Array, source : String):
 		for i in range(len(source_array)-1, -1, -1):
 			var card = source_array[i]
 			if card.id == card_id:
+				if source == "deck" and i == 0:
+					public_topdeck_id = -1
 				source_array.remove_at(i)
 				add_to_overdrive(card)
 				break
@@ -2691,8 +2691,6 @@ func seal_from_location(card_id : int, source : String, silent : bool = false):
 			source_array = discards
 		"deck":
 			source_array = deck
-			# Assuming this coming from the topdeck.
-			public_topdeck_id = -1
 		"set_aside":
 			source_array = set_aside_cards
 		"_":
@@ -2701,6 +2699,8 @@ func seal_from_location(card_id : int, source : String, silent : bool = false):
 	for i in range(len(source_array)-1, -1, -1):
 		var card = source_array[i]
 		if card.id == card_id:
+			if source == "deck" and i == 0:
+				public_topdeck_id = -1
 			source_array.remove_at(i)
 			sealed.append(card)
 			parent.create_event(Enums.EventType.EventType_Seal, my_id, card.id, "", not silent)
@@ -2865,7 +2865,7 @@ func reveal_topdeck(reveal_to_both : bool = false):
 		parent._append_log_full(Enums.LogType.LogType_CardInfo, self, "向对手展示其牌库顶牌。")
 	else:
 		parent._append_log_full(Enums.LogType.LogType_CardInfo, self, "展示其牌库顶牌：%s。" % parent._log_card_name(card_name))
-		public_topdeck_id = deck[0].id
+	public_topdeck_id = deck[0].id
 	parent.create_event(Enums.EventType.EventType_RevealTopDeck, my_id, deck[0].id)
 
 func pick_random_cards_from_hand(amount):
@@ -3818,13 +3818,14 @@ func _should_dongshilang_ice_return_to_bleach(card : GameCard) -> bool:
 func _recalc_zsolt_pool():
 	# Recalculate zsolt_force_pool from active continuous boosts.
 	# This is more reliable than tracking +=/-= which can drift.
+	var had_zsolt_pool = zsolt_force_pool > 0
 	var new_pool = 0
 	for boost in continuous_boosts:
 		for effect in boost.definition.get('boost', {}).get('effects', []):
 			if effect.get('zsolt_force_pool', false):
 				new_pool += effect['amount']
 	zsolt_force_pool = new_pool
-	if zsolt_force_pool == 0:
+	if had_zsolt_pool and zsolt_force_pool == 0:
 		free_force = 0
 
 func get_all_non_immediate_continuous_boost_effects():
@@ -4112,3 +4113,51 @@ func is_infused() -> bool:
 		if card.definition['boost'].get('passively_infuse', false):
 			return true
 	return infused
+
+func get_boost_infuse_effect(card_ids : Array) -> Variant:
+	if deck_def.get("season") != 8 or is_infused():
+		return null
+	var eligible = false
+	for card_id in card_ids:
+		var boost = card_database.get_card(card_id).definition["boost"]
+		if boost.get("boost_type") in ["continuous", "immediate"] \
+				and not boost.get("passively_infuse", false) \
+				and _has_infused_condition(boost.get("effects", [])):
+			eligible = true
+	if eligible:
+		for effect in get_character_effects_at_timing("set_strike"):
+			if effect.get("condition") == "is_not_infused":
+				return effect
+	return null
+
+func get_boost_infuse_payment_options(card_ids : Array, reserved_card_ids : Array = [], reserved_life : int = 0) -> Array:
+	var effect = get_boost_infuse_effect(card_ids)
+	if not effect:
+		return []
+	var excluded_ids = card_ids + reserved_card_ids
+	var available_gauge = get_available_gauge()
+	for card in gauge:
+		if card.id in excluded_ids:
+			available_gauge -= get_gauge_payment_value(card.id)
+	var options = []
+	for option in effect.get("choice", [effect]):
+		if not parent.is_effect_condition_met(self, option, null):
+			continue
+		if option.get("effect_type") == StrikeEffects.GaugeForEffect and available_gauge >= option["gauge_max"]:
+			options.append(option)
+		elif option.get("effect_type") == StrikeEffects.SpendLife and life - reserved_life > option["amount"]:
+			options.append(option)
+	return options
+
+func _has_infused_condition(value : Variant) -> bool:
+	if value is Dictionary:
+		if value.get("condition") == "is_infused":
+			return true
+		for nested_value in value.values():
+			if _has_infused_condition(nested_value):
+				return true
+	elif value is Array:
+		for nested_value in value:
+			if _has_infused_condition(nested_value):
+				return true
+	return false

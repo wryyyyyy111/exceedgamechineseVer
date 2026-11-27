@@ -208,6 +208,17 @@ func test_iaquis_dragonstongue_boost_r1_noextra():
 	advance_turn(player2)
 
 
+func test_iaquis_dragonsdescent_boost_description():
+	var definition = CardDataManager.get_card("iaquis_dragonsdescent")
+	var effect = definition["boost"]["effects"][1]
+	var expected = "跳过回合结束的抽牌和弃牌。"
+
+	assert_true(effect.get("show_in_boost_summary", false),
+		"Dragon's Roar 的 timing=now 被动应显式显示在加成区摘要中")
+	assert_eq(effect["description"], expected)
+	assert_eq(GameStrings.get_effect_text(effect, false, true), expected)
+
+
 func test_iaquis_dragonsdescent_boost():
 	position_players(player1, 5, player2, 7)
 	assert_eq(player1.hand.size(), 5)

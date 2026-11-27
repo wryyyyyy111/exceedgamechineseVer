@@ -38,17 +38,7 @@
             "effect_type": "remove_generate_free_force"
         }
     ],
-    "exceed_ability_effects": [
-        {
-            "timing": "set_strike",
-            "effect_type": "generate_free_force",
-            "amount": 1
-        },
-        {
-            "timing": "cleanup",
-            "effect_type": "remove_generate_free_force"
-        }
-    ],
+    "exceed_ability_effects": [],
     "image_resources": {
         "character_default": {
             "url": "https://cdn.exceedcntyd.com/decks_official/treasure/character_default.jpg",

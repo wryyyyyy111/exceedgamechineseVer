@@ -1,0 +1,837 @@
+{
+	"NOTE": "TierList2610",
+	"banned_character": [
+		"mika_1",
+		"tinker_1"
+	],
+	"tier": [
+		{
+			"character": "heiqiyihu",
+			"tier": "A+"
+		},
+		{
+			"character": "yuanliuzhai",
+			"tier": "A+"
+		},
+		{
+			"character": "akuma",
+			"tier": "S-",
+			"real_tier": "真实在A+,hprank特化,所以是S-的对手匹配血量后,自身再+2"
+		},
+		{
+			"character": "anji",
+			"tier": "S-"
+		},
+		{
+			"character": "arakune",
+			"tier": "A+"
+		},
+		{
+			"character": "axl",
+			"tier": "S"
+		},
+		{
+			"character": "baiken",
+			"tier": "S"
+		},
+		{
+			"character": "bang",
+			"tier": "S"
+		},
+		{
+			"character": "beheaded",
+			"tier": "A+"
+		},
+		{
+			"character": "bison",
+			"tier": "S"
+		},
+		{
+			"character": "byakuya",
+			"tier": "A"
+		},
+		{
+			"character": "cammy",
+			"tier": "A"
+		},
+		{
+			"character": "carcass",
+			"tier": "A"
+		},
+		{
+			"character": "carlclover",
+			"tier": "A"
+		},
+		{
+			"character": "carlswangee",
+			"tier": "S+"
+		},
+		{
+			"character": "carmine",
+			"tier": "EX"
+		},
+		{
+			"character": "celinka",
+			"tier": "A"
+		},
+		{
+			"character": "chaos",
+			"tier": "A-"
+		},
+		{
+			"character": "chipp",
+			"tier": "EX"
+		},
+		{
+			"character": "chunli",
+			"tier": "A+"
+		},
+		{
+			"character": "cviper",
+			"tier": "A"
+		},
+		{
+			"character": "djanette",
+			"tier": "S-"
+		},
+		{
+			"character": "dan",
+			"tier": "A"
+		},
+		{
+			"character": "devis",
+			"tier": "S+"
+		},
+		{
+			"character": "dongshilang",
+			"tier": "A+"
+		},
+		{
+			"character": "emogine",
+			"tier": "S"
+		},
+		{
+			"character": "eugenia",
+			"tier": "A+"
+		},
+		{
+			"character": "eugenia_3",
+			"tier": "S-"
+		},
+		{
+			"character": "enchantress",
+			"tier": "A+"
+		},
+		{
+			"character": "enkidu",
+			"tier": "A+"
+		},
+		{
+			"character": "faust",
+			"tier": "A+"
+		},
+		{
+			"character": "fight",
+			"tier": "A+"
+		},
+		{
+			"character": "galdred",
+			"tier": "A"
+		},
+		{
+			"character": "geoffrey",
+			"tier": "S"
+		},
+		{
+			"character": "giovanna",
+			"tier": "A"
+		},
+		{
+			"character": "goldlewis",
+			"tier": "A+"
+		},
+		{
+			"character": "gordeau",
+			"tier": "A"
+		},
+		{
+			"character": "guile",
+			"tier": "A"
+		},
+		{
+			"character": "hakumen",
+			"tier": "EX-"
+		},
+		{
+			"character": "happychaos",
+			"tier": "A+"
+		},
+		{
+			"character": "hazama",
+			"tier": "S"
+		},
+		{
+			"character": "heidi",
+			"tier": "S+"
+		},
+		{
+			"character": "hilda",
+			"tier": "A+"
+		},
+		{
+			"character": "hyde",
+			"tier": "A+"
+		},
+		{
+			"character": "iaquis",
+			"tier": "S-"
+		},
+		{
+			"character": "ino",
+			"tier": "A+"
+		},
+		{
+			"character": "jacko",
+			"tier": "A-"
+		},
+		{
+			"character": "jin",
+			"tier": "A+"
+		},
+		{
+			"character": "ken",
+			"tier": "A+"
+		},
+		{
+			"character": "king",
+			"tier": "A"
+		},
+		{
+			"character": "kokonoe",
+			"tier": "A"
+		},
+		{
+			"character": "kykisuke",
+			"tier": "A+"
+		},
+		{
+			"character": "leo",
+			"tier": "S-"
+		},
+		{
+			"character": "lily",
+			"tier": "S+"
+		},
+		{
+			"character": "linne",
+			"tier": "A+"
+		},
+		{
+			"character": "litchi",
+			"tier": "S"
+		},
+		{
+			"character": "londrekia",
+			"tier": "A"
+		},
+		{
+			"character": "luciya",
+			"tier": "S"
+		},
+		{
+			"character": "may",
+			"tier": "A+"
+		},
+		{
+			"character": "meilian",
+			"tier": "EX-"
+		},
+		{
+			"character": "merkava",
+			"tier": "A"
+		},
+		{
+			"character": "mika",
+			"tier": "A"
+		},
+		{
+			"character": "millia",
+			"tier": "EX-"
+		},
+		{
+			"character": "minato",
+			"tier": "S"
+		},
+		{
+			"character": "mole",
+			"tier": "A+"
+		},
+		{
+			"character": "morathi",
+			"tier": "S-"
+		},
+		{
+			"character": "nago",
+			"tier": "A+"
+		},
+		{
+			"character": "nanase",
+			"tier": "A"
+		},
+		{
+			"character": "nehtali",
+			"tier": "A-"
+		},
+		{
+			"character": "nine",
+			"tier": "EX"
+		},
+		{
+			"character": "noel",
+			"tier": "A"
+		},
+		{
+			"character": "noelle",
+			"tier": "A+"
+		},
+		{
+			"character": "noel_1",
+			"tier": "A+"
+		},
+		{
+			"character": "nu13",
+			"tier": "A+"
+		},
+		{
+			"character": "orie",
+			"tier": "A"
+		},
+		{
+			"character": "phonon",
+			"tier": "A+"
+		},
+		{
+			"character": "plague",
+			"tier": "S-"
+		},
+		{
+			"character": "platinum",
+			"tier": "A"
+		},
+		{
+			"character": "polar",
+			"tier": "S-"
+		},
+		{
+			"character": "pooky",
+			"tier": "A"
+		},
+		{
+			"character": "pooky_1",
+			"tier": "A+"
+		},
+		{
+			"character": "potemkin",
+			"tier": "A+"
+		},
+		{
+			"character": "propeller",
+			"tier": "A+"
+		},
+		{
+			"character": "rachel",
+			"tier": "S-"
+		},
+		{
+			"character": "ragna",
+			"tier": "A+"
+		},
+		{
+			"character": "ramlethal",
+			"tier": "A+"
+		},
+		{
+			"character": "reese",
+			"tier": "S-"
+		},
+		{
+			"character": "renea",
+			"tier": "EX"
+		},
+		{
+			"character": "remiliss",
+			"tier": "EX-"
+		},
+		{
+			"character": "ryu",
+			"tier": "A+"
+		},
+		{
+			"character": "sagat",
+			"tier": "S"
+		},
+		{
+			"character": "seijun",
+			"tier": "EX-"
+		},
+		{
+			"character": "seth",
+			"tier": "A"
+		},
+		{
+			"character": "shovelknight",
+			"tier": "S-"
+		},
+		{
+			"character": "shovelshield",
+			"tier": "A"
+		},
+		{
+			"character": "solbadguy",
+			"tier": "A+"
+		},
+		{
+			"character": "superskullman",
+			"tier": "A-"
+		},
+		{
+			"character": "specter",
+			"tier": "A"
+		},
+		{
+			"character": "specter_1",
+			"tier": "S"
+		},
+		{
+			"character": "sydney",
+			"tier": "A"
+		},
+		{
+			"character": "syrus",
+			"tier": "S"
+		},
+		{
+			"character": "tager",
+			"tier": "A+"
+		},
+		{
+			"character": "taisei",
+			"tier": "S-",
+			"specify_hp_start_adjust": true
+		},
+		{
+			"character": "taokaka",
+			"tier": "A"
+		},
+		{
+			"character": "testament",
+			"tier": "A+"
+		},
+		{
+			"character": "tinker",
+			"tier": "A-",
+			"specify_hp_start_adjust": true
+		},
+		{
+			"character": "tournelouse",
+			"tier": "A"
+		},
+		{
+			"character": "treasure",
+			"tier": "A"
+		},
+		{
+			"character": "ulrik",
+			"tier": "EX"
+		},
+		{
+			"character": "umina",
+			"tier": "EX-"
+		},
+		{
+			"character": "vatista",
+			"tier": "A"
+		},
+		{
+			"character": "vega",
+			"tier": "A+"
+		},
+		{
+			"character": "vincent",
+			"tier": "A"
+		},
+		{
+			"character": "wagner",
+			"tier": "A"
+		},
+		{
+			"character": "waldstein",
+			"tier": "A-"
+		},
+		{
+			"character": "yuzu",
+			"tier": "A+"
+		},
+		{
+			"character": "zangief",
+			"tier": "A+"
+		},
+		{
+			"character": "zsolt",
+			"tier": "EX"
+		},
+		{
+			"character": "zato",
+			"tier": "A"
+		},
+		{
+			"character": "jinglechunshui",
+			"tier": "S-"
+		},
+		{
+			"character": "akimo",
+			"tier": "A+"
+		},
+		{
+			"character": "astryda",
+			"tier": "A+"
+		},
+		{
+			"character": "doomies",
+			"tier": "A"
+		},
+		{
+			"character": "gulbjarn",
+			"tier": "S-"
+		},
+		{
+			"character": "heraal",
+			"tier": "A+"
+		},
+		{
+			"character": "ixatosk",
+			"tier": "A+"
+		},
+		{
+			"character": "khenui",
+			"tier": "S-"
+		},
+		{
+			"character": "khepiax",
+			"tier": "A+"
+		},
+		{
+			"character": "kohai",
+			"tier": "A+"
+		},
+		{
+			"character": "miyuki",
+			"tier": "S-"
+		},
+		{
+			"character": "nantaca",
+			"tier": "S-"
+		},
+		{
+			"character": "shafathi",
+			"tier": "A+"
+		},
+		{
+			"character": "shaidrus",
+			"tier": "A+"
+		},
+		{
+			"character": "vorhild",
+			"tier": "A"
+		},
+		{
+			"character": "yami",
+			"tier": "A+"
+		},
+		{
+			"character": "zacoal",
+			"tier": "A+"
+		}
+	],
+	"common_rule": [
+		{
+			"rule": "A- vs A-",
+			"hp_start": "30 - 30"
+		},
+		{
+			"rule": "A- vs A",
+			"hp_start": "32 - 30"
+		},
+		{
+			"rule": "A- vs A+",
+			"hp_start": "32 - 28"
+		},
+		{
+			"rule": "A- vs S-",
+			"hp_start": "32 - 26"
+		},
+		{
+			"rule": "A- vs S",
+			"hp_start": "33 - 25"
+		},
+		{
+			"rule": "A- vs S+",
+			"hp_start": "34 - 24"
+		},
+		{
+			"rule": "A- vs EX-",
+			"hp_start": "34 - 22"
+		},
+		{
+			"rule": "A- vs EX",
+			"hp_start": "34 - 20"
+		},
+		{
+			"rule": "A vs A",
+			"hp_start": "30 - 30"
+		},
+		{
+			"rule": "A vs A+",
+			"hp_start": "30 - 28"
+		},
+		{
+			"rule": "A vs S-",
+			"hp_start": "30 - 26"
+		},
+		{
+			"rule": "A vs S",
+			"hp_start": "31 - 25"
+		},
+		{
+			"rule": "A vs S+",
+			"hp_start": "32 - 24"
+		},
+		{
+			"rule": "A vs EX-",
+			"hp_start": "33 - 23"
+		},
+		{
+			"rule": "A vs EX",
+			"hp_start": "34 - 22"
+		},
+		{
+			"rule": "A+ vs A+",
+			"hp_start": "30 - 30"
+		},
+		{
+			"rule": "A+ vs S-",
+			"hp_start": "30 - 28"
+		},
+		{
+			"rule": "A+ vs S",
+			"hp_start": "31 - 27"
+		},
+		{
+			"rule": "A+ vs S+",
+			"hp_start": "32 - 26"
+		},
+		{
+			"rule": "A+ vs EX-",
+			"hp_start": "32 - 24"
+		},
+		{
+			"rule": "A+ vs EX",
+			"hp_start": "32 - 22"
+		},
+		{
+			"rule": "S- vs S-",
+			"hp_start": "30 - 30"
+		},
+		{
+			"rule": "S- vs S",
+			"hp_start": "30 - 28"
+		},
+		{
+			"rule": "S- vs S+",
+			"hp_start": "30 - 26"
+		},
+		{
+			"rule": "S- vs EX-",
+			"hp_start": "31 - 25"
+		},
+		{
+			"rule": "S- vs EX",
+			"hp_start": "31 - 23"
+		},
+		{
+			"rule": "S vs S",
+			"hp_start": "30 - 30"
+		},
+		{
+			"rule": "S vs S+",
+			"hp_start": "30 - 28"
+		},
+		{
+			"rule": "S vs EX-",
+			"hp_start": "30 - 26"
+		},
+		{
+			"rule": "S vs EX",
+			"hp_start": "30 - 24"
+		},
+		{
+			"rule": "S+ vs S+",
+			"hp_start": "30 - 30"
+		},
+		{
+			"rule": "S+ vs EX-",
+			"hp_start": "30 - 28"
+		},
+		{
+			"rule": "S+ vs EX",
+			"hp_start": "30 - 26"
+		},
+		{
+			"rule": "EX- vs EX-",
+			"hp_start": "30 - 30"
+		},
+		{
+			"rule": "EX- vs EX",
+			"hp_start": "30 - 28"
+		},
+		{
+			"rule": "EX vs EX",
+			"hp_start": "30 - 30"
+		}
+	],
+	"common_hp_adjust": [
+		{
+			"character": "mika",
+			"hp": "+1"
+		},
+		{
+			"character": "specter",
+			"hp": "+1"
+		},
+		{
+			"character": "zato",
+			"hp": "+1"
+		},
+		{
+			"character": "giovanna",
+			"hp": "+1"
+		},
+		{
+			"character": "galdred",
+			"hp": "+1"
+		},
+		{
+			"character": "akuma",
+			"hp": "+2",
+			"NOTE": "真实在A+,hprank特化,所以是S-的对手匹配血量后,自身再+2"
+		}
+	],
+	"specify_hp_start_adjust": {
+		"taisei": {
+			"taisei_default": [
+				{
+					"tier": "A-",
+					"hp_start": "14"
+				},
+				{
+					"tier": "A",
+					"hp_start": "14"
+				},
+				{
+					"tier": "A+",
+					"hp_start": "14"
+				},
+				{
+					"tier": "S-",
+					"hp_start": "15"
+				},
+				{
+					"tier": "S",
+					"hp_start": "15"
+				},
+				{
+					"tier": "S+",
+					"hp_start": "15"
+				},
+				{
+					"tier": "EX-",
+					"hp_start": "16"
+				},
+				{
+					"tier": "EX",
+					"hp_start": "16"
+				}
+			],
+			"taisei_exceed": [
+				{
+					"tier": "A-",
+					"hp_start": "8"
+				},
+				{
+					"tier": "A",
+					"hp_start": "9"
+				},
+				{
+					"tier": "A+",
+					"hp_start": "9"
+				},
+				{
+					"tier": "S-",
+					"hp_start": "10"
+				},
+				{
+					"tier": "S",
+					"hp_start": "10"
+				},
+				{
+					"tier": "S+",
+					"hp_start": "10"
+				},
+				{
+					"tier": "EX-",
+					"hp_start": "10"
+				},
+				{
+					"tier": "EX",
+					"hp_start": "11"
+				}
+			]
+		},
+		"tinker": {
+			"tinker_default": [
+				{
+					"tier": "A-",
+					"hp_start": "15"
+				},
+				{
+					"tier": "A",
+					"hp_start": "16"
+				},
+				{
+					"tier": "A+",
+					"hp_start": "16"
+				},
+				{
+					"tier": "S-",
+					"hp_start": "16"
+				},
+				{
+					"tier": "S",
+					"hp_start": "16"
+				},
+				{
+					"tier": "S+",
+					"hp_start": "17"
+				},
+				{
+					"tier": "EX-",
+					"hp_start": "17"
+				},
+				{
+					"tier": "EX",
+					"hp_start": "17"
+				}
+			]
+		}
+	}
+}

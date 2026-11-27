@@ -13,6 +13,39 @@ const TestCardId5 = 50005
 var player1 : Player
 var player2 : Player
 
+class ReferenceUI extends Game:
+	func _refresh_problematic_reference_normals(_resources : Dictionary):
+		pass
+
+	func rebuild_reference_copy_zone(_deck_list, _copy_zone, _buddies,
+			_buddy_zone, _allow_click, _is_opponent, _resources,
+			_deck_def = {}, _owner_text : String = ""):
+		pass
+
+	func _should_open_or_refresh_popout(_open : bool, _type : CardPopoutType) -> bool:
+		return false
+
+func create_reference_ui(card_id : int, is_player : bool = true) -> ReferenceUI:
+	var ui : ReferenceUI = autofree(ReferenceUI.new())
+	ui.add_child(ui.game_wrapper)
+	ui.game_wrapper.current_game = game_logic
+	ui.player_deck = default_deck
+	ui.opponent_deck = default_deck
+	var all_cards = Node2D.new()
+	all_cards.name = "AllCards"
+	ui.add_child(all_cards)
+	for zone_name in ["PlayerAllCopy", "PlayerBuddyCopy", "OpponentAllCopy", "OpponentBuddyCopy"]:
+		var zone = Node2D.new()
+		zone.name = zone_name
+		all_cards.add_child(zone)
+	var card : CardBase = load("res://scenes/card/card_base.tscn").instantiate()
+	add_child(card)
+	var definition = game_logic.card_db.get_card(card_id).definition
+	card.initialize_simple(card_id + Game.ReferenceScreenIdRangeStart, null, null,
+		definition['display_name'], definition['boost']['display_name'], definition)
+	card.reparent(ui.get_node("AllCards/PlayerAllCopy" if is_player else "AllCards/OpponentAllCopy"))
+	return ui
+
 func default_game_setup():
 	image_loader = CardImageLoader.new(true)
 	game_logic = LocalGame.new(image_loader)
@@ -234,3 +267,175 @@ func test_ryu_hadoken():
 	assert_true(player1.is_card_in_gauge(TestCardId3))
 	assert_eq(player1.deck[0].id, TestCardId1)
 	validate_life(player1, 30, player2, 26)
+
+func test_ryu_single_hadoken_reference_topdeck_icon_clears_after_draw():
+	for zone in [player1.hand, player1.deck]:
+		for card in zone.duplicate():
+			if card.definition['id'] == "ryu_hadoken":
+				zone.erase(card)
+				player1.sealed.append(card)
+	position_players(player1, 2, player2, 6)
+	execute_strike(player1, player2, "ryu_hadoken", "standard_normal_sweep",
+		[0], [], false, false, [], [], 0, true, true)
+	assert_eq(player1.deck[0].id, TestCardId1)
+	assert_eq(player1.public_topdeck_id, TestCardId1)
+	validate_life(player1, 30, player2, 26)
+
+	var ui = create_reference_ui(TestCardId1)
+	var card : CardBase = ui.get_node("AllCards/PlayerAllCopy").get_child(0)
+	await ui._on_player_reference_button_pressed(false)
+	assert_eq(card.get_remaining_count(), 1)
+	assert_true(card.get_hand_icon_state()["on_topdeck"])
+	assert_true(card.hand_icons_obj.visible)
+	assert_true(card.icon1.visible)
+	assert_eq(card.icon1.texture, card.topdeck_texture)
+
+	var popout : CardPopout = load("res://scenes/game/card_popout.tscn").instantiate()
+	add_child_autofree(popout)
+	popout.show_cards([card])
+	var rendered_card : CardBase = popout.get_spot(0).get_child(0)
+	assert_true(rendered_card.get_hand_icon_state()["on_topdeck"])
+	assert_true(rendered_card.hand_icons_obj.visible)
+	assert_eq(rendered_card.icon1.texture, rendered_card.topdeck_texture)
+
+	player1.draw(1)
+	await ui._on_player_reference_button_pressed(false)
+	assert_false(card.get_hand_icon_state()["on_topdeck"])
+	assert_false(card.hand_icons_obj.visible)
+
+func test_reference_public_topdeck_sources_and_private_replacement():
+	give_player_specific_card(player1, "standard_normal_grasp", TestCardId3)
+	player1.discard([TestCardId3])
+	player1.move_card_from_discard_to_deck(TestCardId3, false)
+	var ui = create_reference_ui(TestCardId3)
+	var card : CardBase = ui.get_node("AllCards/PlayerAllCopy").get_child(0)
+	await ui._on_player_reference_button_pressed(false)
+	assert_true(card.get_hand_icon_state()["on_topdeck"])
+
+	player1.seal_topdeck()
+	player1.move_card_from_sealed_to_top_deck(TestCardId3)
+	await ui._on_player_reference_button_pressed(false)
+	assert_true(card.get_hand_icon_state()["on_topdeck"])
+
+	player1.random_shuffle_deck()
+	await ui._on_player_reference_button_pressed(false)
+	assert_false(card.get_hand_icon_state()["on_topdeck"])
+
+	player1.remove_card_from_deck(TestCardId3)
+	player1.add_to_top_of_deck(game_logic.card_db.get_card(TestCardId3), true)
+	give_player_specific_card(player1, "standard_normal_cross", TestCardId4)
+	player1.seal_from_location(TestCardId4, "hand")
+	player1.sealed_area_is_secret = true
+	player1.move_card_from_sealed_to_top_deck(TestCardId4)
+	await ui._on_player_reference_button_pressed(false)
+	assert_false(card.get_hand_icon_state()["on_topdeck"])
+	assert_eq(player1.get_public_hand_info()["topdeck"], "")
+
+func test_ken_hadoken_reference_topdeck_icon():
+	player1.deck_def = CardDataManager.get_deck_from_str_id("ken")
+	position_players(player1, 2, player2, 6)
+	execute_strike(player1, player2, "ken_hadoken", "standard_normal_sweep",
+		[0], [], false, false, [], [], 0, true, true)
+	assert_eq(player1.deck[0].id, TestCardId1)
+	var ui = create_reference_ui(TestCardId1)
+	ui.player_deck = player1.deck_def
+	var card : CardBase = ui.get_node("AllCards/PlayerAllCopy").get_child(0)
+	await ui._on_player_reference_button_pressed(false)
+	assert_true(card.get_hand_icon_state()["on_topdeck"])
+
+func test_reference_revealed_topdeck_icon_for_both_players():
+	for player in [player1, player2]:
+		var top_card_id = player.deck[0].id
+		player.reveal_topdeck()
+		assert_eq(player.get_public_hand_info()["topdeck"],
+			game_logic.card_db.get_card(top_card_id).definition['id'])
+		var is_player = player == player1
+		var ui = create_reference_ui(top_card_id, is_player)
+		var card : CardBase = ui.get_node(
+			"AllCards/PlayerAllCopy" if is_player else "AllCards/OpponentAllCopy").get_child(0)
+		if is_player:
+			await ui._on_player_reference_button_pressed(false)
+		else:
+			await ui._on_opponent_reference_button_pressed(false, false, false)
+		assert_true(card.get_hand_icon_state()["on_topdeck"])
+
+func test_public_topdeck_clears_only_when_top_card_leaves():
+	for operation in ["remove_top", "remove_by_id", "to_bottom", "soifon_gauge", "soifon_shunko"]:
+		var top_card_id = player1.deck[0].id
+		player1.public_topdeck_id = top_card_id
+		match operation:
+			"remove_top":
+				player1.remove_top_card_from_deck()
+			"remove_by_id":
+				player1.remove_card_from_deck(top_card_id)
+			"to_bottom":
+				player1.add_top_deck_to_bottom()
+			"soifon_gauge":
+				game_logic.handle_strike_effect(-1,
+					{"effect_type": StrikeEffects.SoifonTopdeckToGauge}, player1)
+				assert_true(player1.is_card_in_gauge(top_card_id))
+			"soifon_shunko":
+				player1.deck_def = player1.deck_def.duplicate()
+				player1.deck_def["stored_bleach_info"] = {"name": "Shunko"}
+				game_logic.handle_strike_effect(-1,
+					{"effect_type": StrikeEffects.SoifonTopdeckToShunko}, player1)
+				assert_true(player1.is_card_in_bleach(top_card_id))
+		assert_eq(player1.get_public_hand_info()["topdeck"], "", operation)
+
+	for operation in ["remove_by_id", "seal", "overdrive"]:
+		var top_card_id = player1.deck[0].id
+		var bottom_card_id = player1.deck[-1].id
+		player1.public_topdeck_id = top_card_id
+		match operation:
+			"remove_by_id":
+				player1.remove_card_from_deck(bottom_card_id)
+			"seal":
+				player1.seal_from_location(bottom_card_id, "deck")
+			"overdrive":
+				player1.move_cards_to_overdrive([bottom_card_id], "deck")
+		assert_eq(player1.public_topdeck_id, top_card_id, operation)
+
+func test_public_topdeck_survives_bottom_draw_and_blocked_draw():
+	var top_card_id = player1.deck[0].id
+	var top_definition_id = player1.deck[0].definition['id']
+	player1.public_topdeck_id = top_card_id
+	player1.draw(1, false, true)
+	assert_eq(player1.public_topdeck_id, top_card_id)
+	assert_eq(player1.get_public_hand_info()["topdeck"], top_definition_id)
+	assert_false(top_definition_id in player1.get_public_hand_info()["known"])
+
+	player1.cannot_draw = true
+	player1.draw(1)
+	assert_eq(player1.public_topdeck_id, top_card_id)
+	player1.cannot_draw = false
+	player1.draw(1)
+	assert_eq(player1.public_topdeck_id, -1)
+	assert_true(top_definition_id in player1.get_public_hand_info()["known"])
+
+func test_public_topdeck_single_card_bottom_move_and_bottom_draw():
+	var top_card = player1.deck[0]
+	for card in player1.deck.slice(1):
+		player1.sealed.append(card)
+	player1.deck = [top_card]
+	player1.public_topdeck_id = top_card.id
+	player1.add_top_deck_to_bottom()
+	assert_eq(player1.public_topdeck_id, top_card.id)
+	player1.draw(1, false, true)
+	assert_eq(player1.public_topdeck_id, -1)
+	assert_eq(player1.get_public_hand_info()["topdeck"], "")
+
+func test_reference_topdeck_icon_requires_public_knowledge_or_visibility_skill():
+	var ui = create_reference_ui(player1.deck[0].id)
+	var card : CardBase = ui.get_node("AllCards/PlayerAllCopy").get_child(0)
+	await ui._on_player_reference_button_pressed(false)
+	assert_false(card.get_hand_icon_state()["on_topdeck"])
+	assert_false(card.hand_icons_obj.visible)
+
+	player1.passive_effects["topdeck_visible_to_self"] = 1
+	await ui._on_player_reference_button_pressed(false)
+	assert_true(card.get_hand_icon_state()["on_topdeck"])
+	assert_true(card.hand_icons_obj.visible)
+
+	player1.passive_effects.erase("topdeck_visible_to_self")
+	await ui._on_player_reference_button_pressed(false)
+	assert_false(card.get_hand_icon_state()["on_topdeck"])

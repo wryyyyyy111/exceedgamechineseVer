@@ -647,9 +647,269 @@ func get_custom_cards():
 func who_am_i():
 	return "ryu"
 
+func _start_strike_with_before_effects(effects: Array):
+	var attack_id = give_player_specific_card(player1, "standard_normal_focus")
+	var attack = game_logic.get_card_database().get_card(attack_id)
+	attack.definition = attack.definition.duplicate(true)
+	attack.definition["effects"] = effects.duplicate(true)
+	attack.definition["speed"] = 8
+	var response_id = give_player_specific_card(player2, "standard_normal_focus")
+	assert_true(game_logic.do_strike(player1, attack_id, false, -1))
+	assert_true(game_logic.do_strike(player2, response_id, false, -1))
+
+func _conditional_before(amount: int = 1) -> Dictionary:
+	return {
+		"timing": "before",
+		"condition": "exceeded",
+		"effect_type": "powerup",
+		"amount": amount,
+		"negative_condition_effect": {"effect_type": "draw", "amount": 1}
+	}
+
+func test_conditional_before_choice_consumes_parent_once():
+	_start_strike_with_before_effects([
+		_conditional_before(),
+		{"timing": "before", "effect_type": "powerup", "amount": 2},
+		{"timing": "before", "effect_type": "powerup", "amount": 3}
+	])
+	var initial_hand = player1.hand.size()
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_eq(player1.hand.size(), initial_hand + 1)
+	assert_eq(game_logic.active_strike.remaining_effect_list.size(), 2)
+	assert_eq(game_logic.decision_info.choice[0].effect_type, "powerup")
+	assert_eq(game_logic.decision_info.choice[0].amount, 2)
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_null(game_logic.active_strike)
+	assert_eq(player1.hand.size(), initial_hand + 1)
+
+func test_identical_else_branches_consume_the_selected_parent():
+	_start_strike_with_before_effects([
+		_conditional_before(1), _conditional_before(2), _conditional_before(3)
+	])
+	var initial_hand = player1.hand.size()
+	assert_true(game_logic.do_choice(player1, 1))
+	assert_eq(game_logic.active_strike.remaining_effect_list.size(), 2)
+	assert_eq(game_logic.active_strike.remaining_effect_list[0].amount, 1)
+	assert_eq(game_logic.active_strike.remaining_effect_list[1].amount, 3)
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_null(game_logic.active_strike)
+	assert_eq(player1.hand.size(), initial_hand + 3)
+
+func test_only_runnable_else_branch_is_consumed_before_nested_choice():
+	var conditional = _conditional_before()
+	conditional["negative_condition_effect"]["and"] = {
+		"effect_type": "move_to_any_space", "move_min": 0, "move_max": 1
+	}
+	_start_strike_with_before_effects([
+		conditional,
+		{"timing": "before", "condition": "exceeded", "effect_type": "powerup", "amount": 5}
+	])
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ChooseArenaLocationForEffect)
+	assert_eq(game_logic.active_strike.remaining_effect_list.size(), 1)
+	var hand_after_draw = player1.hand.size()
+	assert_true(game_logic.do_choice(player1, select_space(0)))
+	assert_null(game_logic.active_strike)
+	assert_eq(player1.hand.size(), hand_after_draw)
+
+func test_conditional_before_met_branch_does_not_run_else():
+	var conditional = _conditional_before()
+	conditional["condition"] = "not_exceeded"
+	_start_strike_with_before_effects([
+		conditional,
+		{"timing": "before", "effect_type": "powerup", "amount": 2},
+		{"timing": "before", "effect_type": "powerup", "amount": 3}
+	])
+	var initial_hand = player1.hand.size()
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_eq(game_logic.active_strike.remaining_effect_list.size(), 2)
+	assert_eq(player1.strike_stat_boosts.power, 1)
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_null(game_logic.active_strike)
+	assert_eq(player1.hand.size(), initial_hand)
+
+func test_extra_attack_else_choice_consumes_only_extra_attack_parent():
+	_start_strike_with_before_effects([
+		_conditional_before(),
+		{"timing": "before", "effect_type": "powerup", "amount": 2},
+		{"timing": "before", "effect_type": "powerup", "amount": 3}
+	])
+	var strike = game_logic.active_strike
+	var main_effects = strike.remaining_effect_list.duplicate(true)
+	strike.extra_attack_in_progress = true
+	strike.extra_attack_data.extra_attack_player = player1
+	strike.extra_attack_data.extra_attack_card = strike.initiator_card
+	strike.extra_attack_data.extra_attack_state = LocalGame.ExtraAttackState.ExtraAttackState_Before
+	strike.extra_attack_data.extra_attack_remaining_effects = main_effects.duplicate(true)
+	game_logic.game_state = Enums.GameState.GameState_Strike_Processing
+	game_logic.do_remaining_effects(player1, LocalGame.ExtraAttackState.ExtraAttackState_DetermineHit)
+	var initial_hand = player1.hand.size()
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_eq(player1.hand.size(), initial_hand + 1)
+	assert_eq(strike.extra_attack_data.extra_attack_remaining_effects.size(), 2)
+	assert_eq(strike.extra_attack_data.extra_attack_remaining_effects[0].amount, 2)
+	assert_eq(strike.remaining_effect_list, main_effects)
+
 ##
 ## Tests start here
 ##
+
+func test_hidden_effects_resolve_without_replacing_visible_effect_order():
+	_start_strike_with_before_effects([
+		{"timing": "before", "effect_type": "powerup", "amount": 1, "hide_effect": true},
+		{"timing": "before", "effect_type": "powerup", "amount": 2, "hide_effect": true},
+		{"timing": "before", "effect_type": "powerup", "amount": 3},
+		{"timing": "before", "effect_type": "powerup", "amount": 4}
+	])
+	assert_eq(player1.strike_stat_boosts.power, 3)
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ChooseSimultaneousEffect)
+	assert_eq(game_logic.decision_info.choice.size(), 2)
+	for effect in game_logic.decision_info.choice:
+		assert_false(GameStrings.get_effect_text(effect, false, true).is_empty())
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_null(game_logic.active_strike)
+
+func test_hidden_effects_only_resolve_without_effect_order_decision():
+	var initial_hand = player1.hand.size()
+	_start_strike_with_before_effects([
+		{"timing": "before", "effect_type": "draw", "amount": 1, "hide_effect": true},
+		{"timing": "before", "effect_type": "draw", "amount": 1, "hide_effect": true}
+	])
+	assert_null(game_logic.active_strike)
+	assert_eq(player1.hand.size(), initial_hand + 2)
+
+func test_hidden_nested_choice_still_requires_player_input():
+	_start_strike_with_before_effects([
+		{
+			"timing": "before", "effect_type": "choice", "hide_effect": true,
+			"choice": [
+				{"effect_type": "powerup", "amount": 1},
+				{"effect_type": "pass"}
+			]
+		},
+		{"timing": "before", "effect_type": "powerup", "amount": 2},
+		{"timing": "before", "effect_type": "powerup", "amount": 3}
+	])
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_EffectChoice)
+	assert_eq(game_logic.decision_info.choice[1].effect_type, "pass")
+	assert_true(game_logic.do_choice(player1, 1))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ChooseSimultaneousEffect)
+	assert_eq(game_logic.decision_info.choice.size(), 2)
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_null(game_logic.active_strike)
+
+func test_hidden_otherwise_branch_resolves_once_before_visible_choices():
+	var initial_hand = player1.hand.size()
+	var conditional = _conditional_before()
+	conditional["hide_effect"] = true
+	_start_strike_with_before_effects([
+		conditional,
+		{"timing": "before", "effect_type": "powerup", "amount": 2},
+		{"timing": "before", "effect_type": "powerup", "amount": 3}
+	])
+	assert_eq(player1.hand.size(), initial_hand + 1)
+	assert_eq(game_logic.decision_info.choice.size(), 2)
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_null(game_logic.active_strike)
+	assert_eq(player1.hand.size(), initial_hand + 1)
+
+func test_hidden_unmet_condition_is_rechecked_after_visible_effect():
+	var initial_hand = player1.hand.size()
+	_start_strike_with_before_effects([
+		{
+			"timing": "before", "effect_type": "powerup", "amount": 4,
+			"condition": "min_cards_in_hand", "condition_amount": initial_hand + 1,
+			"hide_effect": true
+		},
+		{"timing": "before", "effect_type": "draw", "amount": 1},
+		{"timing": "before", "effect_type": "speedup", "amount": 1}
+	])
+	assert_eq(game_logic.decision_info.choice.size(), 2)
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_null(game_logic.active_strike)
+	assert_eq(player1.hand.size(), initial_hand + 1)
+	validate_has_event(game_logic.get_latest_events(),
+		Enums.EventType.EventType_Strike_PowerUp, player1, 4)
+
+func test_unmet_priority_effect_does_not_discard_runnable_effects():
+	var initial_hand = player1.hand.size()
+	_start_strike_with_before_effects([
+		{
+			"timing": "before", "effect_type": "powerup", "amount": 4,
+			"condition": "min_cards_in_hand", "condition_amount": 100,
+			"resolve_before_simultaneous_effects": true
+		},
+		{"timing": "before", "effect_type": "draw", "amount": 1},
+		{"timing": "before", "effect_type": "speedup", "amount": 1}
+	])
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ChooseSimultaneousEffect)
+	if not game_logic.active_strike:
+		return
+	assert_eq(game_logic.decision_info.choice.size(), 2)
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_null(game_logic.active_strike)
+	assert_eq(player1.hand.size(), initial_hand + 1)
+
+func test_internal_cleanup_unblocks_movement_without_blank_choices():
+	player2.cannot_move = true
+	player2.cannot_advance_or_close = true
+	player2.cannot_move_past_opponent = true
+	_start_strike_with_before_effects([
+		{"timing": "cleanup", "effect_type": "remove_block_opponent_move"},
+		{"timing": "cleanup", "effect_type": "remove_block_opponent_advance_close"},
+		{"timing": "cleanup", "effect_type": "remove_opponent_cant_move_past"}
+	])
+	assert_null(game_logic.active_strike)
+	assert_false(player2.cannot_move)
+	assert_false(player2.cannot_advance_or_close)
+	assert_false(player2.cannot_move_past_opponent)
+
+func test_hidden_counter_cleanup_waits_for_visible_payment_choice():
+	player1.bonus_armor_counters = 2
+	player1.bonus_guard_counters = 2
+	_start_strike_with_before_effects([
+		{
+			"timing": "cleanup", "effect_type": "reset_bonus_armor_counters", "hide_effect": true,
+			"and": {"effect_type": "reset_bonus_guard_counters", "hide_effect": true}
+		},
+		{
+			"timing": "cleanup", "effect_type": "choice",
+			"choice": [
+				{
+					"effect_type": "add_bonus_armor_counters", "amount": 1,
+					"and": {"effect_type": "add_bonus_guard_counters", "amount": 1}
+				},
+				{"effect_type": "pass"}
+			]
+		}
+	])
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_EffectChoice)
+	assert_eq(player1.bonus_armor_counters, 2)
+	assert_eq(player1.bonus_guard_counters, 2)
+	assert_true(game_logic.do_choice(player1, 0))
+	assert_null(game_logic.active_strike)
+	assert_eq(player1.bonus_armor_counters, 0)
+	assert_eq(player1.bonus_guard_counters, 0)
+
+func test_hidden_extra_attack_effect_keeps_main_effect_queue():
+	_start_strike_with_before_effects([
+		{"timing": "before", "effect_type": "powerup", "amount": 1},
+		{"timing": "before", "effect_type": "powerup", "amount": 2}
+	])
+	var strike = game_logic.active_strike
+	var main_effects = strike.remaining_effect_list.duplicate(true)
+	strike.extra_attack_in_progress = true
+	strike.extra_attack_data.extra_attack_player = player1
+	strike.extra_attack_data.extra_attack_card = strike.initiator_card
+	strike.extra_attack_data.extra_attack_state = LocalGame.ExtraAttackState.ExtraAttackState_Before
+	var hidden_effect = main_effects[0].duplicate(true)
+	hidden_effect["hide_effect"] = true
+	strike.extra_attack_data.extra_attack_remaining_effects = [hidden_effect] + main_effects.duplicate(true)
+	game_logic.game_state = Enums.GameState.GameState_Strike_Processing
+	game_logic.do_remaining_effects(player1, LocalGame.ExtraAttackState.ExtraAttackState_DetermineHit)
+	assert_eq(player1.strike_stat_boosts.power, 1)
+	assert_eq(game_logic.decision_info.choice.size(), 2)
+	assert_eq(strike.extra_attack_data.extra_attack_remaining_effects.size(), 2)
+	assert_eq(strike.remaining_effect_list, main_effects)
 
 # Testing adding opponent's attack to gauge
 func test_custom_opponent_strike_to_gauge():

@@ -79,9 +79,8 @@ static func unregister_owner(owner: String):
 			entries.erase(resource_key)
 
 static func get_debug_text() -> String:
-	return "资源预算: %s %.1fMB/%sMB 条目:%d" % [
+	return "资源预算: %s %.1fMB 条目:%d" % [
 		get_state(),
 		get_total_budget_mb(),
-		RESOURCE_BUDGET_LIMIT_MB,
 		entries.size(),
 	]

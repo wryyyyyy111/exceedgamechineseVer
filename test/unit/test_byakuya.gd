@@ -630,6 +630,14 @@ func test_byakuya_howshallicookyou_no_reveals():
 	validate_life(player1, 30, player2, 27)
 	advance_turn(player2)
 
+func test_byakuya_howshallicookyou_boost_description():
+	var boost_effects = CardDataManager.get_card("byakuya_howshallicookyou")["boost"]["effects"]
+
+	assert_eq(boost_effects[0]["override_description"],
+		"前置: 你可以封印How Shall I Cook You? (特5速) 来 前进、后退、击退或拉近1格。")
+	assert_eq(boost_effects[1]["override_description"],
+		"整理: 花费1点生命 维持How Shall I Cook You?(特5速) 或 跳过。")
+
 func test_byakuya_howshallicookyou_one_reveal():
 	position_players(player1, 3, player2, 5)
 

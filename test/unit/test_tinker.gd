@@ -210,6 +210,26 @@ func test_tinker_tank_keeps_original_visual_scale():
 	assert_eq(character.scale, Vector2(2.8, 2.8))
 	character.free()
 
+func test_relative_scale_animation_metadata_matches_manifest():
+	var expected_scaling := {
+		"carlswangee_exceed": 1.0,
+		"emogine_exceed": 6.0,
+		"sydney_exceed": 10.0,
+		"tinker_tank": 0.7,
+	}
+	var manifest = JSON.parse_string(FileAccess.get_file_as_string(
+		CdnAssetLoader.ANIMATION_MANIFEST_PATH))
+	for animation_id in expected_scaling:
+		var animation_path := (
+			"res://assets/character_animations/%s/animations.tres" % animation_id)
+		var resource_text := FileAccess.get_file_as_string(animation_path).replace("\r\n", "\n")
+		assert_true(manifest.has(animation_path), animation_id)
+		assert_eq(str(manifest.get(animation_path, "")).replace("\r\n", "\n"),
+			resource_text, animation_id)
+		var frames := load(animation_path) as SpriteFrames
+		assert_almost_eq(float(frames.get_meta("scaling", 0.0)),
+			float(expected_scaling[animation_id]), 0.001, animation_id)
+
 func test_season2_exceed_animations_keep_original_visual_scale():
 	for character_id in ["carlswangee", "emogine", "sydney"]:
 		var deck = CardDataManager.get_deck_from_str_id(character_id)

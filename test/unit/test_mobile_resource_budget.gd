@@ -12,6 +12,10 @@ func test_estimates_decoded_and_budget_memory():
 	assert_almost_eq(MobileResourceBudget.estimate_decoded_mb(1024, 1024), 4.0, 0.001)
 	assert_almost_eq(MobileResourceBudget.estimate_budget_mb(1024, 1024), 8.0, 0.001)
 
+func test_debug_text_shows_estimate_without_budget_limit():
+	MobileResourceBudget.register_texture("a", 1024, 1024, "test", "visible")
+	assert_eq(MobileResourceBudget.get_debug_text(), "资源预算: green 8.0MB 条目:1")
+
 func test_register_unregister_and_warning_state():
 	MobileResourceBudget.register_texture("a", 1536, 1536, "test", "visible")
 	MobileResourceBudget.register_texture("b", 1536, 1536, "test", "visible")

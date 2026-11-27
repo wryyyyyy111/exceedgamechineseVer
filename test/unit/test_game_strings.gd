@@ -2,6 +2,130 @@ extends GutTest
 
 const GameStringsScript = preload("res://globals/game_strings.gd")
 
+func test_gauge_power_effect_order_text_supports_optional_cap():
+	var effect = {"effect_type": StrikeEffects.PowerupPerGauge, "amount": 2}
+	assert_eq(GameStrings.get_effect_text(effect, false, true), "怒中每有1张牌，+2威力。")
+	effect["count_opponent"] = true
+	assert_eq(GameStrings.get_effect_text(effect, false, true), "对手的怒中每有1张牌，+2威力。")
+	effect["amount_max"] = 5
+	assert_eq(GameStrings.get_effect_text(effect, false, true), "对手的怒中每有1张牌，+2威力，至多到5。")
+
+class NoticeGame extends Game:
+	var notice_text = ""
+
+	func spawn_damage_popup(value: String, _notice_player: Enums.PlayerId):
+		notice_text = value
+
+func test_number_formatter_preserves_values_other_than_integer_float_notation():
+	for example in [[2.0, "2"], [3.0, "3"], [0.0, "0"], [-2.0, "-2"], [2.5, "2.5"], ["X", "X"], ["N/A", "N/A"]]:
+		assert_eq(GameStrings.format_number(example[0]), example[1])
+
+func test_card_stat_text_matches_integer_values_and_preserves_card_name():
+	var card = autofree(CardBase.new())
+	var definition = {
+		"range_min": 1, "range_max": 3, "power": 2, "speed": 3,
+		"armor": 0, "guard": 4, "gauge_cost": 0,
+		"effects": [{"effect_type": StrikeEffects.Powerup, "amount": 2}],
+		"boost": {"boost_type": "continuous", "effects": []},
+	}
+	var float_definition = JSON.parse_string(JSON.stringify(definition))
+	assert_eq(card._build_fallback_card_text("Version 2.0", "Boost", float_definition),
+		card._build_fallback_card_text("Version 2.0", "Boost", definition))
+	definition.erase("boost")
+	definition["exceed_cost"] = 3
+	definition["range"] = "N/A"
+	float_definition = JSON.parse_string(JSON.stringify(definition))
+	assert_eq(card._build_fallback_card_text("Version 2.0", "", float_definition),
+		card._build_fallback_card_text("Version 2.0", "", definition))
+
+func test_fight_combined_power_text_uses_integer_display():
+	var deck = CardDataManager.get_deck_from_str_id("fight")
+	for key in ["ability_effects", "exceed_ability_effects"]:
+		var ability = deck[key][0]
+		var effect = ability["per_force_effect"].duplicate(true)
+		effect["amount"] *= floor(float(ability["force_max"]))
+		effect.erase("combine_multiple_into_one")
+		assert_eq(typeof(effect["amount"]), TYPE_FLOAT)
+		assert_eq(GameStrings.get_effect_type_text(effect), "+%d威力" % int(ability["force_max"]))
+		assert_eq(GameStrings.get_choice_summary([effect], ""), "威力+%d" % int(ability["force_max"]))
+		assert_eq(typeof(effect["amount"]), TYPE_FLOAT, "Rendering must not mutate the effect")
+
+func test_global_numeric_effect_text_matches_integer_values():
+	for effect_type in [
+		StrikeEffects.Powerup, StrikeEffects.Speedup, StrikeEffects.Armorup,
+		StrikeEffects.Guardup, StrikeEffects.Advance, StrikeEffects.Draw,
+		StrikeEffects.SpendLife, StrikeEffects.TakeDamage,
+	]:
+		for amount in [0, 2, 3, -2]:
+			var effect = {"effect_type": effect_type, "amount": amount}
+			var float_effect = {"effect_type": effect_type, "amount": float(amount)}
+			assert_eq(GameStrings.get_effect_text(float_effect), GameStrings.get_effect_text(effect))
+			assert_eq(GameStrings.get_choice_summary([float_effect], ""), GameStrings.get_choice_summary([effect], ""))
+	var choices = [
+		{"effect_type": StrikeEffects.Powerup, "amount": 2.0},
+		{"effect_type": StrikeEffects.Powerup, "amount": 3.0},
+	]
+	assert_eq(GameStrings.get_choice_summary(choices, ""), "威力+2-3")
+	assert_eq(GameStrings.get_effect_type_text({
+		"effect_type": StrikeEffects.Rangeup, "amount": 0.0, "amount2": 2.0,
+	}), "+0 - +2距离")
+
+func test_numeric_text_preserves_fractions_symbols_and_authored_strings():
+	assert_eq(GameStrings.get_effect_type_text({"effect_type": StrikeEffects.Powerup, "amount": 2.5}), "+2.5威力")
+	assert_eq(GameStrings.get_effect_type_text({"effect_type": StrikeEffects.Powerup, "amount": "strike_x"}), "+X威力")
+	assert_eq(GameStrings.get_speed_description({"type": "special", "speed": "N/A"}), "（特N/A速）")
+	assert_eq(GameStrings.get_effect_text({"override_description": "版本2.0，威力+2.5"}), "版本2.0，威力+2.5")
+	assert_eq(GameStrings.get_display_name_with_speed({
+		"display_name": "Version 2.0", "type": "special", "speed": 3.0,
+	}), "Version 2.0（特3速）")
+
+func test_resource_condition_and_nested_effect_text_use_integer_display():
+	for effect_type in [StrikeEffects.ForceForEffect, StrikeEffects.GaugeForEffect]:
+		var effect = {
+			"effect_type": effect_type, "force_max": 3, "gauge_max": 3,
+			"per_force_effect": {"effect_type": StrikeEffects.Powerup, "amount": 2},
+			"per_gauge_effect": {"effect_type": StrikeEffects.Powerup, "amount": 2},
+		}
+		var float_effect = JSON.parse_string(JSON.stringify(effect))
+		assert_eq(GameStrings.get_effect_text(float_effect), GameStrings.get_effect_text(effect))
+		assert_eq(GameStrings.get_force_for_effect_summary(float_effect, ""), GameStrings.get_force_for_effect_summary(effect, ""))
+		assert_eq(GameStrings.get_gauge_for_effect_summary(float_effect, ""), GameStrings.get_gauge_for_effect_summary(effect, ""))
+	var conditional = {
+		"effect_type": StrikeEffects.Powerup, "amount": 2,
+		"condition": "life_equal_or_below", "condition_amount": 3,
+		"and": {"effect_type": StrikeEffects.Draw, "amount": 1},
+	}
+	var float_conditional = JSON.parse_string(JSON.stringify(conditional))
+	assert_eq(GameStrings.get_effect_text(float_conditional), GameStrings.get_effect_text(conditional))
+	assert_eq(GameStrings.get_condition_text(float_conditional, 3.0, 0.0, ""),
+		GameStrings.get_condition_text(conditional, 3, 0, ""))
+	assert_eq(GameStrings.get_on_exceed_text({"effect_type": StrikeEffects.Draw, "amount": 3.0}), "当你觉醒时：抽3\n")
+
+func test_global_stat_notices_use_integer_display_without_changing_event():
+	var game = autofree(NoticeGame.new())
+	for event_type in [
+		Enums.EventType.EventType_Strike_PowerUp, Enums.EventType.EventType_Strike_SpeedUp,
+		Enums.EventType.EventType_Strike_ArmorUp, Enums.EventType.EventType_Strike_GuardUp,
+		Enums.EventType.EventType_Strike_RangeUp, Enums.EventType.EventType_Strike_SetX,
+		Enums.EventType.EventType_Strike_DodgeAttacksAtRange,
+	]:
+		var event = {
+			"event_type": event_type, "event_player": Enums.PlayerId.PlayerId_Player,
+			"number": 2, "extra_info": 3, "extra_info2": "", "reason": "",
+		}
+		game._stat_notice_event(event)
+		var expected = game.notice_text
+		event["number"] = 2.0
+		event["extra_info"] = 3.0
+		game._stat_notice_event(event)
+		assert_eq(game.notice_text, expected)
+		assert_eq(typeof(event["number"]), TYPE_FLOAT)
+	game._stat_notice_event({
+		"event_type": Enums.EventType.EventType_Strike_PowerUp,
+		"event_player": Enums.PlayerId.PlayerId_Player, "number": 2.5, "reason": "",
+	})
+	assert_eq(game.notice_text, "+2.5 威力")
+
 func test_normal_card_name_is_localized_in_combat_output():
 	var game_strings = GameStringsScript.new()
 	var card_names = {

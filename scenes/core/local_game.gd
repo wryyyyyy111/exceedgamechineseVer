@@ -85,7 +85,6 @@ var dongshilang_pending_ice_action_context : Dictionary = {}
 
 var decision_info : DecisionInfo = DecisionInfo.new()
 var active_boost : Boost = null
-var preparing_boost_info : Dictionary = {}
 var heiqiyihu_pending_thresholds : Array = []
 var heiqiyihu_threshold_context : Dictionary = {}
 var heiqiyihu_guardian_setup : Dictionary = {}
@@ -626,8 +625,15 @@ class Boost:
 	# boost replaces this one, so this boost's own on_boost character effects
 	# (e.g. UA "结算加成摸 1 张") must not trigger.
 	var skip_on_boost_effects = false
+	var preparation_effects : Array = []
+	var preparation_effects_resolved : int = 0
 	# Dongshilang: 冰晶角色主行动在整段（1~N 张冰晶）结束后，仅询问一次取消。
 	var dongshilang_ice_character_action_cancel_once = false
+	# An attack effect is playing its attack card as a boost. It uses the normal
+	# counter window, then resumes the strike instead of normal boost cleanup.
+	var strike_card_conversion = false
+	var strike_card_conversion_effect = null
+	var strike_card_conversion_sustain = true
 
 
 var player : Player
@@ -969,7 +975,7 @@ func _continue_heiqiyihu_guardian_setup():
 	elif active_strike.heiqiyihu_required_face_attack:
 		do_strike(active_strike.initiator, -1, false, -1, false, true)
 	elif active_strike.initiator.next_strike_from_gauge or active_strike.initiator.next_strike_from_sealed:
-		create_event(Enums.EventType.EventType_Strike_FromGauge, active_strike.initiator.my_id, 0)
+		create_event(Enums.EventType.EventType_Strike_FromGauge, active_strike.initiator.my_id, 0, "", source)
 	else:
 		create_event(Enums.EventType.EventType_ForceStartStrike, active_strike.initiator.my_id, 0)
 
@@ -1037,8 +1043,8 @@ func _get_heiqiyihu_guardian_boost(record : Dictionary) -> Dictionary:
 	if source.definition["type"] != "special":
 		return boost
 	var bonus = 1
-	var owner = _get_player(record["player"])
-	var attack = active_strike.get_player_card(owner)
+	var guardian_player = _get_player(record["player"])
+	var attack = active_strike.get_player_card(guardian_player)
 	# Both attacks have paid (or been replaced) before these five boosts'
 	# first strike timing. Never amplify from an invalidated original attack.
 	if active_strike.strike_state >= StrikeState.StrikeState_DuringStrikeBonuses \
@@ -1059,21 +1065,21 @@ func _move_heiqiyihu_virtual_source(source_id : int, destination : String) -> bo
 	var record = _get_heiqiyihu_virtual_guardian(source_id)
 	if record.is_empty():
 		return false
-	var owner = _get_player(record["player"])
+	var guardian_player = _get_player(record["player"])
 	# The copied effects outlive the entity. Never fetch another copy by name,
 	# or take this entity back from a new zone.
-	if not owner.is_card_in_discards(source_id):
+	if not guardian_player.is_card_in_discards(source_id):
 		return false
 	var source_card = card_db.get_card(source_id)
-	owner.remove_card_from_discards(source_id)
+	guardian_player.remove_card_from_discards(source_id)
 	match destination:
 		"gauge":
-			owner.add_to_gauge(source_card)
+			guardian_player.add_to_gauge(source_card)
 		"bleach":
-			owner.add_to_bleach(source_card)
+			guardian_player.add_to_bleach(source_card)
 		"overdrive":
-			owner.add_to_overdrive(source_card)
-	_append_log_full(Enums.LogType.LogType_CardInfo, owner,
+			guardian_player.add_to_overdrive(source_card)
+	_append_log_full(Enums.LogType.LogType_CardInfo, guardian_player,
 		"守护原卡%s移入%s。" % [_log_card_name(source_card.definition["display_name"]), destination])
 	return true
 
@@ -1621,7 +1627,7 @@ func _renea_reveal_facedown(renea_player : Player):
 				order_choices.append({
 					"effect_type": "renea_reveal_fd_do",
 					"boost_idx": renea_oi,
-					"_choice_text": renea_od if not renea_od.is_empty() else "Boost %d" % (renea_oi + 1)
+					"_choice_text": renea_od if not renea_od.is_empty() else "加成 %d" % (renea_oi + 1)
 				})
 			change_game_state(Enums.GameState.GameState_PlayerDecision)
 			decision_info.clear()
@@ -2858,7 +2864,7 @@ func _skip_strike_initiation_during_active_strike(effect, performing_player : Pl
 func _is_action_resolution_in_progress() -> bool:
 	return active_start_of_turn_effects or active_end_of_turn_effects or active_overdrive or active_boost \
 		or active_character_action or active_exceed or active_change_cards or active_prepare \
-		or active_special_draw_effect or active_post_action_effect or active_strike or preparing_boost_info
+		or active_special_draw_effect or active_post_action_effect or active_strike
 
 func _disable_strike_initiation_choices_during_active_strike(choices):
 	if not active_strike:
@@ -2919,7 +2925,8 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 		return
 	if 'character_effect' in effect and effect['character_effect']:
 		performing_player.strike_stat_boosts.active_character_effects.append(effect)
-		create_event(Enums.EventType.EventType_Strike_CharacterEffect, performing_player.my_id, card_id, "", effect)
+		if not effect.get("hide_effect", false):
+			create_event(Enums.EventType.EventType_Strike_CharacterEffect, performing_player.my_id, card_id, "", effect)
 	var local_conditions = LocalStrikeConditions.new()
 	var performing_start = performing_player.arena_location
 	var opposing_player : Player = _get_player(get_other_player(performing_player.my_id))
@@ -3990,10 +3997,12 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				handle_strike_effect(card_id, {"effect_type":StrikeEffects.Choice,StrikeEffects.Choice:[{"_choice_text":"加入瞬哄","effect_type":StrikeEffects.SoifonTopdeckToShunko},{"_choice_text":"加入怒气区","effect_type":StrikeEffects.SoifonTopdeckToGauge}]}, performing_player)
 		StrikeEffects.SoifonTopdeckToShunko:
 			if not performing_player.deck.is_empty():
-				performing_player.add_to_bleach(performing_player.deck.pop_front())
+				var top_card = performing_player.deck[0]
+				performing_player.remove_top_card_from_deck()
+				performing_player.on_hand_removed_topdeck(top_card.id)
+				performing_player.add_to_bleach(top_card)
 		StrikeEffects.SoifonTopdeckToGauge:
-			if not performing_player.deck.is_empty():
-				performing_player.add_to_gauge(performing_player.deck.pop_front())
+			performing_player.add_top_deck_to_gauge(1)
 		StrikeEffects.SoifonHankisousai:
 			if not active_strike:
 				return
@@ -4108,7 +4117,7 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 			var minato_otp_total = performing_player.discards.size() + performing_player.gauge.size()
 			if minato_otp_total == 0:
 				return
-			if not active_strike:
+			if not active_strike and not active_boost:
 				active_character_action = true
 			change_game_state(Enums.GameState.GameState_PlayerDecision)
 			decision_info.clear()
@@ -4290,19 +4299,18 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 		StrikeEffects.BoostThisThenSustain:
 			# This effect is expected to be mid-strike.
 			assert(active_strike)
-			var card_name = card_db.get_card_name(card_id)
-			performing_player.strike_stat_boosts.move_strike_to_boosts = true
-			if 'dont_sustain' in effect: # Should eventually rename effect to be more general
-				performing_player.strike_stat_boosts.move_strike_to_boosts_sustain = not effect['dont_sustain']
-			var and_sustain_str = ""
-			if performing_player.strike_stat_boosts.move_strike_to_boosts_sustain:
-				and_sustain_str = " and sustains"
-			_append_log_full(Enums.LogType.LogType_Effect, performing_player, "进行加成%s %s。" % [and_sustain_str, _log_card_name(card_name)])
-			# This removes the attack from play, so it needs to affect stats.
-			handle_strike_attack_immediate_removal(performing_player)
-			if 'boost_effect' in effect:
-				var boost_effect = effect['boost_effect']
-				do_effect_if_condition_met(performing_player, card_id, boost_effect, null)
+			assert(active_boost == null)
+			var conversion_boost = Boost.new()
+			conversion_boost.playing_player = performing_player
+			conversion_boost.card = card_db.get_card(card_id)
+			conversion_boost.strike_card_conversion = true
+			conversion_boost.strike_card_conversion_effect = effect.get("boost_effect", null)
+			conversion_boost.strike_card_conversion_sustain = not effect.get("dont_sustain", false)
+			active_boost = conversion_boost
+			var facedown = conversion_boost.card.definition["boost"].get("facedown", false)
+			create_event(Enums.EventType.EventType_Boost_Played, performing_player.my_id, card_id, "", facedown)
+			change_game_state(Enums.GameState.GameState_Boost_Processing)
+			continue_resolve_boost()
 		StrikeEffects.BoostThenSustain:
 			# This effect is expected to be mid-strike.
 			assert(active_strike)
@@ -4532,6 +4540,13 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 			var choices = []
 			for choice_source in effect[StrikeEffects.Choice]:
 				var choice = choice_source.duplicate(true)
+				if performing_player.deck_def.get("id") == "miyuki" and performing_player.exceeded \
+						and active_character_action and active_boost and active_boost.boosted_from_gauge \
+						and active_boost.playing_player == performing_player \
+						and active_boost.card.id == card_id \
+						and active_boost.card.definition.get("id") == "miyuki_spiritheal" \
+						and effect.get("timing") == "now" and choice.get("effect_type") == StrikeEffects.Pass:
+					choice["_choice_text"] = "跳过(然后会进行角色UA的询问，是否发起战斗)"
 				if effect.has('card_id') and not choice.has('card_id'):
 					choice['card_id'] = effect['card_id']
 				if effect.get("preserve_source_on_choices"):
@@ -4869,7 +4884,7 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 			else:
 				_append_log_full(Enums.LogType.LogType_Effect, performing_player, "没有其他可复制的后置效果。")
 		StrikeEffects.Critical:
-			var crit_name = "Critical"
+			var crit_name = "爆气!"
 			if 'alt_crit_name' in effect:
 				crit_name = effect['alt_crit_name']
 
@@ -5301,12 +5316,12 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 			var renea_boosts = performing_player.get_boosts(true)
 			if renea_boosts.is_empty():
 				return
-			var renea_sustain_choices = [{"_choice_text": "Pass", "effect_type": "pass"}]
+			var renea_sustain_choices = [{"_choice_text": "跳过", "effect_type": "跳过"}]
 			for renea_sb in renea_boosts:
 				renea_sustain_choices.append({
 					"effect_type": "renea_mimetism_sustain_do",
 					"boost_id": renea_sb.id,
-					"_choice_text": "Sustain %s (2F)" % card_db.get_card_name(renea_sb.id)
+					"_choice_text": "维持 %s (2F)" % card_db.get_card_name(renea_sb.id)
 				})
 			do_effect_if_condition_met(performing_player, card_id, {
 				"effect_type": StrikeEffects.ForceForEffect,
@@ -5315,9 +5330,9 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				"overall_effect": {
 					"effect_type": StrikeEffects.Choice,
 					StrikeEffects.Choice: renea_sustain_choices,
-					"override_description": "Sustain a Continuous Boost?"
+					"override_description": "维持一个持续性加成？"
 				},
-				"override_description": "Spend 2 Force to sustain a Continuous Boost"
+				"override_description": "花费2点能量以维持一个持续性加成"
 			}, null)
 		"renea_mimetism_sustain_do":
 			var renea_ms_id = effect.get("boost_id", -1)
@@ -5325,7 +5340,7 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				return
 			if renea_ms_id not in performing_player.sustained_boosts:
 				performing_player.sustained_boosts.append(renea_ms_id)
-			_append_log_full(Enums.LogType.LogType_Effect, performing_player, "sustains a Continuous Boost.")
+			_append_log_full(Enums.LogType.LogType_Effect, performing_player, "维持了一个持续性加成。")
 		"renea_pakout":
 			# Pakout: return this card to hand, then draw a card
 			if card_id == -1:
@@ -5389,14 +5404,14 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				renea_cu_choices.append({
 					"effect_type": "renea_conspiracy_unearthed_do",
 					"card_id": renea_cu_card.id,
-					"_choice_text": "Add %s to gauge" % card_db.get_card_name(renea_cu_card.id)
+					"_choice_text": "将 %s 加入怒气区" % card_db.get_card_name(renea_cu_card.id)
 				})
 			if renea_cu_choices.is_empty():
 				return
 			do_effect_if_condition_met(performing_player, card_id, {
 				"effect_type": StrikeEffects.Choice,
 				StrikeEffects.Choice: renea_cu_choices,
-				"override_description": "Opponent's hand is revealed. Choose a card to add to their Gauge."
+				"override_description": "展示对手的手牌。选择一张手牌加入其怒气区。"
 			}, null)
 		"renea_conspiracy_unearthed_do":
 			var renea_cu_id = effect.get("card_id", -1)
@@ -6085,14 +6100,14 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 			var syrus_dfk_choices = []
 			for syrus_dfk_id in syrus_dfk_ids:
 				syrus_dfk_choices.append({
-					"_choice_text": "Keep %s" % card_db.get_card_name(syrus_dfk_id),
+					"_choice_text": "保留 %s" % card_db.get_card_name(syrus_dfk_id),
 					"effect_type": "syrus_dredge_fury_retrieve",
 					"card_id": syrus_dfk_id
 				})
 			do_effect_if_condition_met(performing_player, card_id, {
 				"effect_type": StrikeEffects.Choice,
 				StrikeEffects.Choice: syrus_dfk_choices,
-				"override_description": "Choose one spent Gauge to add to hand"
+				"override_description": "选择一个已使用的怒气加入手牌"
 			}, null)
 		"syrus_dredge_fury_retrieve":
 			var syrus_ret_id = effect.get("card_id", -1)
@@ -6137,12 +6152,12 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 			var syrus_rg_boosts = performing_player.get_boosts(true)
 			if syrus_rg_boosts.is_empty():
 				return
-			var syrus_rg_choices = [{"effect_type": StrikeEffects.Pass, "_choice_text": "Pass"}]
+			var syrus_rg_choices = [{"effect_type": StrikeEffects.Pass, "_choice_text": "跳过"}]
 			for syrus_rg_b in syrus_rg_boosts:
 				syrus_rg_choices.append({
 					"effect_type": "syrus_reckless_greed_strike",
 					"boost_id": syrus_rg_b.id,
-					"_choice_text": "Discard %s & Strike" % card_db.get_card_name(syrus_rg_b.id)
+					"_choice_text": "弃置 %s 并发起战斗" % card_db.get_card_name(syrus_rg_b.id)
 				})
 			do_effect_if_condition_met(performing_player, card_id, {
 				"effect_type": StrikeEffects.Choice,
@@ -9298,7 +9313,7 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 				decision_info.source = "gauge"
 				if len(performing_player.gauge) > 0:
 					if not active_boost: # Boosts will send strikes on their own
-						create_event(Enums.EventType.EventType_Strike_FromGauge, performing_player.my_id, 0)
+						create_event(Enums.EventType.EventType_Strike_FromGauge, performing_player.my_id, 0, "", "gauge")
 					change_game_state(Enums.GameState.GameState_WaitForStrike)
 					performing_player.next_strike_faceup = true
 					performing_player.next_strike_from_gauge = true
@@ -9326,7 +9341,7 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 					performing_player.next_strike_faceup = not performing_player.sealed_area_is_secret
 					performing_player.next_strike_from_sealed = true
 					if not active_boost: # Boosts will send strikes on their own
-						create_event(Enums.EventType.EventType_Strike_FromGauge, performing_player.my_id, 0)
+						create_event(Enums.EventType.EventType_Strike_FromGauge, performing_player.my_id, 0, "", "sealed")
 				else:
 					change_game_state(Enums.GameState.GameState_WaitForStrike)
 					var strike_info = {
@@ -9741,7 +9756,7 @@ func handle_strike_effect(card_id : int, effect, performing_player : Player):
 			do_effect_if_condition_met(performing_player, card_id, {
 				"effect_type": StrikeEffects.Choice,
 				StrikeEffects.Choice: [
-					{ "effect_type": "draw", "amount": 1, "override_description": "Draw 1 card", "pooky_stunned_draw_on_death": true },
+					{ "effect_type": "draw", "amount": 1, "override_description": "摸1张牌", "pooky_stunned_draw_on_death": true },
 					{ "effect_type": "pass", "override_description": "No", "pooky_stunned_draw_on_death": true }
 				],
 				"override_description": "You are stunned. Draw a card?"
@@ -10421,7 +10436,7 @@ func remove_remaining_effect(effect, card_id):
 	var base_effect = get_base_remaining_effect(effect)
 	if active_strike and 'timing' in base_effect:
 		for remaining_effect in active_strike.remaining_effect_list:
-			if remaining_effect['timing'] == base_effect['timing'] and remaining_effect['card_id'] == card_id:
+			if 'timing' in remaining_effect and remaining_effect['timing'] == base_effect['timing'] and remaining_effect['card_id'] == card_id:
 				active_strike.remaining_effect_list.erase(remaining_effect)
 				break
 
@@ -10439,6 +10454,18 @@ func get_base_remaining_effect(effect):
 					return remaining_effect
 	return effect
 
+static func is_automatic_simultaneous_effect(effect: Dictionary) -> bool:
+	if effect.get("resolve_before_simultaneous_effects", false) or effect.get("hide_effect", false):
+		return true
+	# Standalone restriction cleanup is bookkeeping, not an orderable card ability.
+	return effect.get("timing") == "cleanup" \
+		and not effect.get("and") and not effect.has("negative_condition_effect") \
+		and effect.get("effect_type") in [
+			StrikeEffects.RemoveBlockOpponentMove,
+			StrikeEffects.RemoveBlockOpponentAdvanceClose,
+			StrikeEffects.RemoveOpponentCantMovePast
+		]
+
 func sort_next_remaining_effects_to_choose(performing_player : Player):
 	var remaining_effects = active_strike.remaining_effect_list
 	if active_strike.extra_attack_in_progress:
@@ -10446,17 +10473,30 @@ func sort_next_remaining_effects_to_choose(performing_player : Player):
 
 	var effects_to_choose = {
 		"condition_met": [],
-		"condition_unmet": []
+		"condition_unmet": [],
+		"automatic_before": [],
+		"automatic_after": []
 	}
 	for effect in remaining_effects:
-		if is_effect_condition_met(performing_player, effect, null):
-			effects_to_choose["condition_met"].append(effect)
-		elif 'negative_condition_effect' in effect and is_effect_condition_met(performing_player, effect['negative_condition_effect'], null):
-			effects_to_choose["condition_met"].append(effect['negative_condition_effect'])
+		var condition_met = is_effect_condition_met(performing_player, effect, null)
+		if not condition_met and effect.has("negative_condition_effect"):
+			condition_met = is_effect_condition_met(performing_player, effect["negative_condition_effect"], null)
+		if condition_met:
+			var bucket = "condition_met"
+			if is_automatic_simultaneous_effect(effect):
+				bucket = "automatic_before"
+				# Cleanup choices can add counters, so remove them only after those choices.
+				if effect.get("timing") == "cleanup" \
+						and not effect.get("resolve_before_simultaneous_effects", false) \
+						and effect.get("effect_type") in [StrikeEffects.ResetBonusArmorCounters, StrikeEffects.ResetBonusGuardCounters]:
+					bucket = "automatic_after"
+			# Keep the queued parent even when its otherwise branch is the runnable one.
+			effects_to_choose[bucket].append(effect)
 		else:
 			# Should only be here if there was an effect that wasn't met
 			assert("condition" in effect)
-			if effect["condition"] not in StrikeStaticConditions:
+			if effect["condition"] not in StrikeStaticConditions \
+					and not is_automatic_simultaneous_effect(effect):
 				effects_to_choose["condition_unmet"].append(effect)
 	return effects_to_choose
 
@@ -10495,15 +10535,12 @@ func do_remaining_effects(performing_player : Player, next_state):
 			var condition_met_effects = effects_to_choose["condition_met"]
 			var condition_unmet_effects = effects_to_choose["condition_unmet"]
 
-			# Check if any of these effects want to be resolved immediately
-			# If so, just pick the first one.
-			# This is done to reduce unnecessary choice dialogs for the user (ie. exceed Hazama).
-			if condition_met_effects.size() + condition_unmet_effects.size() > 1:
-				for effect in condition_met_effects + condition_unmet_effects:
-					if 'resolve_before_simultaneous_effects' in effect and effect['resolve_before_simultaneous_effects']:
-						condition_met_effects = [effect]
-						condition_unmet_effects = []
-						break
+			if effects_to_choose["automatic_before"]:
+				condition_met_effects = [effects_to_choose["automatic_before"][0]]
+				condition_unmet_effects = []
+			elif not condition_met_effects and effects_to_choose["automatic_after"]:
+				condition_met_effects = [effects_to_choose["automatic_after"][0]]
+				condition_unmet_effects = []
 
 			# See if at least one effect can be resolved, potentially satisfying another's condition
 			if condition_met_effects and condition_met_effects.size() + condition_unmet_effects.size() > 1:
@@ -10714,6 +10751,8 @@ func _yuanliuzhai_offer_counter_cards(performing_player : Player):
 		if _yuanliuzhai_effect_has_self_movement(boost_effect):
 			boost_moves_self = true
 			break
+	if not boost_moves_self and active_boost.strike_card_conversion_effect != null:
+		boost_moves_self = _yuanliuzhai_effect_has_self_movement(active_boost.strike_card_conversion_effect)
 	if not is_continuous and not boost_moves_self:
 		return
 	var can_offer_shinra = is_continuous and not _yuanliuzhai_counter_copies_publicly_unavailable(performing_player, "yuanliuzhai_netsu_jigoku")
@@ -12337,7 +12376,7 @@ func strike_send_attack_to_discard_or_gauge(performing_player : Player, card):
 					"amount": 1,
 					"character_effect": true
 				}],
-				"description": "Transformed normal: +1 Power to Special/Ultra attacks"
+				"description": "已转化普通技：特殊技和必杀技攻击威力+1"
 			}
 		if not performing_player.add_to_transforms(card):
 			if hit or stat_boosts.always_add_to_gauge:
@@ -12664,7 +12703,7 @@ func _play_forced_discard_boost(performing_player : Player, boost_card_id : int,
 		decision_info.ignore_costs = true
 	do_boost(performing_player, boost_card_id, [], true)
 
-func begin_resolve_boost(performing_player : Player, card_id : int, additional_boost_ids = [], shuffle_discard_after : bool = false, overwrite_current_active : bool = false):
+func begin_resolve_boost(performing_player : Player, card_id : int, additional_boost_ids = [], shuffle_discard_after : bool = false, overwrite_current_active : bool = false, preparation_effects : Array = []):
 	var dongshilang_cancel_once = decision_info.dongshilang_ice_character_action_cancel_once \
 		and performing_player.deck_def.get("id", "") == "dongshilang"
 	if dongshilang_cancel_once:
@@ -12728,6 +12767,7 @@ func begin_resolve_boost(performing_player : Player, card_id : int, additional_b
 
 	# Resolve all immediate/now effects
 	# If continuous, put it into continous boost tracking.
+	active_boost.preparation_effects = preparation_effects
 	resolving_boost_before_queue = true
 	continue_resolve_boost()
 
@@ -12739,6 +12779,13 @@ func continue_resolve_boost():
 		if game_state == Enums.GameState.GameState_AutoStrike:
 			active_boost.strike_after_boost_auto_strike = true
 	change_game_state(Enums.GameState.GameState_Boost_Processing)
+
+	while active_boost.preparation_effects_resolved < active_boost.preparation_effects.size():
+		var preparation_effect = active_boost.preparation_effects[active_boost.preparation_effects_resolved]
+		do_effect_if_condition_met(active_boost.playing_player, -1, preparation_effect, null)
+		if game_over or game_state == Enums.GameState.GameState_PlayerDecision:
+			return
+		active_boost.preparation_effects_resolved += 1
 
 	var effects = card_db.get_card_boost_effects_now_immediate(active_boost.card)
 	# Renea: face-down continuous boosts skip now/immediate effects until reveal
@@ -12783,6 +12830,9 @@ func continue_resolve_boost():
 				continue
 			else:
 				active_boost.checked_counter = true
+		if active_boost.strike_card_conversion:
+			_continue_strike_card_conversion_boost()
+			return
 		if active_boost.boost_negated and active_boost.effects_resolved < len(effects) + len(character_effects):
 			active_boost.effects_resolved = len(effects) + len(character_effects)
 
@@ -12877,6 +12927,37 @@ func continue_resolve_boost():
 		elif active_strike and game_state != Enums.GameState.GameState_PlayerDecision:
 			active_boost = null
 			change_game_state(Enums.GameState.GameState_Strike_Processing)
+
+func _continue_strike_card_conversion_boost():
+	var conversion_boost = active_boost
+	var performing_player = conversion_boost.playing_player
+	var card = conversion_boost.card
+
+	if conversion_boost.effects_resolved == 0:
+		if conversion_boost.boost_negated:
+			_append_log_full(Enums.LogType.LogType_CardInfo, performing_player,
+				"加成%s被无效化并弃置。" % _log_card_name(card.definition["display_name"]))
+			change_stats_when_attack_leaves_play(performing_player)
+			performing_player.add_to_discards(card)
+			active_strike.cards_in_play.erase(card)
+		else:
+			performing_player.strike_stat_boosts.move_strike_to_boosts = true
+			performing_player.strike_stat_boosts.move_strike_to_boosts_sustain = conversion_boost.strike_card_conversion_sustain
+			var sustain_text = "并维持" if conversion_boost.strike_card_conversion_sustain else ""
+			_append_log_full(Enums.LogType.LogType_Effect, performing_player,
+				"将%s作为加成打出%s。" % [_log_card_name(card.definition["display_name"]), sustain_text])
+			handle_strike_attack_immediate_removal(performing_player)
+			if conversion_boost.strike_card_conversion_effect != null:
+				do_effect_if_condition_met(performing_player, card.id,
+					conversion_boost.strike_card_conversion_effect, null)
+				if game_state == Enums.GameState.GameState_PlayerDecision:
+					return
+		conversion_boost.effects_resolved = 1
+
+	active_boost = null
+	change_game_state(Enums.GameState.GameState_Strike_Processing)
+	active_strike.effects_resolved_in_timing += 1
+	continue_resolve_strike()
 
 func _should_skip_geoffrey_compulsive_purification_counter(counter_player : Player, counter_effect : Dictionary, boosted_definition_id : String) -> bool:
 	if counter_player.deck_def.get("id", "") != "geoffrey":
@@ -13106,6 +13187,16 @@ func boost_play_cleanup(performing_player : Player):
 		begin_resolve_boost(performing_player, next_boost_id, [], active_boost.shuffle_discard_on_cleanup, true)
 		return
 
+	# Keep the boost's pending strike until Outrun finishes, including Reading's named card.
+	if not active_strike and active_boost.strike_after_boost \
+			and performing_player.deck_def.get("id") == "minato" \
+			and performing_player.has_transform("minato_flight_13") \
+			and not performing_player.minato_outrun_triggered_before_strike:
+		performing_player.minato_outrun_triggered_before_strike = true
+		handle_strike_effect(-1, {"effect_type": "minato_outrun_the_past"}, performing_player)
+		if game_state == Enums.GameState.GameState_PlayerDecision:
+			return
+
 	if active_boost.shuffle_discard_on_cleanup:
 		var shuffle_effect = { "effect_type": StrikeEffects.ShuffleDiscardInPlace }
 		handle_strike_effect(-1, shuffle_effect, performing_player)
@@ -13160,11 +13251,11 @@ func boost_play_cleanup(performing_player : Player):
 				decision_info.player = performing_player.my_id
 				if performing_player.next_strike_from_sealed:
 					decision_info.source = "sealed"
-					create_event(Enums.EventType.EventType_Strike_FromGauge, performing_player.my_id, 0)
+					create_event(Enums.EventType.EventType_Strike_FromGauge, performing_player.my_id, 0, "", "sealed")
 				elif performing_player.next_strike_from_gauge:
 					if len(performing_player.gauge) > 0:
 						decision_info.source = "gauge"
-						create_event(Enums.EventType.EventType_Strike_FromGauge, performing_player.my_id, 0)
+						create_event(Enums.EventType.EventType_Strike_FromGauge, performing_player.my_id, 0, "", "gauge")
 					else:
 						var strike_info = {
 							"card_id": -1,
@@ -13928,7 +14019,7 @@ func do_exceed(performing_player : Player, card_ids : Array, spent_life_for_gaug
 		active_exceed = true
 	return true
 
-func do_boost(performing_player : Player, card_id : int, payment_card_ids : Array = [], use_free_force = false, spent_life_for_force : int = 0, additional_boost_ids : Array = [], facedown_override = null) -> bool:
+func do_boost(performing_player : Player, card_id : int, payment_card_ids : Array = [], use_free_force = false, spent_life_for_force : int = 0, additional_boost_ids : Array = [], facedown_override = null, infuse_payment : Variant = null) -> bool:
 	printlog("MainAction: BOOST by %s - %s" % [get_player_name(performing_player.my_id), card_db.get_card_id(card_id)])
 	if game_state != Enums.GameState.GameState_PickAction or performing_player.my_id != active_turn_player:
 		if not wait_for_mid_strike_boost():
@@ -13979,6 +14070,38 @@ func do_boost(performing_player : Player, card_id : int, payment_card_ids : Arra
 		printlog("ERROR: Tried to boost a card whose boost is N/A")
 		return false
 
+	var infuse_effect = performing_player.get_boost_infuse_effect([card_id] + additional_boost_ids)
+	var infuse_resolution = null
+	if infuse_payment != null:
+		if not (infuse_payment is Array or infuse_payment is Dictionary):
+			printlog("ERROR: Invalid boost infuse payment.")
+			return false
+		if not infuse_payment.is_empty():
+			if not infuse_effect:
+				printlog("ERROR: This boost cannot be infused.")
+				return false
+			for option in performing_player.get_boost_infuse_payment_options([card_id] + additional_boost_ids, payment_card_ids, spent_life_for_force):
+				if infuse_payment is Array and option.get("effect_type") == StrikeEffects.GaugeForEffect \
+						and infuse_payment.size() == option["gauge_max"]:
+					infuse_resolution = option["overall_effect"]
+				elif infuse_payment is Dictionary and option.get("effect_type") == StrikeEffects.GaugeForEffect \
+						and infuse_payment.size() == 1 and infuse_payment.get("free_gauge") == option["gauge_max"] \
+						and performing_player.free_gauge >= option["gauge_max"]:
+					infuse_resolution = option["overall_effect"]
+				elif infuse_payment is Dictionary and option.get("effect_type") == StrikeEffects.SpendLife \
+						and infuse_payment.size() == 1 and infuse_payment.get("life") == option["amount"]:
+					infuse_resolution = option
+			if not infuse_resolution:
+				printlog("ERROR: Invalid payment option for boost infuse.")
+				return false
+			if infuse_payment is Array:
+				for infuse_card_id in infuse_payment:
+					if not performing_player.is_card_in_gauge(infuse_card_id) \
+							or infuse_card_id in [card_id] + additional_boost_ids \
+							or infuse_card_id in payment_card_ids:
+						printlog("ERROR: Boost infuse must use a separate gauge card.")
+						return false
+
 	if not decision_info.ignore_costs:
 		if 'gauge_cost' in card.definition['boost']:
 			var gauge_cost = card.definition['boost']['gauge_cost']
@@ -13988,13 +14111,9 @@ func do_boost(performing_player : Player, card_id : int, payment_card_ids : Arra
 				printlog("ERROR: Tried to boost action but can't pay gauge cost with these cards.")
 				return false
 		else:
+			# 宝藏骑士觉醒后由 on_exceed 的 generate_free_force 提供「白送 1 点」，
+			# 这里不要再额外减费用，否则会和免费能量重复计算。
 			var force_cost = card.definition['boost']['force_cost']
-			# Treasure exceeded UA: on your turn, your boost Force costs are reduced by 1.
-			if game_state == Enums.GameState.GameState_PickAction \
-					and performing_player.my_id == active_turn_player \
-					and performing_player.deck_def.get("id") == "treasure" \
-					and performing_player.exceeded:
-				force_cost = max(0, force_cost - 1)
 			if not performing_player.can_pay_cost_with(payment_card_ids, force_cost, 0, use_free_force, spent_life_for_force):
 				printlog("ERROR: Tried to boost action but can't pay force cost with these cards.")
 				return false
@@ -14009,6 +14128,14 @@ func do_boost(performing_player : Player, card_id : int, payment_card_ids : Arra
 		_append_log_full(Enums.LogType.LogType_Action, performing_player, "回合行动：加成")
 
 	_append_log_full(Enums.LogType.LogType_CardInfo, performing_player, "加成%s。" % _get_boost_and_card_name(card))
+
+	if infuse_payment != null and not infuse_payment.is_empty():
+		if infuse_payment is Array:
+			_append_log_full(Enums.LogType.LogType_CardInfo, performing_player, "花费1怒气，弃置%s。" % _log_card_name(card_db.get_card_name(infuse_payment[0])))
+			performing_player.discard(infuse_payment, 0, true)
+		elif infuse_payment.has("free_gauge"):
+			_append_log_full(Enums.LogType.LogType_Effect, performing_player, "以免费怒气灌注。")
+		do_effect_if_condition_met(performing_player, -1, infuse_resolution, null)
 
 	if payment_card_ids.size() > 0:
 		var card_names = card_db.get_card_name(payment_card_ids[0])
@@ -14027,21 +14154,15 @@ func do_boost(performing_player : Player, card_id : int, payment_card_ids : Arra
 	if decision_info.bonus_effect:
 		do_effect_if_condition_met(performing_player, -1, decision_info.bonus_effect, null)
 
-	# Resolve character effects that happen after payment but before the boost itself.
-	var before_boost_effects = performing_player.get_character_effects_at_timing("before_boost_effects")
-	assert(len(before_boost_effects) <= 1, "Multiple before_boost_effects require explicit sequencing")
-	for before_boost_effect in before_boost_effects:
-		do_effect_if_condition_met(performing_player, -1, before_boost_effect, null)
-		if game_state == Enums.GameState.GameState_PlayerDecision:
-			preparing_boost_info = {
-				'performing_player': performing_player,
-				'card_id': card_id,
-				'additional_boost_ids': additional_boost_ids,
-				'shuffle_discard_on_boost_cleanup': shuffle_discard_on_boost_cleanup
-			}
-			return true
+	var preparation_effects = []
+	if infuse_payment == null and infuse_effect \
+			and not performing_player.get_boost_infuse_payment_options([card_id] + additional_boost_ids).is_empty():
+		preparation_effects.append(infuse_effect)
 
-	begin_resolve_boost(performing_player, card_id, additional_boost_ids, shuffle_discard_on_boost_cleanup)
+	# Infuse before checking character effects that depend on the new state.
+	var before_boost_effects = performing_player.get_character_effects_at_timing("before_boost_effects")
+	preparation_effects.append_array(before_boost_effects)
+	begin_resolve_boost(performing_player, card_id, additional_boost_ids, shuffle_discard_on_boost_cleanup, false, preparation_effects)
 	return true
 
 func do_ex_transform(performing_player : Player, card_id : int, ex_card_id : int, continue_after_transform : bool = true, allow_single_card_transform : bool = false):
@@ -14083,7 +14204,7 @@ func do_ex_transform(performing_player : Player, card_id : int, ex_card_id : int
 					"character_effect": true
 				}
 			],
-			"description": "Transformed normal: +1 Power to Special/Ultra attacks"
+			"description": "已转化普通技：特殊技和必杀技攻击威力+1"
 		}
 
 	if ex_card_id == -1:
@@ -14370,7 +14491,7 @@ func do_strike(
 				var card_name = card_db.get_card_name(card_id)
 				_append_log_full(Enums.LogType.LogType_CardInfo, performing_player, "将%s设为明置攻击！" % _log_card_name(card_name))
 
-			# Eugenia wonderland bonus: +1 Power and +1 Speed (applied after initialize_new_strike cleared boosts)
+			# Eugenia Wonderland 奖励：威力+1、速度+1（在 initialize_new_strike 清空加成后应用）。
 			if use_face_attack and performing_player.deck_def.get("id") == "eugenia" and performing_player.exceeded:
 				var power_effect = {"effect_type": StrikeEffects.Powerup, "amount": 1, "character_effect": true}
 				var speed_effect = {"effect_type": StrikeEffects.Speedup, "amount": 1, "character_effect": true}
@@ -14670,11 +14791,17 @@ func do_force_for_armor(performing_player : Player, card_ids : Array, use_free_f
 		performing_player.force_for_armor_apf_tmp = 0
 		var saved_source = _last_effect_source_player_id
 		_last_effect_source_player_id = -1
-		var spent_gauge_with_holywarding = (
-			performing_player.transforms.any(func(card): return card.definition.get("id") == "emogine_holywarding")
+		var spent_gauge_for_transform = (
+			(
+				performing_player.transforms.any(func(card): return card.definition.get("id") == "emogine_holywarding")
+				or (
+					performing_player.deck_def.get("id") == "sydney"
+					and performing_player.has_transform("sydney_blossomhaze")
+				)
+			)
 			and card_ids.any(func(card_id): return performing_player.is_card_in_gauge(card_id))
 		)
-		performing_player.discard(card_ids, 0, spent_gauge_with_holywarding)
+		performing_player.discard(card_ids, 0, spent_gauge_for_transform)
 		_last_effect_source_player_id = saved_source
 		handle_strike_effect(decision_info.choice_card_id, {'effect_type': StrikeEffects.Armorup, 'amount': force_generated * armor_per_force}, performing_player)
 	continue_resolve_strike()
@@ -14926,7 +15053,7 @@ func do_choice(performing_player : Player, choice_index : int) -> bool:
 func set_player_action_processing_state():
 	if active_start_of_turn_effects or active_end_of_turn_effects or active_overdrive or active_boost \
 	or active_character_action or active_exceed or active_change_cards or active_prepare \
-	or active_special_draw_effect or active_post_action_effect or preparing_boost_info:
+	or active_special_draw_effect or active_post_action_effect:
 		game_state = Enums.GameState.GameState_Boost_Processing
 	elif active_strike:
 		game_state = Enums.GameState.GameState_Strike_Processing
@@ -14979,7 +15106,8 @@ func continue_player_action_resolution(performing_player : Player):
 			Enums.GameState.GameState_DiscardDownToMax,
 			Enums.GameState.GameState_WaitForStrike,
 		]:
-			if active_boost and not active_boost.checked_counter:
+			if active_boost and not active_boost.checked_counter \
+					and active_boost.preparation_effects_resolved >= active_boost.preparation_effects.size():
 				# A counter-boost temporarily gives control to the opponent; the
 				# original player's queued effects must wait until it finishes.
 				pass
@@ -14987,7 +15115,15 @@ func continue_player_action_resolution(performing_player : Player):
 				do_queued_effects(performing_player)
 
 		if game_state != Enums.GameState.GameState_PlayerDecision:
-			if active_special_draw_effect:
+			if active_boost:
+				if active_boost.preparation_effects_resolved < active_boost.preparation_effects.size():
+					active_boost.preparation_effects_resolved += 1
+				elif active_boost.checked_counter:
+					active_boost.effects_resolved += 1
+				else:
+					active_boost.counters_resolved += 1
+				continue_resolve_boost()
+			elif active_special_draw_effect:
 				check_hand_size_advance_turn(performing_player)
 			elif active_post_action_effect:
 				post_action_effects_resolved += 1
@@ -14998,19 +15134,6 @@ func continue_player_action_resolution(performing_player : Player):
 				continue_begin_turn()
 			elif active_overdrive:
 				do_remaining_overdrive(performing_player)
-			elif preparing_boost_info:
-				var boost_performing_player = preparing_boost_info['performing_player']
-				var boost_card_id = preparing_boost_info['card_id']
-				var boost_additional_boost_ids = preparing_boost_info['additional_boost_ids']
-				var boost_shuffle_discard_on_boost_cleanup = preparing_boost_info['shuffle_discard_on_boost_cleanup']
-				preparing_boost_info = {}
-				begin_resolve_boost(boost_performing_player, boost_card_id, boost_additional_boost_ids, boost_shuffle_discard_on_boost_cleanup)
-			elif active_boost:
-				if active_boost.checked_counter:
-					active_boost.effects_resolved += 1
-				else:
-					active_boost.counters_resolved += 1
-				continue_resolve_boost()
 			elif active_strike:
 				active_strike.effects_resolved_in_timing += 1
 				continue_resolve_strike()
@@ -16223,7 +16346,7 @@ func do_bonus_turn_action(performing_player : Player, action_index : int):
 		printlog("ERROR: Tried to bonus action without enough gauge.")
 		return false
 
-	var action_name = "Special Action"
+	var action_name = "特殊行动"
 	if 'text' in chosen_action:
 		action_name = chosen_action['text']
 	_append_log_full(Enums.LogType.LogType_Action, performing_player, "回合行动：%s" % action_name)

@@ -29,6 +29,7 @@ var cached_players = []
 var cached_matches = []
 var cached_queues = []
 var cached_customs = {}
+var _last_socket_send_error := ""
 
 const AUTO_RECONNECT_INTERVAL_SECONDS = 5.0
 const AUTO_RECONNECT_MANUAL_THRESHOLD_SECONDS = 100
@@ -304,7 +305,7 @@ func _request_session_restore():
 	if _restore_request_sent:
 		return
 	if reconnect_state["pre_disconnect_state"] == RestoreContextType.RestoreContextType_None and not _has_previous_restore_identity():
-		_end_reconnect_flow(true)
+		_handle_restore_failed("previous_session_identity_missing")
 		return
 	var context = _pending_restore_context.duplicate(true)
 	context["last_connected_server_name"] = _last_connected_server_name
@@ -340,7 +341,7 @@ func _request_session_restore():
 func _has_previous_restore_identity() -> bool:
 	return _previous_server_player_id != null or _previous_server_session_id or _previous_server_session_token
 
-func _apply_server_identity(message : Dictionary):
+func _apply_server_identity(message : Dictionary, preserve_player_name := false):
 	if message.has("player_id"):
 		_current_server_player_id = message["player_id"]
 	elif message.has("restored_player_id"):
@@ -351,7 +352,7 @@ func _apply_server_identity(message : Dictionary):
 		_current_server_session_id = str(message["session_id"])
 	if message.has("session_token"):
 		_current_server_session_token = str(message["session_token"])
-	if message.has("player_name"):
+	if message.has("player_name") and not preserve_player_name:
 		_last_connected_server_name = str(message["player_name"])
 		_pending_restore_context["player_name"] = _last_connected_server_name
 
@@ -430,14 +431,22 @@ func _apply_restore_waiting_state(data : Dictionary):
 		end_waiting_for_opponent_reconnect()
 
 func _handle_restore_failed(reason):
+	var preferred_player_name = _get_preferred_player_name().strip_edges()
 	_log_identity_checkpoint("session_restore_failed", {
 		"reason": reason,
 	})
 	clear_restore_context()
+	if preferred_player_name != "":
+		_pending_restore_context["player_name"] = preferred_player_name
 	_clear_lobby_cache()
 	_waiting_for_restore_name_sync = false
 	session_restore_failed.emit(reason)
-	_end_reconnect_flow(false)
+	if is_reconnect_active() and _is_socket_open() and preferred_player_name != "":
+		_restore_request_sent = false
+		_waiting_for_restore_name_sync = true
+		set_player_name(preferred_player_name)
+	else:
+		_end_reconnect_flow(false)
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(_delta):
@@ -565,14 +574,20 @@ func _is_socket_open():
 	return _socket and _socket.get_ready_state() == WebSocketPeer.STATE_OPEN
 
 func _send_socket_text(json : String, action : String) -> bool:
+	_last_socket_send_error = ""
 	if not _is_socket_open():
-		_handle_socket_send_failed("Cannot %s: socket is not open." % action)
+		_last_socket_send_error = "Cannot %s: socket is not open." % action
+		_handle_socket_send_failed(_last_socket_send_error)
 		return false
 	var result = _socket.send_text(json)
 	if result != OK:
-		_handle_socket_send_failed("Cannot %s: %s" % [action, error_string(result)])
+		_last_socket_send_error = "Cannot %s: %s (code %s)" % [action, error_string(result), result]
+		_handle_socket_send_failed(_last_socket_send_error)
 		return false
 	return true
+
+func get_last_socket_send_error() -> String:
+	return _last_socket_send_error
 
 func _handle_socket_send_failed(reason : String):
 	if reconnect_state["is_auto_reconnecting"] or reconnect_state["is_manual_reconnect"]:
@@ -632,31 +647,57 @@ func _handle_server_response(data):
 		"disconnect_confirmation_required":
 			_handle_disconnect_confirmation_required(data_obj)
 		"matchlog_upload_result":
-			matchlog_upload_finished.emit(
-				bool(data_obj.get("success", false)),
-				bool(data_obj.get("uploaded", false)),
-				str(data_obj.get("error", "")))
+			_handle_matchlog_upload_result(data_obj)
+
+func _handle_matchlog_upload_result(data : Dictionary) -> void:
+	var invalid_fields : Array[String] = []
+	if not data.get("success") is bool:
+		invalid_fields.append("success（必须为布尔值）")
+	if data.has("uploaded") and not data["uploaded"] is bool:
+		invalid_fields.append("uploaded（必须为布尔值）")
+	var success_flag : bool = data.get("success") if data.get("success") is bool else false
+	var uploaded_flag : bool = data.get("uploaded") if data.get("uploaded") is bool else false
+	if invalid_fields.is_empty() and uploaded_flag and not success_flag:
+		invalid_fields.append("success=false 与 uploaded=true 相互矛盾")
+	var success : bool = invalid_fields.is_empty() and success_flag
+	var uploaded : bool = success and uploaded_flag
+	var diagnostic := ""
+	if not invalid_fields.is_empty():
+		diagnostic = "[INVALID_UPLOAD_RESPONSE] 服务器上传响应格式异常：%s。" % "、".join(invalid_fields)
+	elif not success:
+		diagnostic = "[SERVER_UPLOAD_FAILED] 服务器报告回放上传失败。"
+	if not success:
+		var details : Array[String] = []
+		for field in ["error", "error_code", "code", "message", "detail", "details", "request_id", "trace_id", "status", "status_code", "http_status"]:
+			if not data.has(field) or data[field] == null:
+				continue
+			var value = data[field]
+			var text := JSON.stringify(value) if value is Dictionary or value is Array else str(value)
+			if not text.strip_edges().is_empty():
+				details.append("%s: %s" % [field, text])
+		if details.is_empty():
+			diagnostic += "\n服务器未提供具体错误原因，请结合失败时间查看服务端上传日志。"
+		else:
+			diagnostic += "\n" + "\n".join(details)
+		print("Matchlog upload failed: ", diagnostic)
+	matchlog_upload_finished.emit(success, uploaded, diagnostic)
 
 func _handle_server_keepalive(_message):
 	_record_server_keepalive()
 
 func _handle_server_hello(hello_message):
 	var player_name = hello_message["player_name"]
-	_apply_server_identity(hello_message)
-	_last_connected_server_name = player_name
+	# A reconnect hello describes the temporary player, not the identity to restore.
+	_apply_server_identity(hello_message, is_reconnect_active())
 	_log_identity_checkpoint("server_hello", {
 		"server_player_name": player_name,
 	})
 	print("Connected to server as : ", player_name)
 	connected_to_server.emit(player_name)
 	if is_reconnect_active():
-		var preferred_player_name = _get_preferred_player_name().strip_edges()
-		if preferred_player_name != "" and preferred_player_name != player_name:
-			_waiting_for_restore_name_sync = true
-			set_player_name(preferred_player_name)
-		else:
-			_waiting_for_restore_name_sync = false
-			_request_session_restore()
+		_restore_request_sent = false
+		_waiting_for_restore_name_sync = false
+		_request_session_restore()
 
 func _handle_room_waiting_for_opponent(_waiting_message):
 	print("Waiting for opponent in room")
@@ -716,6 +757,9 @@ func _handle_game_start(game_start_message):
 
 func _handle_name_update(name_update_message):
 	var new_name = name_update_message["name"]
+	var preferred_player_name = _get_preferred_player_name().strip_edges()
+	var is_restore_name_fallback = _waiting_for_restore_name_sync and is_reconnect_active()
+	var fallback_error = ""
 	_apply_server_identity(name_update_message)
 	_last_connected_server_name = new_name
 	_log_identity_checkpoint("name_update", {
@@ -723,10 +767,18 @@ func _handle_name_update(name_update_message):
 	})
 	if _pending_restore_context:
 		_pending_restore_context["player_name"] = new_name
+	if is_restore_name_fallback and new_name.to_lower() != preferred_player_name.to_lower():
+		_pending_restore_context["player_name"] = preferred_player_name
+		fallback_error = "无法恢复原玩家名称“%s”，服务器分配了“%s”。原名称偏好已保留，请检查是否重名。" % [
+			preferred_player_name, new_name,
+		]
 	name_update.emit(new_name)
-	if (_awaiting_name_sync or _waiting_for_restore_name_sync) and is_reconnect_active():
+	if is_restore_name_fallback:
+		_end_reconnect_flow(false)
+		if fallback_error != "":
+			request_failed.emit(fallback_error)
+	elif _awaiting_name_sync and is_reconnect_active():
 		_awaiting_name_sync = false
-		_waiting_for_restore_name_sync = false
 		_request_session_restore()
 
 func _handle_observe_start(observe_start_message):
@@ -1125,6 +1177,11 @@ func request_players_update():
 
 func request_matchlog_upload():
 	if not _is_socket_open():
+		var state := "无连接"
+		if _socket:
+			state = str(_socket.get_ready_state())
+		_last_socket_send_error = "[CONNECTION_UNAVAILABLE] 未连接到服务器，无法发送上传请求（WebSocket 状态：%s）。请等待重连后重试。" % state
+		print("Matchlog upload request failed: ", _last_socket_send_error)
 		return false
 	var message = {
 		"type": "request_matchlog_upload",

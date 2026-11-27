@@ -817,11 +817,10 @@ func test_demonhide_with_demonheart():
 	# Sweep(S2) vs Assault(S5). Assault first (Card1=p2).
 	# Card1 (p2 Assault): Before close 2 (adj). P4 vs A4=0 damage. Not stunned.
 	# Card2 (p1 Sweep): R1-3, dist1. P6+1=7 hit. p2: 15-7=8.
-	# Cleanup: simultaneous effects ordering (Demonhide+Demonheart both at cleanup),
-	#   then Demonhide return (spend 2 life). p1: 14-2=12.
+	# Cleanup: Demonhide return (spend 2 life), then automatic counter reset.
 	execute_strike(player1, player2, "standard_normal_sweep", "standard_normal_assault",
 		false, false,
-		[1, 0, 0], # ability: spend 1 life, cleanup ordering, Demonhide cleanup: return to hand
+		[1, 0], # ability: spend 1 life, Demonhide cleanup: return to hand
 		[0])    # ability pass
 	validate_life(player1, 12, player2, 8)
 	assert_eq(player1.bonus_armor_counters, 0) # reset at cleanup
@@ -842,19 +841,12 @@ func _assert_demonhide_cleanup_pause(faster: bool, accept: bool):
 	assert_eq(game_logic.get_current_strike_timing(), "cleanup",
 		"Both attacks must finish before the return/payment decision.")
 	assert_eq(game_logic.decision_info.player, player1.my_id)
-	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ChooseSimultaneousEffect)
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_EffectChoice)
 	assert_true(player1.is_card_in_continuous_boosts(boost_id))
 	var life_before_payment = 12 if faster else 14
 	validate_life(player1, life_before_payment, player2, 11 if faster else 9)
 	assert_eq(player1.bonus_armor_counters, 0, "No life was spent during either attack.")
-	var return_index = -1
-	for index in range(game_logic.decision_info.choice.size()):
-		if game_logic.decision_info.choice[index].get("effect_type") == "choice":
-			return_index = index
-	assert_ne(return_index, -1)
-	assert_true(game_logic.do_choice(player1, return_index))
-	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_EffectChoice)
-	assert_eq(game_logic.decision_info.player, player1.my_id)
+	assert_eq(game_logic.decision_info.choice.size(), 2)
 	assert_eq(player1.life, life_before_payment)
 	assert_true(player1.is_card_in_continuous_boosts(boost_id))
 	assert_true(game_logic.do_choice(player1, 0 if accept else 1))
@@ -945,11 +937,11 @@ func test_demonheart_cleanup_spend_no_armor_help():
 	# Assault(S5) vs Sweep(S2). Assault faster (p1 is Card1).
 	# Card1: P4 vs A0 = 4 dmg. p2: 15-4=11. Not stunned (4<6).
 	# Card2 (Sweep): P6 vs A3 = 3 dmg. p1: 15-3=12.
-	# Cleanup: simultaneous ordering, then Demonhide return (spend 2 life). p1: 12-2=10.
+	# Cleanup: Demonhide return (spend 2 life). p1: 12-2=10, then automatic counter reset.
 	#   on_spend_life → Demonheart counter = 1 (but damage already resolved).
 	execute_strike(player1, player2, "standard_normal_assault", "standard_normal_sweep",
 		false, false,
-		[0, 0, 0], # ability pass, cleanup ordering, Demonhide cleanup: return
+		[0, 0], # ability pass, Demonhide cleanup: return
 		[0])    # ability pass
 	validate_life(player1, 10, player2, 11)
 	assert_eq(player1.bonus_armor_counters, 0) # reset at cleanup

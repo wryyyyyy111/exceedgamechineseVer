@@ -356,7 +356,7 @@ func count_cards_in_deck_and_hand(player_id : Enums.PlayerId,
 	var player = _get_player(player_id)
 	var count = 0
 
-	if override_card_list:
+	if override_card_list != null:
 		for card in override_card_list:
 			if card.definition['id'] == card_str_id:
 				count += 1
@@ -871,9 +871,9 @@ func submit_mulligan(player : Enums.PlayerId, card_ids : Array) -> bool:
 	return current_game.do_mulligan(game_player, card_ids)
 
 func submit_boost(player : Enums.PlayerId, card_id : int, payment_card_ids,
-		use_free_force : bool, spent_life_for_force : int, additional_boost_ids : Array = [], facedown_override = null) -> bool:
+		use_free_force : bool, spent_life_for_force : int, additional_boost_ids : Array = [], facedown_override = null, infuse_payment : Variant = null) -> bool:
 	var game_player = _get_player(player)
-	return current_game.do_boost(game_player, card_id, payment_card_ids, use_free_force, spent_life_for_force, additional_boost_ids, facedown_override)
+	return current_game.do_boost(game_player, card_id, payment_card_ids, use_free_force, spent_life_for_force, additional_boost_ids, facedown_override, infuse_payment)
 
 func submit_choose_from_boosts(player: Enums.PlayerId, card_ids : Array) -> bool:
 	var game_player = _get_player(player)

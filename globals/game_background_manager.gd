@@ -147,7 +147,7 @@ const BACKGROUNDS := {
 	"BG12": {
 		"label": "BG12 遗迹3",
 		"url_id": "BG12",
-		"image_id": "BG12.jpg",
+		"image_id": "BG12_1.jpg",
 		"standard_arena": true,
 	},
 	"BG13": {
@@ -208,6 +208,8 @@ const BACKGROUNDS := {
 
 static var _texture_cache := {}
 static var _mobile_web_runtime_override = null
+const MATCH_TEXTURE_OWNER := "BackgroundManager:match"
+const MAIN_MENU_TEXTURE_OWNER := "BackgroundManager:main_menu"
 
 static func _is_mobile_web_runtime() -> bool:
 	if _mobile_web_runtime_override != null:
@@ -362,6 +364,7 @@ static func clear_match_texture_cache():
 			MobileResourceBudget.unregister(resource_path)
 			CdnAssetLoader.clear_texture(resource_path)
 			_texture_cache.erase(resource_path)
+	CdnAssetLoader.release_owner(MATCH_TEXTURE_OWNER)
 
 static func clear_main_menu_texture_cache():
 	for resource_path in _texture_cache.keys():
@@ -369,10 +372,14 @@ static func clear_main_menu_texture_cache():
 			MobileResourceBudget.unregister(resource_path)
 			CdnAssetLoader.clear_texture(resource_path)
 			_texture_cache.erase(resource_path)
+	CdnAssetLoader.release_owner(MAIN_MENU_TEXTURE_OWNER)
 
 static func _load_texture(resource_path: String, keep_cached := true) -> Texture2D:
 	if resource_path.is_empty() or not ResourceLoader.exists(resource_path):
-		var cached_texture := CdnAssetLoader.get_cached_texture(resource_path)
+		var cached_texture := CdnAssetLoader.get_cached_texture(
+			resource_path,
+			_get_texture_owner(resource_path),
+			"visible")
 		if cached_texture != null:
 			return cached_texture
 		return null
@@ -390,10 +397,14 @@ static func _load_texture_async(resource_path: String, keep_cached := true) -> T
 		return null
 	if keep_cached and _texture_cache.has(resource_path):
 		return _texture_cache[resource_path]
-	var texture := await CdnAssetLoader.load_texture(resource_path, "BackgroundManager", "visible")
+	var texture_owner := _get_texture_owner(resource_path)
+	var texture := await CdnAssetLoader.load_texture(resource_path, texture_owner, "visible")
 	if texture == null and resource_path.begins_with("res://assets/phone/"):
 		var desktop_path := "res://assets/" + resource_path.trim_prefix("res://assets/phone/")
-		texture = await CdnAssetLoader.load_texture(desktop_path, "BackgroundManager", "visible")
+		texture = await CdnAssetLoader.load_texture(
+			desktop_path,
+			_get_texture_owner(desktop_path),
+			"visible")
 	# Background and track TextureRects use a fixed 1280x720 covered display box.
 	# Keep phone textures decoded at their optimized size; the report records their
 	# desktop visual size, which the fixed box already restores without upsampling.
@@ -402,6 +413,12 @@ static func _load_texture_async(resource_path: String, keep_cached := true) -> T
 	if keep_cached and texture != null:
 		_texture_cache[resource_path] = texture
 	return texture
+
+static func _get_texture_owner(resource_path: String) -> String:
+	if resource_path.begins_with(MAIN_MENU_BACKGROUND_ROOT_DIRECTORY + "/") \
+			or resource_path.begins_with(PHONE_MAIN_MENU_BACKGROUND_ROOT_DIRECTORY + "/"):
+		return MAIN_MENU_TEXTURE_OWNER
+	return MATCH_TEXTURE_OWNER
 
 static func _register_texture_budget(resource_path: String, texture: Texture2D):
 	if texture == null:

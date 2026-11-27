@@ -433,7 +433,7 @@ var CHARACTER_SKINS := {
         "count": 1,
 		"skins": {
 			1: {
-				"label": "皮肤1:更换立绘",
+				"label": "皮肤1:gg新立绘",
 				"portraits_skin": false,
 				"portraits_url": "",
 				"animations_skin": true,
@@ -446,7 +446,20 @@ var CHARACTER_SKINS := {
         "count": 1,
 		"skins": {
 			1: {
-				"label": "皮肤1:更换立绘",
+				"label": "皮肤1:gg新立绘",
+				"portraits_skin": false,
+				"portraits_url": "",
+				"animations_skin": true,
+ 			    "exceed_change_skin": false,
+ 			    "buddy_skin": false,
+			},
+        },
+    },
+	"millia": {
+        "count": 1,
+		"skins": {
+			1: {
+				"label": "皮肤1:gg新立绘",
 				"portraits_skin": false,
 				"portraits_url": "",
 				"animations_skin": true,
@@ -514,6 +527,19 @@ var CHARACTER_SKINS := {
 		"skins": {
 			1: {
 				"label": "皮肤1: 亚索",
+				"portraits_skin": false,
+				"portraits_url": "",
+				"animations_skin": true,
+ 			    "exceed_change_skin": false,
+ 			    "buddy_skin": false,
+			},
+        },
+    },
+	"shafathi": {
+        "count": 1,
+		"skins": {
+			1: {
+				"label": "皮肤1: 艾克",
 				"portraits_skin": false,
 				"portraits_url": "",
 				"animations_skin": true,

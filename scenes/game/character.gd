@@ -102,6 +102,18 @@ var buddy_id : String = ""
 func _ready():
 	exceed_icon.visible = false
 
+func _notification(what):
+	if what == NOTIFICATION_PREDELETE:
+		release_resources()
+
+func release_resources():
+	var resource_owner := _get_budget_owner()
+	CdnAssetLoader.release_owner(resource_owner)
+	MobileResourceBudget.unregister_owner(resource_owner)
+	if is_instance_valid(animation):
+		animation.stop()
+		animation.sprite_frames = null
+
 func load_character(
 		image_loader: CardImageLoader,
 		character_data: Dictionary,
@@ -120,7 +132,7 @@ func load_character(
 	# if not animation.sprite_frames:
 	# 	path = "res://assets/character_animations/custom/animations.tres"
 	# 	animation.sprite_frames = load(path)
-	MobileResourceBudget.unregister_owner(_get_budget_owner())
+	release_resources()
 	var previous_mobile_texture_scale := mobile_texture_scale_for_display if mobile_display_scale_initialized else 1.0
 	if not mobile_display_scale_initialized:
 		mobile_texture_scale_for_display = MOBILE_WEB_CHARACTER_TEXTURE_SCALE

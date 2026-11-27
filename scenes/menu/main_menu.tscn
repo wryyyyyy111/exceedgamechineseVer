@@ -281,13 +281,13 @@ vertical_alignment = 1
 
 [node name="TextEdit" type="Label" parent="."]
 layout_mode = 0
-offset_left = 720.0
-offset_top = 674.0
-offset_right = 1198.0
-offset_bottom = 704.0
-theme_override_colors/font_color = Color(0.72, 0.72, 0.68, 1)
+offset_left = 594.0
+offset_top = 676.0
+offset_right = 1214.0
+offset_bottom = 706.0
+theme_override_colors/font_color = Color(0, 1, 0, 1)
 theme_override_font_sizes/font_size = 15
-text = "社区群 1064964514  ·  设置：全屏 / 背景 / 防误触 / AI 难度 / 旋转屏幕"
+text = "欢迎新朋友！社区群QQ 1064964514  ·  设置：全屏 / 主页壁纸 / 对战场景 / 选项防误触 / 等等！"
 autowrap_mode = 2
 
 [node name="TextEdit2" type="Label" parent="."]
@@ -646,10 +646,10 @@ offset_left = 56.0
 offset_top = 480.0
 offset_right = 360.0
 offset_bottom = 520.0
-theme_override_colors/font_color = Color(0.6, 0.85, 1, 1)
 theme_override_colors/font_hover_color = Color(0.75, 0.92, 1, 1)
-theme_override_colors/font_pressed_color = Color(0.6, 0.85, 1, 1)
+theme_override_colors/font_color = Color(0.6, 0.85, 1, 1)
 theme_override_colors/font_focus_color = Color(0.6, 0.85, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.6, 0.85, 1, 1)
 theme_override_font_sizes/font_size = 18
 text = "游戏规则提示卡"
 
@@ -695,10 +695,10 @@ text = "重新连接服务器"
 
 [node name="ServerStatusLabel" type="Label" parent="."]
 layout_mode = 0
-offset_left = 310.0
-offset_top = 670.0
-offset_right = 705.0
-offset_bottom = 706.0
+offset_left = 251.0
+offset_top = 673.0
+offset_right = 646.0
+offset_bottom = 709.0
 theme_override_colors/font_color = Color(0.92, 0.9, 0.84, 1)
 theme_override_font_sizes/font_size = 21
 text = "正在连接伺服器。"
@@ -838,6 +838,7 @@ z_index = 100
 layout_mode = 0
 
 [node name="RulesHintOverlay" parent="." instance=ExtResource("15_rules_hint")]
+layout_mode = 1
 
 [node name="FileDialog" type="FileDialog" parent="."]
 title = "Open a File"
@@ -859,8 +860,8 @@ access = 2
 [connection signal="text_changed" from="PlayerNameBox" to="." method="_on_player_name_box_text_changed"]
 [connection signal="pressed" from="UpdateNameButton" to="." method="_on_update_name_button_pressed"]
 [connection signal="pressed" from="ViewCardsButton" to="." method="_on_view_cards_button_pressed"]
-[connection signal="pressed" from="RulesHintButton" to="RulesHintOverlay" method="show_rules"]
 [connection signal="pressed" from="CustomsBrowserButton" to="." method="_on_customs_browser_button_pressed"]
+[connection signal="pressed" from="RulesHintButton" to="RulesHintOverlay" method="show_rules"]
 [connection signal="pressed" from="LoadReplayButton" to="." method="_on_load_replay_button_pressed"]
 [connection signal="pressed" from="ReconnectToServerButton" to="." method="_on_reconnect_to_server_button_pressed"]
 [connection signal="pressed" from="PlayerListContainer/PlayerListHBox/PlayersButton" to="." method="_on_players_button_pressed"]

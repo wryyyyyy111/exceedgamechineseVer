@@ -3,6 +3,7 @@ extends GutTest
 class MockSocket:
 	var ready_state := WebSocketPeer.STATE_OPEN
 	var sent_messages : Array = []
+	var send_result := OK
 
 	func get_ready_state():
 		return ready_state
@@ -13,9 +14,18 @@ class MockSocket:
 	func get_available_packet_count():
 		return 0
 
+	func close():
+		ready_state = WebSocketPeer.STATE_CLOSED
+
 	func send_text(payload : String):
 		sent_messages.append(payload)
-		return OK
+		return send_result
+
+class SendFailureManager extends "res://globals/network_manager.gd":
+	var send_failure_reason := ""
+
+	func _handle_socket_send_failed(reason : String):
+		send_failure_reason = reason
 
 
 func before_each():
@@ -319,6 +329,155 @@ func test_server_keepalive_message_updates_keepalive_tracking():
 	assert_true(NetworkManager._server_keepalive_tracking)
 	assert_gt(NetworkManager._last_server_keepalive_time, 0.0)
 
+func _make_name_reconnect_manager(player_name : String, state_type):
+	var manager = preload("res://globals/network_manager.gd").new()
+	add_child_autofree(manager)
+	manager._socket = MockSocket.new()
+	manager._current_server_player_id = 42
+	manager._current_server_session_id = "old_session"
+	manager._current_server_session_token = "old_token"
+	manager._last_connected_server_name = player_name
+	manager.set_restore_context(state_type, {"player_name": player_name})
+	manager._begin_unexpected_disconnect("test disconnect")
+	return manager
+
+func _receive_temporary_hello(manager, player_id := 99):
+	manager._handle_server_hello({
+		"player_name": "Anon_%s" % player_id,
+		"player_id": player_id,
+		"session_id": "temporary_session_%s" % player_id,
+		"session_token": "temporary_token_%s" % player_id,
+	})
+
+func test_reconnect_hello_restores_old_identity_before_renaming():
+	for state_type in [
+		NetworkManager.RestoreContextType.RestoreContextType_Lobby,
+		NetworkManager.RestoreContextType.RestoreContextType_Room,
+		NetworkManager.RestoreContextType.RestoreContextType_Matchmaking,
+		NetworkManager.RestoreContextType.RestoreContextType_Game,
+		NetworkManager.RestoreContextType.RestoreContextType_Observe,
+	]:
+		var manager = _make_name_reconnect_manager("OriginalName", state_type)
+		_receive_temporary_hello(manager)
+		var messages = manager._socket.sent_messages
+		assert_eq(messages.size(), 1)
+		var message = JSON.parse_string(messages[0])
+		assert_eq(message["type"], "restore_session")
+		assert_eq(message["context"]["player_name"], "OriginalName")
+		assert_eq(message["context"]["previous_player_id"], 42)
+		assert_eq(message["context"]["previous_session_token"], "old_token")
+		assert_eq(message["context"]["current_player_id"], 99)
+
+func test_reconnect_retries_preserve_original_anonymous_name():
+	var manager = _make_name_reconnect_manager("Anon_42",
+		NetworkManager.RestoreContextType.RestoreContextType_Lobby)
+	_receive_temporary_hello(manager)
+	manager._handle_socket_closed(-1, "retry disconnect", false)
+	manager._socket = MockSocket.new()
+	_receive_temporary_hello(manager, 100)
+	var message = JSON.parse_string(manager._socket.sent_messages[0])
+	assert_eq(message["type"], "restore_session")
+	assert_eq(message["context"]["player_name"], "Anon_42")
+	assert_eq(message["context"]["previous_player_id"], 42)
+	assert_eq(message["context"]["previous_session_token"], "old_token")
+	assert_eq(message["context"]["current_player_id"], 100)
+
+func test_session_restore_updates_authoritative_name_without_set_name():
+	var manager = _make_name_reconnect_manager("OriginalName",
+		NetworkManager.RestoreContextType.RestoreContextType_Lobby)
+	_receive_temporary_hello(manager)
+	var names := []
+	manager.name_update.connect(func(player_name): names.append(player_name))
+	manager._handle_session_restored({
+		"restored_player_id": 42,
+		"player_name": "OriginalName",
+		"session_id": "old_session",
+		"session_token": "old_token",
+		"in_game": false,
+	})
+	assert_eq(names, ["OriginalName"])
+	assert_eq(manager._current_server_player_id, 42)
+	assert_eq(manager.get_restore_context()["player_name"], "OriginalName")
+	assert_eq(manager._socket.sent_messages.size(), 1)
+	assert_false(manager.is_reconnect_active())
+
+func test_expired_session_requests_old_name_and_waits_for_confirmation():
+	var manager = _make_name_reconnect_manager("OriginalName",
+		NetworkManager.RestoreContextType.RestoreContextType_Game)
+	_receive_temporary_hello(manager)
+	var failures := []
+	manager.session_restore_failed.connect(func(reason): failures.append(reason))
+	manager._handle_session_restore_failed({"reason": "no_matching_session"})
+	assert_eq(failures, ["no_matching_session"])
+	assert_true(manager.is_reconnect_active())
+	var messages = manager._socket.sent_messages
+	assert_eq(messages.size(), 2)
+	var rename = JSON.parse_string(messages[1])
+	assert_eq(rename["type"], "set_name")
+	assert_eq(rename["player_name"], "OriginalName")
+	manager._handle_name_update({"name": "OriginalName", "player_id": 99})
+	assert_false(manager.is_reconnect_active())
+	assert_eq(manager.get_restore_context()["player_name"], "OriginalName")
+	assert_eq(messages.size(), 2)
+
+func test_reconnect_name_collision_reports_error_and_preserves_preference():
+	var manager = _make_name_reconnect_manager("OriginalName",
+		NetworkManager.RestoreContextType.RestoreContextType_Lobby)
+	_receive_temporary_hello(manager)
+	manager._handle_session_restore_failed({"reason": "no_matching_session"})
+	var errors := []
+	var names := []
+	manager.request_failed.connect(func(error): errors.append(error))
+	manager.name_update.connect(func(player_name): names.append(player_name))
+	manager._handle_name_update({"name": "Anon_101", "player_id": 99})
+	assert_eq(names, ["Anon_101"])
+	assert_eq(errors.size(), 1)
+	assert_string_contains(errors[0], "OriginalName")
+	assert_string_contains(errors[0], "Anon_101")
+	assert_eq(manager.get_restore_context()["player_name"], "OriginalName")
+	assert_false(manager.is_reconnect_active())
+
+func test_missing_previous_session_still_requests_saved_name():
+	var manager = _make_name_reconnect_manager("OriginalName",
+		NetworkManager.RestoreContextType.RestoreContextType_None)
+	manager._previous_server_player_id = null
+	manager._previous_server_session_id = ""
+	manager._previous_server_session_token = ""
+	_receive_temporary_hello(manager)
+	assert_eq(manager._socket.sent_messages.size(), 1)
+	var message = JSON.parse_string(manager._socket.sent_messages[0])
+	assert_eq(message["type"], "set_name")
+	assert_eq(message["player_name"], "OriginalName")
+	manager._handle_name_update({"name": "OriginalName"})
+	assert_false(manager.is_reconnect_active())
+
+func test_disconnect_confirmation_wait_does_not_rename_temporary_player():
+	var manager = _make_name_reconnect_manager("OriginalName",
+		NetworkManager.RestoreContextType.RestoreContextType_Game)
+	_receive_temporary_hello(manager)
+	manager._handle_session_restore_failed({"reason": "waiting_for_disconnect_confirmation"})
+	assert_eq(manager._socket.sent_messages.size(), 1)
+	assert_true(manager.is_reconnect_active())
+	assert_eq(manager.get_restore_context()["player_name"], "OriginalName")
+
+func test_first_connection_hello_does_not_request_session_restore():
+	var manager = preload("res://globals/network_manager.gd").new()
+	add_child_autofree(manager)
+	manager._socket = MockSocket.new()
+	_receive_temporary_hello(manager)
+	assert_eq(manager._socket.sent_messages.size(), 0)
+	assert_eq(manager._last_connected_server_name, "Anon_99")
+
+func test_reconnect_name_updates_do_not_overwrite_saved_name():
+	var saved_name = GlobalSettings.DefaultPlayerName
+	var main_menu = load("res://scenes/menu/main_menu.tscn").instantiate()
+	add_child_autofree(main_menu)
+	await get_tree().process_frame
+	NetworkManager.reconnect_state["is_auto_reconnecting"] = true
+	main_menu._on_name_update("Anon_99")
+	assert_eq(main_menu.player_name_box.text, "Anon_99")
+	assert_eq(GlobalSettings.DefaultPlayerName, saved_name)
+
 
 func test_server_keepalive_timeout_starts_reconnect_flow():
 	NetworkManager.network_state = NetworkManager.NetworkState.NetworkState_Connected
@@ -416,8 +575,80 @@ func test_matchlog_upload_result_emits_server_outcome():
 		"error": "OSS unavailable",
 	}))
 
-	assert_eq(outcomes, [[false, false, "OSS unavailable"]])
+	assert_eq(outcomes, [[false, false, "[SERVER_UPLOAD_FAILED] 服务器报告回放上传失败。\nerror: OSS unavailable"]])
 	NetworkManager.matchlog_upload_finished.disconnect(capture_outcome)
+
+func _receive_upload_result(data : Dictionary) -> Array:
+	var outcomes := []
+	var capture_outcome = func(success, uploaded, error_message):
+		outcomes.append([success, uploaded, error_message])
+	NetworkManager.matchlog_upload_finished.connect(capture_outcome)
+	data["type"] = "matchlog_upload_result"
+	NetworkManager._handle_server_response(JSON.stringify(data))
+	NetworkManager.matchlog_upload_finished.disconnect(capture_outcome)
+	assert_eq(outcomes.size(), 1)
+	return outcomes[0]
+
+func test_matchlog_upload_preserves_structured_server_diagnostics():
+	var outcome := _receive_upload_result({
+		"success": false,
+		"error": {"code": "AccessDenied", "message": "Permission denied"},
+		"request_id": "test-request",
+		"http_status": 403,
+	})
+	assert_false(outcome[0])
+	assert_string_contains(outcome[2], "AccessDenied")
+	assert_string_contains(outcome[2], "Permission denied")
+	assert_string_contains(outcome[2], "request_id: test-request")
+	assert_string_contains(outcome[2], "http_status: 403")
+
+func test_matchlog_upload_failure_without_reason_is_explicit():
+	var outcome := _receive_upload_result({"success": false, "error": ""})
+	assert_string_contains(outcome[2], "[SERVER_UPLOAD_FAILED]")
+	assert_string_contains(outcome[2], "服务器未提供具体错误原因")
+
+func test_matchlog_upload_preserves_reason_outside_error_field():
+	var outcome := _receive_upload_result({
+		"success": false,
+		"error_code": "MATCH_NOT_FOUND",
+		"message": "Match no longer available",
+		"detail": "No stored match log",
+	})
+	assert_string_contains(outcome[2], "error_code: MATCH_NOT_FOUND")
+	assert_string_contains(outcome[2], "message: Match no longer available")
+	assert_string_contains(outcome[2], "detail: No stored match log")
+
+func test_matchlog_upload_rejects_missing_or_non_boolean_status():
+	for data in [{}, {"success": "false"}, {"success": true, "uploaded": "true"},
+			{"success": false, "uploaded": true}]:
+		var outcome := _receive_upload_result(data)
+		assert_false(outcome[0])
+		assert_false(outcome[1])
+		assert_string_contains(outcome[2], "[INVALID_UPLOAD_RESPONSE]")
+
+func test_matchlog_upload_success_and_deferred_registration_keep_existing_behavior():
+	assert_eq(_receive_upload_result({"success": true, "uploaded": true}), [true, true, ""])
+	assert_eq(_receive_upload_result({"success": true, "uploaded": false}), [true, false, ""])
+	assert_eq(_receive_upload_result({"success": true}), [true, false, ""])
+
+func test_matchlog_upload_disconnected_request_explains_connection_failure():
+	assert_false(NetworkManager.request_matchlog_upload())
+	assert_string_contains(NetworkManager.get_last_socket_send_error(), "[CONNECTION_UNAVAILABLE]")
+	assert_string_contains(NetworkManager.get_last_socket_send_error(), "无连接")
+
+func test_matchlog_upload_send_failure_retains_godot_error_and_clears_on_retry():
+	var manager := SendFailureManager.new()
+	add_child_autofree(manager)
+	var socket := MockSocket.new()
+	socket.send_result = ERR_CONNECTION_ERROR
+	manager._socket = socket
+	assert_false(manager.request_matchlog_upload())
+	assert_string_contains(manager.get_last_socket_send_error(), error_string(ERR_CONNECTION_ERROR))
+	assert_string_contains(manager.get_last_socket_send_error(), str(ERR_CONNECTION_ERROR))
+	assert_eq(manager.send_failure_reason, manager.get_last_socket_send_error())
+	socket.send_result = OK
+	assert_true(manager.request_matchlog_upload())
+	assert_eq(manager.get_last_socket_send_error(), "")
 
 
 func test_join_reconnect_room_sends_selected_seat():

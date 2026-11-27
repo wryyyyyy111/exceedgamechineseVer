@@ -12,8 +12,8 @@ var effects_visible = true
 func _on_focus_pressed():
 	clicked_zone.emit()
 
-func set_text(text):
-	boost_effects.text = text
+func set_text(text, card_definitions: Array = []):
+	boost_effects.text = GameStrings.add_card_id_speed_hints(text, card_definitions)
 	boost_effects.visible = effects_visible
 
 func _on_show_hide_button_pressed():

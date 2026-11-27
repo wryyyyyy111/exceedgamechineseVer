@@ -1,38 +1,24 @@
 extends Node
 
 const CardHighlightColor = "#7DF9FF" # Light blue
-const NormalCardNamesCN = {
-	"grasp": "投技",
-	"cross": "游击",
-	"assault": "突袭",
-	"dive": "飞踢",
-	"spike": "刺拳",
-	"sweep": "横扫",
-	"focus": "专注",
-	"block": "格挡",
-}
+const CardNameIndexScript = preload("res://data/decks/_card_name_index.gd")
+const NormalCardNamesCN = CardNameIndexScript.NORMAL_CARD_NAMES_CN
+
+func format_number(value) -> String:
+	return str(CardDataManager.convert_floats_to_ints(value))
+
+func add_card_id_speed_hints(
+		text: String,
+		card_definitions: Array = [],
+		matcher: CardNameIndexScript.NameMatcher = null) -> String:
+	if text.is_empty():
+		return text
+	if matcher == null:
+		matcher = CardDataManager.get_card_name_index().get_matcher(card_definitions)
+	return matcher.annotate(text)
 
 func get_speed_description(card_definition) -> String:
-	if not card_definition:
-		return ""
-
-	var speed = card_definition.get("speed")
-	var card_type = card_definition.get("type", "")
-	if speed == null or card_type == "":
-		return ""
-
-	var speed_prefix = ""
-	match card_type:
-		"normal":
-			speed_prefix = "普"
-		"special":
-			speed_prefix = "特"
-		"ultra":
-			speed_prefix = "必"
-		_:
-			return ""
-
-	return "（%s%s速）" % [speed_prefix, str(speed)]
+	return CardDataManager.get_card_name_index().get_speed_description(card_definition)
 
 func get_display_name_with_speed(card_definition) -> String:
 	if not card_definition:
@@ -48,6 +34,7 @@ class EffectSummary:
 	var max_value = null
 
 func get_choice_summary(choice, card_name_source : String):
+	choice = CardDataManager.convert_floats_to_ints(choice.duplicate(true))
 	var summary_text = ""
 	var effect_summaries = []
 	for effect in choice:
@@ -99,6 +86,7 @@ func get_choice_summary(choice, card_name_source : String):
 	return summary_text
 
 func get_force_for_effect_summary(effect, card_name_source : String) -> String:
+	effect = CardDataManager.convert_floats_to_ints(effect.duplicate(true))
 	var effect_str = ""
 	var force_limit = effect['force_max']
 	if "per_force_effect" in effect and effect['per_force_effect'] != null:
@@ -115,6 +103,7 @@ func get_force_for_effect_summary(effect, card_name_source : String) -> String:
 	return effect_str
 
 func get_gauge_for_effect_summary(effect, card_name_source : String) -> String:
+	effect = CardDataManager.convert_floats_to_ints(effect.duplicate(true))
 	var required = 'required' in effect and effect['required']
 	var maymust_str = "可以"
 	if required:
@@ -220,6 +209,9 @@ func get_timing_text(timing):
 	return text
 
 func get_condition_text(effect, amount, amount2, detail):
+	effect = CardDataManager.convert_floats_to_ints(effect.duplicate(true))
+	amount = CardDataManager.convert_floats_to_ints(amount)
+	amount2 = CardDataManager.convert_floats_to_ints(amount2)
 	var condition = effect['condition']
 	var text = ""
 	match condition:
@@ -472,7 +464,7 @@ func get_condition_text(effect, amount, amount2, detail):
 		"matches_named_card":
 			text += "若你的下一次攻击是%s，" % detail
 		"is_critical":
-			var crit_name = "暴击"
+			var crit_name = "暴气"
 			if 'alt_crit_name' in condition:
 				crit_name = condition['alt_crit_name']
 			text += "%s：" % crit_name
@@ -653,6 +645,8 @@ func get_effect_type_heading(effect):
 	return effect_str
 
 func get_effect_type_text(effect, card_name_source : String = "", char_effect_panel : bool = false):
+	# Normalize a display-only copy; runtime calculations and authored strings stay unchanged.
+	effect = CardDataManager.convert_floats_to_ints(effect.duplicate(true))
 	var effect_str = ""
 	var effect_type = effect['effect_type']
 	match effect_type:
@@ -849,9 +843,9 @@ func get_effect_type_text(effect, card_name_source : String = "", char_effect_pa
 				"discard_2x_topdeck_instead_of_damage":
 					effect_str += "无视伤害，改为从牌库顶弃置等量2倍的牌"
 				"geoffrey_untainted_passive":
-					effect_str += "当你会在回合结束时抽牌时（生命值为5或更低），改为获得1点生命"
+					effect_str += "生命值小于等于5，回合结束可以用回复1点生命代替摸牌。"
 				"skip_eot_draw_and_discard":
-					effect_str += "跳过回合结束时的抽牌与弃牌"
+					effect_str += "跳过回合结束的抽牌和弃牌。"
 		StrikeEffects.Advance:
 			if 'description' in effect:
 				effect_str += effect['description']
@@ -1074,7 +1068,7 @@ func get_effect_type_text(effect, card_name_source : String = "", char_effect_pa
 		StrikeEffects.CopyOtherAfterEffect:
 			effect_str += "复制另一个后置效果"
 		StrikeEffects.Critical:
-			var crit_name = "暴击"
+			var crit_name = "暴气"
 			if 'alt_crit_name' in effect:
 				crit_name = effect['alt_crit_name']
 			effect_str += "%s战斗" % crit_name
@@ -1518,7 +1512,10 @@ func get_effect_type_text(effect, card_name_source : String = "", char_effect_pa
 			var opponent_str = ""
 			if effect.get("count_opponent"):
 				opponent_str = "对手的"
-			effect_str += opponent_str + "怒中每有1张牌，+" + str(effect['amount']) + "威力，至多到" + str(effect['amount_max']) + "。"
+			effect_str += opponent_str + "怒中每有1张牌，+" + str(effect['amount']) + "威力"
+			if effect.has("amount_max"):
+				effect_str += "，至多到" + str(effect['amount_max'])
+			effect_str += "。"
 		StrikeEffects.PowerupPerSpentGaugeMatchingRangeToOpponent:
 			effect_str += "每花费1张与对手距离相同的怒，+" + str(effect['amount']) + "威力。"
 		StrikeEffects.PowerupPerSealedNormal:
@@ -2064,7 +2061,7 @@ func get_on_exceed_text(on_exceed_ability):
 		StrikeEffects.Strike:
 			return "当你觉醒时：战斗\n"
 		StrikeEffects.Draw:
-			return "当你觉醒时：抽%s" % on_exceed_ability['amount'] + "\n"
+			return "当你觉醒时：抽%s" % format_number(on_exceed_ability['amount']) + "\n"
 		_:
 			return "缺失觉醒效果\n"
 

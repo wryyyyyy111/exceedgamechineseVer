@@ -652,6 +652,7 @@ decks_official/seth	decks_official/seth/character_default.jpg	750x1024	750x1024	
 decks_official/seth	decks_official/seth/character_exceeded.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
 decks_official/seth	decks_official/seth/normals.jpg	2000x1365	2000x1365	1.00	10.41MB	10.41MB
 decks_official/seth	decks_official/seth/specials.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
+decks_official/seth	decks_official/seth/specials1.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
 decks_official/shovelknight	decks_official/shovelknight/animations.png	1408x36	1408x36	1.00	0.19MB	0.19MB
 decks_official/shovelknight	decks_official/shovelknight/cardback.jpg	400x545	400x545	1.00	0.83MB	0.83MB
 decks_official/shovelknight	decks_official/shovelknight/character_default.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
@@ -790,7 +791,7 @@ decks_official/astryda	decks_official/astryda/cardback.jpg	558x778	558x778	1.00	
 decks_official/astryda	decks_official/astryda/character_default.jpg	1063x1480	1063x1480	1.00	6.00MB	6.00MB
 decks_official/astryda	decks_official/astryda/character_exceeded.jpg	1062x1480	1062x1480	1.00	6.00MB	6.00MB
 decks_official/astryda	decks_official/astryda/normals.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
-decks_official/astryda	decks_official/astryda/specials.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
+decks_official/astryda	decks_official/astryda/specials1.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
 decks_official/doomies	decks_official/doomies/cardback.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
 decks_official/doomies	decks_official/doomies/character_default.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
 decks_official/doomies	decks_official/doomies/character_exceeded.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
@@ -837,6 +838,7 @@ decks_official/nantaca	decks_official/nantaca/character_exceeded.jpg	750x1024	75
 decks_official/nantaca	decks_official/nantaca/normals.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
 decks_official/nantaca	decks_official/nantaca/specials.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
 decks_official/nantaca	decks_official/nantaca/specials1.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
+decks_official/nantaca	decks_official/nantaca/specials2.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
 decks_official/shafathi	decks_official/shafathi/cardback.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
 decks_official/shafathi	decks_official/shafathi/character_default.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
 decks_official/shafathi	decks_official/shafathi/character_exceeded.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
@@ -847,6 +849,7 @@ decks_official/shaidrus	decks_official/shaidrus/character_default.jpg	750x1024	7
 decks_official/shaidrus	decks_official/shaidrus/character_exceeded.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
 decks_official/shaidrus	decks_official/shaidrus/normals.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
 decks_official/shaidrus	decks_official/shaidrus/specials.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
+decks_official/shaidrus	decks_official/shaidrus/specials1.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
 decks_official/vorhild	decks_official/vorhild/cardback.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
 decks_official/vorhild	decks_official/vorhild/character_default.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
 decks_official/vorhild	decks_official/vorhild/character_exceeded.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
@@ -889,6 +892,13 @@ character_skin/doomies_1	character_skin/doomies_1/character_default.jpg	750x1024
 character_skin/doomies_1	character_skin/doomies_1/character_exceeded.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
 character_skin/doomies_1	character_skin/doomies_1/normals.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
 character_skin/doomies_1	character_skin/doomies_1/specials.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
+character_skin/doomies_1	character_skin/doomies_1/character_default1.jpg	3520x4800	1373x1872	0.39	64.45MB	9.80MB
+character_skin/doomies_1	character_skin/doomies_1/character_exceeded1.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
+character_skin/shafathi_1	character_skin/shafathi_1/cardback.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
+character_skin/shafathi_1	character_skin/shafathi_1/character_default.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
+character_skin/shafathi_1	character_skin/shafathi_1/character_exceeded.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
+character_skin/shafathi_1	character_skin/shafathi_1/normals.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
+character_skin/shafathi_1	character_skin/shafathi_1/specials.jpg	3000x2048	2550x1741	0.85	23.44MB	16.94MB
 
 decks_custom/dongshilang	decks_custom/dongshilang/cardback.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB
 decks_custom/dongshilang	decks_custom/dongshilang/character_default.jpg	750x1024	750x1024	1.00	2.93MB	2.93MB

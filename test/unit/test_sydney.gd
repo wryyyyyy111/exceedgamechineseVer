@@ -198,3 +198,85 @@ func test_sydney_spentgauge_transform_dontspend():
 		false, false, [[], 2]) # Don't pay, pull pea shooter, no more choices
 	validate_positions(player1, 3, player2, 5) # Pea shooter pulls 3 to 5, then push 1 to go to 6
 	validate_life(player1, 30, player2, 29)
+
+
+func _start_blossomhaze_block(attack_definition = "standard_normal_sweep", with_transform = true):
+	position_players(player1, 3, player2, 6)
+	if with_transform:
+		add_transform(player1, "sydney_blossomhaze")
+	var block = give_player_specific_card(player1, "standard_normal_block")
+	var attack = give_player_specific_card(player2, attack_definition)
+	assert_true(game_logic.do_strike(player1, block, false, -1))
+	assert_true(game_logic.do_strike(player2, attack, false, -1))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ForceForArmor)
+	assert_eq(game_logic.decision_info.player, player1.my_id)
+
+
+func _assert_blossomhaze_block_gauge_choice(payment_definition: String, choice: int, expected_location: int, expected_life: int):
+	_start_blossomhaze_block()
+	var payment_id = set_player_topdeck(player1, payment_definition)
+	var gauge = give_gauge(player1, 1)
+	assert_true(game_logic.do_force_for_armor(player1, gauge))
+	assert_true(player1.is_card_in_discards(payment_id))
+	assert_false(player1.is_card_in_gauge(payment_id))
+	assert_eq(player1.gauge_spent_this_strike, 1)
+	validate_life(player1, expected_life, player2, 30)
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PlayerDecision)
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_EffectChoice)
+	assert_eq(game_logic.decision_info.player, player1.my_id)
+	if game_logic.game_state != Enums.GameState.GameState_PlayerDecision:
+		return
+	assert_true(game_logic.do_choice(player1, choice))
+	validate_positions(player1, 3, player2, expected_location)
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PickAction)
+	assert_eq(player1.gauge_spent_this_strike, 0)
+
+
+func test_sydney_blossomhaze_block_gauge_push():
+	_assert_blossomhaze_block_gauge_choice("standard_normal_cross", 0, 7, 28)
+
+
+func test_sydney_blossomhaze_block_ultra_gauge_pull():
+	_assert_blossomhaze_block_gauge_choice("sydney_verdantslaughter", 1, 5, 30)
+
+
+func test_sydney_blossomhaze_block_gauge_pass():
+	_assert_blossomhaze_block_gauge_choice("standard_normal_cross", 2, 6, 28)
+
+
+func test_sydney_blossomhaze_block_hand_force_does_not_trigger():
+	_start_blossomhaze_block()
+	var payment_id = give_player_specific_card(player1, "standard_normal_cross")
+	assert_true(game_logic.do_force_for_armor(player1, [payment_id]))
+	assert_eq(player1.gauge_spent_this_strike, 0)
+	validate_positions(player1, 3, player2, 6)
+	validate_life(player1, 28, player2, 30)
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PickAction)
+
+
+func test_sydney_blossomhaze_block_no_payment_does_not_trigger():
+	_start_blossomhaze_block("standard_normal_assault")
+	assert_true(game_logic.do_force_for_armor(player1, []))
+	validate_positions(player1, 3, player2, 4)
+	validate_life(player1, 28, player2, 30)
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PickAction)
+
+
+func test_sydney_blossomhaze_block_gauge_stunned_does_not_trigger():
+	_start_blossomhaze_block("standard_normal_spike")
+	set_player_topdeck(player1, "standard_normal_cross")
+	assert_true(game_logic.do_force_for_armor(player1, give_gauge(player1, 1)))
+	validate_has_event(game_logic.get_latest_events(), Enums.EventType.EventType_Strike_Stun, player1)
+	validate_positions(player1, 3, player2, 6)
+	validate_life(player1, 25, player2, 30)
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PickAction)
+
+
+func test_sydney_block_gauge_without_blossomhaze_unchanged():
+	_start_blossomhaze_block("standard_normal_sweep", false)
+	set_player_topdeck(player1, "standard_normal_cross")
+	assert_true(game_logic.do_force_for_armor(player1, give_gauge(player1, 1)))
+	assert_eq(player1.gauge_spent_this_strike, 0)
+	validate_positions(player1, 3, player2, 6)
+	validate_life(player1, 28, player2, 30)
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PickAction)

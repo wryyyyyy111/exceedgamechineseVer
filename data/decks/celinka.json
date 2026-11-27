@@ -23,7 +23,7 @@
                 "amount": 1
             }
         ],
-        "description": "continuous boosts facedown as: +1 Power and Seal when discarded"
+        "description": "将牌面朝下作为持续性加成：威力+1，弃置时封印"
     },
     "ability_effects": [
         {

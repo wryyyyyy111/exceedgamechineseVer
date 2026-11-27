@@ -28,7 +28,8 @@ func set_choices(instructions_text : String,
 		ex_discard_order_toggle : bool,
 		free_force_toggle : bool,
 		no_number_picker_update : bool,
-		columns_override : int = -1):
+		columns_override : int = -1,
+		card_definitions: Array = []):
 	$OuterMargin/MainVBox/CheckHBox/UltrasForceOptionCheck.visible = ultra_force_toggle
 	$OuterMargin/MainVBox/CheckHBox2/ExDiscardOrderCheck.visible = ex_discard_order_toggle
 	$OuterMargin/MainVBox/CheckHBox3/FreeForceOptionCheck.visible = free_force_toggle
@@ -41,7 +42,8 @@ func set_choices(instructions_text : String,
 		col_count = 2
 	choice_buttons_grid.columns = col_count
 
-	instructions_label.text = "[center]%s[/center]" % instructions_text
+	var name_matcher = CardDataManager.get_card_name_index().get_matcher(card_definitions)
+	instructions_label.text = "[center]%s[/center]" % GameStrings.add_card_id_speed_hints(instructions_text, card_definitions, name_matcher)
 	var choice_containers = choice_buttons_grid.get_children()
 	var total_choices = choices.size()
 	for i in range(choice_containers.size()):
@@ -56,7 +58,7 @@ func set_choices(instructions_text : String,
 				label.modulate = Color("757575")
 			else:
 				label.modulate = Color("ffffff")
-			label.text = "[center]%s[/center]" % choices[i].text
+			label.text = "[center]%s[/center]" % GameStrings.add_card_id_speed_hints(choices[i].text, card_definitions, name_matcher)
 		else:
 			button.disabled = true
 			container.visible = false

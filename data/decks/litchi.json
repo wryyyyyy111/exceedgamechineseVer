@@ -41,7 +41,7 @@
             "NOTE": "Mantenbo action to move 1-2 spaces",
             "gauge_cost": 0,
             "force_cost": 0,
-            "action_name": "Move Mantenbo",
+            "action_name": "移动 万天棒",
             "requires_buddy_in_play": "true",
             "shortcut_effect_type": "move_buddy",
             "effect": {
@@ -57,7 +57,7 @@
             "NOTE": "Once per turn remove or place Mantenbo",
             "gauge_cost": 0,
             "force_cost": 0,
-            "action_name": "Summon/Remove Mantenbo",
+            "action_name": "召唤/移除 万天棒",
             "per_turn_limit": 1,
             "shortcut_effect_type": "choice",
             "effect": {
@@ -90,7 +90,7 @@
             "NOTE": "Mantenbo action to move 1-2 spaces",
             "gauge_cost": 0,
             "force_cost": 0,
-            "action_name": "Move Mantenbo",
+            "action_name": "移动 万天棒",
             "requires_buddy_in_play": "true",
             "shortcut_effect_type": "move_buddy",
             "effect": {

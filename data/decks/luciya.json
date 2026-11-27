@@ -32,10 +32,10 @@
 				"timing": "during_strike",
 				"effect_type": "powerup",
 				"amount": 1,
-				"override_description": "+1 Power"
+				"override_description": "威力+1"
 			}
 		],
-		"description": "facedown continuous boost: +1 Power"
+		"description": "牌面朝下的持续性加成：威力+1"
 	},
 	"exceed_ability_effects": [
 		{

@@ -26,6 +26,7 @@ signal close_character_select
 @onready var season_button_s6 = $TabSelect/CategoriesHBox/Season6
 @onready var season_button_s7 = $TabSelect/CategoriesHBox/Season7
 @onready var season_button_s8 = $TabSelect/CategoriesHBox/Season8
+@onready var custom_button = $TabSelect/CategoriesHBox2/Custom
 
 var season_columns := {}
 var season_column_enabled := {
@@ -39,6 +40,10 @@ var season_column_enabled := {
 	"season7": true,
 	"season8": true,
 }
+
+#! Controls the custom deck entry independently of the season0 category.
+var custom_button_enabled : bool = false
+
 var current_season_id : String = ""
 
 var default_char_id : String = "random"
@@ -63,6 +68,7 @@ func _ready():
 	}
 	_refresh_season_column_visibility()
 	_show_first_enabled_season()
+	set_custom_button_enabled(custom_button_enabled)
 
 func update_hover(char_id, skin_index: int = 0):
 	var hover_key := "%s:%d" % [char_id, skin_index]
@@ -147,6 +153,12 @@ func _char_skin_manager() -> Node:
 
 func _on_background_button_pressed():
 	close_character_select.emit()
+
+func set_custom_button_enabled(enabled : bool) -> void:
+	custom_button_enabled = enabled
+	if not is_node_ready():
+		return
+	custom_button.visible = enabled
 
 func set_season_column_enabled(season_id : String, enabled : bool) -> void:
 	if not season_column_enabled.has(season_id):

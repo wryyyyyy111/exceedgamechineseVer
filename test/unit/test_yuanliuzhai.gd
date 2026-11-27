@@ -461,12 +461,15 @@ func _counter_hand(suffix: String = "") -> int:
 	return -1
 
 func _choose_counter(effect_type: String):
+	_choose_counter_for(player2, effect_type)
+
+func _choose_counter_for(counter_player: Player, effect_type: String):
 	assert_eq(game_logic.game_state, Enums.GameState.GameState_PlayerDecision)
 	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_EffectChoice)
-	assert_eq(game_logic.decision_info.player, player2.my_id)
+	assert_eq(game_logic.decision_info.player, counter_player.my_id)
 	for index in range(game_logic.decision_info.choice.size()):
 		if game_logic.decision_info.choice[index]["effect_type"] == effect_type:
-			assert_true(game_logic.do_choice(player2, index))
+			assert_true(game_logic.do_choice(counter_player, index))
 			return
 	fail_test("Counter option missing: " + effect_type)
 
@@ -616,6 +619,126 @@ func test_shinra_boost_pass_preserves_pending_effect():
 	assert_eq(player2.life, 30)
 	assert_true(player2.is_card_in_hand(response))
 	assert_true(player1.is_card_in_continuous_boosts(id))
+
+func test_shinra_counters_testament_attack_boost_before_effect_and_entry():
+	default_game_setup("testament")
+	_clear_hand(player1)
+	position_players(player1, 4, player2, 6)
+	var shinra_id = give_player_specific_card(player1, PREFIX + "netsu_jigoku")
+	var focus_id = give_player_specific_card(player1, "standard_normal_focus")
+	var diver_id = give_player_specific_card(player2, "testament_unholydiver")
+	advance_turn(player1)
+
+	assert_true(game_logic.do_strike(player2, diver_id, false, -1))
+	assert_true(game_logic.do_strike(player1, focus_id, false, -1))
+	assert_eq(game_logic.decision_info.player, player2.my_id)
+	assert_true(game_logic.do_choice(player2, 0))
+	_choose_counter_for(player1, "yuanliuzhai_activate_shinra")
+
+	assert_eq(player1.life, 28)
+	assert_true(player1.is_card_in_discards(shinra_id))
+	assert_true(player2.is_card_in_discards(diver_id))
+	assert_false(player2.is_card_in_continuous_boosts(diver_id))
+	assert_eq(player2.arena_location, 6, "森罗必须在攻击转加成的移动生效前响应")
+
+func test_imin_blocks_testament_attack_boost_movement_before_entry():
+	default_game_setup("testament")
+	_clear_hand(player1)
+	position_players(player1, 4, player2, 6)
+	var imin_id = give_player_specific_card(player1, PREFIX + "onibi")
+	var focus_id = give_player_specific_card(player1, "standard_normal_focus")
+	var diver_id = give_player_specific_card(player2, "testament_unholydiver")
+	advance_turn(player1)
+
+	assert_true(game_logic.do_strike(player2, diver_id, false, -1))
+	assert_true(game_logic.do_strike(player1, focus_id, false, -1))
+	assert_eq(game_logic.decision_info.player, player2.my_id)
+	assert_true(game_logic.do_choice(player2, 0))
+	_choose_counter_for(player1, "yuanliuzhai_activate_imin")
+	assert_eq(game_logic.decision_info.player, player2.my_id)
+	assert_true(game_logic.do_choice(player2, 0))
+
+	assert_eq(player1.life, 28)
+	assert_true(player1.is_card_in_discards(imin_id))
+	assert_true(player2.is_card_in_continuous_boosts(diver_id))
+	assert_eq(player2.arena_location, 6, "威眠只阻止该加成来源的自身移动")
+
+func test_testament_conversion_counter_prompt_does_not_emit_hidden_effect_text():
+	default_game_setup("testament")
+	_clear_hand(player1)
+	position_players(player1, 4, player2, 6)
+	give_player_specific_card(player1, PREFIX + "netsu_jigoku")
+	var focus_id = give_player_specific_card(player1, "standard_normal_focus")
+	var diver_id = give_player_specific_card(player2, "testament_unholydiver")
+	advance_turn(player1)
+
+	assert_true(game_logic.do_strike(player2, diver_id, false, -1))
+	assert_true(game_logic.do_strike(player1, focus_id, false, -1))
+	game_logic.get_latest_events()
+	assert_true(game_logic.do_choice(player2, 0))
+	var counter_events = game_logic.get_latest_events()
+
+	validate_has_event(counter_events, Enums.EventType.EventType_Boost_Played, player2)
+	validate_has_event(counter_events, Enums.EventType.EventType_Strike_EffectChoice, player1)
+	validate_not_has_event(counter_events, Enums.EventType.EventType_Strike_CharacterEffect, player1)
+	assert_eq(player2.arena_location, 6, "反制询问前不得执行或重复展示加成移动")
+
+func _start_testament_conversion_with_both_counters() -> Dictionary:
+	default_game_setup("testament")
+	_clear_hand(player1)
+	position_players(player1, 4, player2, 6)
+	var shinra_id = give_player_specific_card(player1, PREFIX + "netsu_jigoku")
+	var imin_id = give_player_specific_card(player1, PREFIX + "onibi")
+	var focus_id = give_player_specific_card(player1, "standard_normal_focus")
+	var diver_id = give_player_specific_card(player2, "testament_unholydiver")
+	advance_turn(player1)
+	assert_true(game_logic.do_strike(player2, diver_id, false, -1))
+	assert_true(game_logic.do_strike(player1, focus_id, false, -1))
+	assert_true(game_logic.do_choice(player2, 0))
+	assert_eq(game_logic.decision_info.player, player1.my_id)
+	assert_eq(game_logic.decision_info.choice.size(), 3)
+	assert_eq(game_logic.decision_info.choice[0]["effect_type"], "yuanliuzhai_activate_shinra")
+	assert_eq(game_logic.decision_info.choice[1]["effect_type"], "yuanliuzhai_activate_imin")
+	assert_eq(game_logic.decision_info.choice[2]["effect_type"], "pass")
+	return {"shinra": shinra_id, "imin": imin_id, "diver": diver_id}
+
+func test_conversion_with_both_counters_choose_shinra_once():
+	var ids = _start_testament_conversion_with_both_counters()
+	_choose_counter_for(player1, "yuanliuzhai_activate_shinra")
+
+	assert_eq(player1.life, 28)
+	assert_true(player1.is_card_in_discards(ids["shinra"]))
+	assert_true(player1.is_card_in_hand(ids["imin"]))
+	assert_true(player2.is_card_in_discards(ids["diver"]))
+	assert_null(game_logic.active_boost, "选择森罗后不得再次询问威眠")
+
+func test_conversion_with_both_counters_choose_imin_once():
+	var ids = _start_testament_conversion_with_both_counters()
+	_choose_counter_for(player1, "yuanliuzhai_activate_imin")
+
+	assert_eq(game_logic.decision_info.player, player2.my_id,
+		"选择威眠后应直接进入原加成选择，不得再次询问森罗")
+	assert_true(game_logic.do_choice(player2, 0))
+	assert_eq(player1.life, 28)
+	assert_true(player1.is_card_in_hand(ids["shinra"]))
+	assert_true(player1.is_card_in_discards(ids["imin"]))
+	assert_true(player2.is_card_in_continuous_boosts(ids["diver"]))
+	assert_eq(player2.arena_location, 6)
+	assert_null(game_logic.active_boost)
+
+func test_conversion_with_both_counters_pass_once():
+	var ids = _start_testament_conversion_with_both_counters()
+	_choose_counter_for(player1, "pass")
+
+	assert_eq(game_logic.decision_info.player, player2.my_id,
+		"不响应后应直接进入原加成选择，不得再次询问森罗或威眠")
+	assert_true(game_logic.do_choice(player2, 0))
+	assert_eq(player1.life, 30)
+	assert_true(player1.is_card_in_hand(ids["shinra"]))
+	assert_true(player1.is_card_in_hand(ids["imin"]))
+	assert_true(player2.is_card_in_continuous_boosts(ids["diver"]))
+	assert_eq(player2.arena_location, 5)
+	assert_null(game_logic.active_boost)
 
 func test_shinra_counter_precedes_boost_choice_after_synchronous_counter():
 	_counter_hand("netsu_jigoku")

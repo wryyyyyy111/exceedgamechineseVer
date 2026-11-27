@@ -1095,6 +1095,9 @@ func can_pick_discard_continuous(card, limitation, boost_name_restriction):
 
 func pick_discard_opponent_gauge() -> DiscardGaugeAction:
 	game_state.update()
+	if game_logic.decision_info.type == Enums.DecisionType.DecisionType_ChooseDiscardOpponentGauge \
+	and game_logic.decision_info.extra_info:
+		return DiscardGaugeAction.new(game_player.gauge.pick_random().id)
 	var possible_actions = []
 	for card in game_opponent.gauge:
 		possible_actions.append(DiscardGaugeAction.new(card.id))

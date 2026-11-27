@@ -565,7 +565,7 @@ func process_mulligan(action_message) -> void:
 	local_game.do_mulligan(game_player, card_ids)
 
 func do_boost(player : Player, card_id : int, payment_card_ids = [],
-		use_free_force : bool = false, spent_life_for_force : int = 0, additional_boost_ids = [], facedown_override = null) -> bool:
+		use_free_force : bool = false, spent_life_for_force : int = 0, additional_boost_ids = [], facedown_override = null, infuse_payment : Variant = null) -> bool:
 	var action_message = {
 		'action_type': 'action_boost',
 		'player_id': _get_player_remote_id(player),
@@ -577,6 +577,8 @@ func do_boost(player : Player, card_id : int, payment_card_ids = [],
 	}
 	if facedown_override != null:
 		action_message['facedown_override'] = facedown_override
+	if infuse_payment != null:
+		action_message['infuse_payment'] = infuse_payment
 	_submit_game_message(action_message)
 	return true
 
@@ -590,7 +592,7 @@ func process_boost(action_message) -> void:
 	var facedown_override = null
 	if action_message.has('facedown_override'):
 		facedown_override = action_message['facedown_override']
-	local_game.do_boost(game_player, card_id, payment_card_ids, use_free_force, spent_life_for_force, additional_boost_ids, facedown_override)
+	local_game.do_boost(game_player, card_id, payment_card_ids, use_free_force, spent_life_for_force, additional_boost_ids, facedown_override, action_message.get('infuse_payment'))
 
 func do_choose_from_boosts(player : Player, card_ids : Array) -> bool:
 	var action_message = {

@@ -96,12 +96,37 @@ func test_treasure_anchor_zip_exceed_boost_discount():
 
 	# Anchor Launch boost (Cost 1): Move up to 4, then draw 2.
 	var anchor_id = give_player_specific_card(player1, "treasure_anchorlaunch")
-	# Exceeded UA should reduce the boost's Force cost by 1 on your own turn.
-	assert_true(game_logic.do_boost(player1, anchor_id, []))
+	# 觉醒后的「白送 1 点」由 free_force 提供，需要勾选使用免费能量才能 0 张牌支付。
+	assert_true(game_logic.do_boost(player1, anchor_id, [], true))
 	assert_true(game_logic.do_choice(player1, select_space(9)))
 	validate_positions(player1, 9, player2, 7)
 	assert_eq(len(player1.hand), 3)  # Two cards from boost, one card from turn end
 	advance_turn(player2)
+
+func test_treasure_exceed_boost_needs_card_when_free_force_declined():
+	setup_exceeded_treasure_knight()
+	position_players(player1, 4, player2, 7)
+	player1.hand = []
+
+	var anchor_id = give_player_specific_card(player1, "treasure_anchorlaunch")
+	# 不用免费能量时，1 费加成必须真的付 1 张牌 —— 否则说明费用被重复减免。
+	assert_false(game_logic.do_boost(player1, anchor_id, [], false))
+	var pay_id = give_player_specific_card(player1, "standard_normal_grasp")
+	assert_true(game_logic.do_boost(player1, anchor_id, [pay_id], false))
+	assert_true(game_logic.do_choice(player1, select_space(9)))
+	validate_positions(player1, 9, player2, 7)
+	advance_turn(player2)
+
+func test_treasure_exceed_boost_free_force_toggle_semantics():
+	setup_exceeded_treasure_knight()
+	position_players(player1, 4, player2, 7)
+	player1.hand = []
+
+	# 觉醒后 free_force 常驻 1 点；勾选「使用免费能量」= 0 张牌也能付 1 费加成，
+	# 不勾选则必须真付 1 张。这正是 UI 勾选框应有的效果（此前被重复减免弄反）。
+	assert_eq(player1.free_force, 1)
+	assert_true(player1.can_pay_cost_with([], 1, 0, true, 0))
+	assert_false(player1.can_pay_cost_with([], 1, 0, false, 0))
 
 func test_treasure_anchor_zip_exceed_boost_discount_persists_each_turn():
 	setup_exceeded_treasure_knight()
@@ -110,14 +135,14 @@ func test_treasure_anchor_zip_exceed_boost_discount_persists_each_turn():
 	# First post-exceed turn: 1-force boost should be payable with no cards.
 	player1.hand = []
 	var first_anchor_id = give_player_specific_card(player1, "treasure_anchorlaunch")
-	assert_true(game_logic.do_boost(player1, first_anchor_id, []))
+	assert_true(game_logic.do_boost(player1, first_anchor_id, [], true))
 	assert_true(game_logic.do_choice(player1, select_space(9)))
 	advance_turn(player2)
 
 	# Next turn again: the same 1-force boost should still be payable with no cards.
 	player1.hand = []
 	var second_anchor_id = give_player_specific_card(player1, "treasure_anchorlaunch")
-	assert_true(game_logic.do_boost(player1, second_anchor_id, []))
+	assert_true(game_logic.do_boost(player1, second_anchor_id, [], true))
 	assert_true(game_logic.do_choice(player1, select_space(9)))
 	advance_turn(player2)
 
@@ -129,6 +154,37 @@ func test_treasure_exceed_change_cards_discard():
 	assert_true(game_logic.do_change(player1, [], false, true))
 	assert_eq(len(player1.hand), 2)
 	advance_turn(player2)
+
+func test_treasure_exceed_change_free_force_persists_after_strike():
+	setup_exceeded_treasure_knight()
+	position_players(player1, 3, player2, 7)
+	execute_strike(player1, player2, "standard_normal_grasp", "standard_normal_grasp")
+	advance_turn(player2)
+
+	player1.hand = []
+	assert_true(game_logic.do_change(player1, [], false, true))
+	assert_eq(len(player1.hand), 2)
+
+func test_treasure_exceed_change_can_decline_free_force_after_strike():
+	setup_exceeded_treasure_knight()
+	position_players(player1, 3, player2, 7)
+	execute_strike(player1, player2, "standard_normal_grasp", "standard_normal_grasp")
+	advance_turn(player2)
+
+	player1.hand = []
+	var payment_id = give_player_specific_card(player1, "standard_normal_grasp")
+	assert_true(game_logic.do_change(player1, [payment_id], false, false))
+	assert_eq(len(player1.hand), 2)
+
+func test_treasure_exceed_change_free_force_survives_continuous_boost():
+	setup_exceeded_treasure_knight()
+	var boost_id = give_player_specific_card(player1, "standard_normal_sweep")
+	assert_true(game_logic.do_boost(player1, boost_id, []))
+	advance_turn(player2)
+
+	player1.hand = []
+	assert_true(game_logic.do_change(player1, [], false, true))
+	assert_eq(len(player1.hand), 2)
 
 ## Anchor Launch (3~6/6/2|2/5) -- (1 Force) Hit: The opponent discards a card at
 ##     random. Then, pull until they're at range 2.

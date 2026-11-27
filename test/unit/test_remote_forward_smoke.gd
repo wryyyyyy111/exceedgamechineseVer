@@ -128,6 +128,46 @@ func test_restore_message_queue_rolls_back_trailing_risky_submit_event():
 	rg.teardown()
 	rg.free()
 
+func test_remote_boost_transmits_preselected_infuse_and_decline():
+	var rg = CaptureRemoteGame.new()
+	rg._player_info = {'id': 17}
+	rg._opponent_info = {'id': 23}
+	assert_true(rg.do_boost(player1, 42, [], false, 0, [], null, [100]))
+	assert_eq(rg.last_action_message["infuse_payment"], [100])
+	assert_true(rg.do_boost(player1, 42, [], false, 0, [], null, []))
+	assert_eq(rg.last_action_message["infuse_payment"], [])
+	assert_true(rg.do_boost(player1, 42, [], false, 0, [], null, {"free_gauge": 1}))
+	assert_eq(rg.last_action_message["infuse_payment"], {"free_gauge": 1})
+	rg.free()
+
+func test_remote_boost_processes_preselected_infuse_before_boost_effects():
+	var logic = LocalGame.new(image_loader)
+	var deck = CardDataManager.get_deck_from_str_id("kohai")
+	logic.initialize_game(deck, deck, "p1", "p2", Enums.PlayerId.PlayerId_Player, 1)
+	logic.draw_starting_hands_and_begin()
+	assert_true(logic.do_mulligan(logic.player, []))
+	assert_true(logic.do_mulligan(logic.opponent, []))
+	var player = logic.player
+	var gauge_card = player.deck.pop_front()
+	player.add_to_gauge(gauge_card)
+	var boost_card = player.deck.filter(func(card): return card.definition["id"] == "kohai_earthquakestomp")[0]
+	player.deck.erase(boost_card)
+	player.hand.append(boost_card)
+	var rg = CaptureRemoteGame.new()
+	rg.local_game = logic
+	rg._player_info = {'id': 17}
+	rg._opponent_info = {'id': 23}
+	assert_true(rg.do_boost(player, boost_card.id, [], false, 0, [], null, [gauge_card.id]))
+	rg.process_boost(rg.last_action_message)
+	assert_true(player.is_infused())
+	assert_true(player.is_card_in_discards(gauge_card.id))
+	assert_eq(logic.decision_info.type, Enums.DecisionType.DecisionType_EffectChoice)
+	assert_eq(logic.decision_info.player, player.my_id)
+	logic.teardown()
+	logic.free()
+	rg.local_game = null
+	rg.free()
+
 func test_restore_message_queue_keeps_earlier_risky_event_when_tail_is_safe():
 	var rg = RestoreCheckRemoteGame.new()
 	var restore_messages = [

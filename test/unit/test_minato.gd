@@ -320,6 +320,99 @@ func test_outrun_the_past_defender_triggers_before_setting_response():
 	assert_true(game_logic.do_choose_from_discard(player2, []))
 	assert_true(game_logic.do_strike(player2, response_id, false, -1))
 
+func test_reading_triggers_outrun_before_initiator_sets_attack():
+	position_players(player1, 3, player2, 5)
+	player2.hand.clear()
+	add_transform(player1, "minato_flight_13")
+	var gauge_id = spawn_card_to_zone(player1, "standard_normal_cross", "gauge")
+	var reading_id = give_player_specific_card(player1, "standard_normal_focus")
+	var attack_id = give_player_specific_card(player1, "standard_normal_sweep")
+	var response_id = give_player_specific_card(player2, "standard_normal_sweep")
+
+	assert_true(game_logic.do_boost(player1, reading_id, []))
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ReadingNormal)
+	assert_true(game_logic.do_boost_name_card_choice_effect(player1, response_id))
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_PlayerDecision)
+	assert_eq(game_logic.decision_info.player, player1.my_id)
+	assert_eq(game_logic.decision_info.source, "outrun_seal")
+	assert_true(player1.is_card_in_discards(reading_id))
+	assert_true(player1.is_card_in_hand(attack_id))
+	assert_null(game_logic.active_strike)
+	if game_logic.decision_info.source != "outrun_seal":
+		return
+
+	var hand_before = player1.hand.size()
+	assert_true(game_logic.do_choose_from_discard(player1, [reading_id, gauge_id]))
+	assert_true(player1.is_card_in_sealed(reading_id))
+	assert_true(player1.is_card_in_sealed(gauge_id))
+	assert_eq(player1.hand.size(), hand_before + 1)
+	assert_true(player1.minato_outrun_triggered_before_strike)
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_WaitForStrike)
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_StrikeNow)
+	assert_null(game_logic.active_boost)
+	var events = game_logic.get_latest_events()
+	assert_eq(validate_has_event(events, Enums.EventType.EventType_ForceStartStrike, player1).size(), 1)
+
+	assert_true(game_logic.do_strike(player1, attack_id, false, -1))
+	assert_eq(game_logic.decision_info.player, player2.my_id)
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_ChooseSimultaneousEffect)
+	assert_eq(game_logic.decision_info.choice[0].card_id, response_id)
+	assert_true(game_logic.do_choice(player2, 0))
+	assert_true(game_logic.do_strike(player2, response_id, false, -1))
+	assert_null(game_logic.active_strike)
+
+func test_reading_outrun_can_be_declined_without_skipping_strike():
+	player2.hand.clear()
+	add_transform(player1, "minato_flight_13")
+	var reading_id = give_player_specific_card(player1, "standard_normal_focus")
+	var attack_id = give_player_specific_card(player1, "standard_normal_sweep")
+	var response_id = give_player_specific_card(player2, "standard_normal_sweep")
+
+	assert_true(game_logic.do_boost(player1, reading_id, []))
+	assert_true(game_logic.do_boost_name_card_choice_effect(player1, response_id))
+	assert_eq(game_logic.decision_info.source, "outrun_seal")
+	if game_logic.decision_info.source != "outrun_seal":
+		return
+	var hand_before = player1.hand.size()
+	assert_true(game_logic.do_choose_from_discard(player1, []))
+	assert_eq(player1.hand.size(), hand_before)
+	assert_true(player1.is_card_in_discards(reading_id))
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_WaitForStrike)
+	assert_null(game_logic.active_boost)
+	assert_true(game_logic.do_strike(player1, attack_id, false, -1))
+	assert_eq(game_logic.decision_info.choice[0].card_id, response_id)
+
+func test_reading_without_outrun_transform_still_sets_attack_directly():
+	player2.hand.clear()
+	var reading_id = give_player_specific_card(player1, "standard_normal_focus")
+	var attack_id = give_player_specific_card(player1, "standard_normal_sweep")
+	var response_id = give_player_specific_card(player2, "standard_normal_sweep")
+
+	assert_true(game_logic.do_boost(player1, reading_id, []))
+	assert_true(game_logic.do_boost_name_card_choice_effect(player1, response_id))
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_WaitForStrike)
+	assert_false(player1.minato_outrun_triggered_before_strike)
+	assert_true(game_logic.do_strike(player1, attack_id, false, -1))
+	assert_eq(game_logic.decision_info.choice[0].card_id, response_id)
+
+func test_reading_does_not_trigger_outrun_for_other_characters():
+	game_logic.teardown()
+	game_logic.free()
+	default_game_setup("carlswangee")
+	game_logic.active_turn_player = player2.my_id
+	player1.hand.clear()
+	add_transform(player2, "minato_flight_13")
+	var reading_id = give_player_specific_card(player2, "standard_normal_focus")
+	var attack_id = give_player_specific_card(player2, "standard_normal_sweep")
+	var response_id = give_player_specific_card(player1, "standard_normal_sweep")
+
+	assert_true(game_logic.do_boost(player2, reading_id, []))
+	assert_true(game_logic.do_boost_name_card_choice_effect(player2, response_id))
+	assert_eq(game_logic.game_state, Enums.GameState.GameState_WaitForStrike)
+	assert_false(player2.minato_outrun_triggered_before_strike)
+	assert_true(game_logic.do_strike(player2, attack_id, false, -1))
+	assert_eq(game_logic.decision_info.choice[0].card_id, response_id)
+
 func test_outrun_the_past_defender_does_not_repeat_carlswangee_exceed_ua():
 	game_logic.teardown()
 	game_logic.free()

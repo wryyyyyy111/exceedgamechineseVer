@@ -9,6 +9,15 @@ func who_am_i():
 
 ## Akimo is a very straightforward guy
 
+func test_boost_without_payable_infuse_goes_directly_to_boost_effect():
+	player1.life = 2
+	var boost_card = give_player_specific_card(player1, "akimo_bloodthirst")
+	assert_true(game_logic.do_boost(player1, boost_card, []))
+	assert_false(player1.is_infused())
+	assert_eq(game_logic.decision_info.type, Enums.DecisionType.DecisionType_EffectChoice)
+	assert_eq(game_logic.decision_info.choice_card_id, boost_card, "Only the boost movement choice should appear")
+	validate_not_has_event(game_logic.get_latest_events(), Enums.EventType.EventType_GaugeForEffect, player1)
+
 ## Duel for the Dome - +3 Armor. You are Infused. Now: If you are in the center 3 spaces, you may strike
 
 func test_akimo_duelforthedome_outside():

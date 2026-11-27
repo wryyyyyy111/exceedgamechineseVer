@@ -25,6 +25,42 @@ func _instantiate_mobile_character_scene() -> Character:
 	character.set_script(TestMobileCharacter)
 	return character
 
+func test_menu_extra_references_ignore_arena_graphics_flag():
+	var menu : MainMenu = autofree(MainMenu.new())
+	var loader = CardImageLoader.new(true)
+	add_child_autofree(loader)
+	menu.image_loader = loader
+	for deck_id in ["king", "beheaded", "dongshilang"]:
+		var zone = Node2D.new()
+		add_child_autofree(zone)
+		menu.card_zone = zone
+		var deck = CardDataManager.get_deck_from_str_id(deck_id).duplicate(true)
+		deck["cards"] = []
+		var cards = await menu.spawn_deck(deck)
+		var extra_cards = cards.filter(func(card): return card.card_id == CardBase.BuddyCardReferenceId)
+		assert_eq(extra_cards.size(), deck["buddy_cards"].size(), deck_id)
+		var popout : CardPopout = CardPopoutScene.instantiate()
+		add_child_autofree(popout)
+		popout.show_cards(extra_cards)
+		assert_eq(popout.used_slots, deck["buddy_cards"].size(), deck_id)
+		for index in range(extra_cards.size()):
+			var rendered_card : CardBase = popout.get_spot(index).get_child(0)
+			assert_true(rendered_card.is_visible_in_tree(), deck_id)
+			assert_true(rendered_card.is_front_showing(), deck_id)
+			assert_true(rendered_card.hover_focus_enabled, deck_id)
+			assert_eq(rendered_card.clicked_card.get_connections().size(), 0,
+				"Menu extra references are display-only, not playable cards.")
+
+func test_menu_extra_references_preserve_explicit_hiding_and_skin_ids():
+	var menu : MainMenu = autofree(MainMenu.new())
+	for deck_id in ["byakuya", "rachel_1", "shafathi_1"]:
+		var deck = CardDataManager.get_deck_from_str_id(deck_id)
+		assert_eq(menu._get_reference_buddy_graphics(deck), [], deck_id)
+	assert_eq(menu._get_reference_buddy_graphics(
+		CardDataManager.get_deck_from_str_id("carlclover")), ["nirvana_active", "nirvana_disabled"])
+	assert_eq(menu._get_reference_buddy_graphics(
+		CardDataManager.get_deck_from_str_id("eugenia_1")), ["wonderland"])
+
 func test_card_popout_applies_configuration_set_before_ready():
 	var popout : CardPopout = CardPopoutScene.instantiate()
 	popout.set_title("加载卡牌中...")
@@ -403,7 +439,7 @@ func test_mobile_animation_falls_back_to_desktop_texture_when_phone_download_fai
 	assert_eq(frames.get_frame_count("idle"), 1)
 	assert_eq(frames.get_frame_texture("idle", 0).get_size(), Vector2(8, 6))
 	CdnAssetLoader.loaded_text.erase(animation_url)
-	CdnAssetLoader.loaded_textures.erase(texture_url)
+	CdnAssetLoader.clear_texture(texture_path)
 
 func test_mobile_emogine_idle_uses_metadata_scaling_without_runtime_compensation():
 	var character := _instantiate_mobile_character_scene()
@@ -1169,7 +1205,7 @@ func test_carlswangee_current_combined_atlas_preserves_all_deck_indices():
 	add_child_autoqfree(loader)
 	var image = Image.create(1200, 1640, false, Image.FORMAT_RGBA8)
 	for index in range(16):
-		image.fill_rect(Rect2i((index % 4) * 300, (index / 4) * 410, 300, 410),
+		image.fill_rect(Rect2i((index % 4) * 300, floori(index / 4.0) * 410, 300, 410),
 				_make_distinct_index_color(index))
 	ImageCache.cache_image(phone_url, image)
 	var atlas = {"url": original_url, "multiple_cards": true, "season": 2, "deck_id": "carlswangee"}

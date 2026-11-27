@@ -3,6 +3,19 @@ extends ExceedGutTest
 func who_am_i():
 	return "zsolt"
 
+func test_battle_instinct_removal_clears_its_selected_free_force():
+	var boost_id = give_player_specific_card(player1, "zsolt_purifyingsword")
+	var payment_id = give_player_specific_card(player1, "standard_normal_grasp")
+	assert_true(game_logic.do_boost(player1, boost_id, [payment_id]))
+	assert_gt(player1.zsolt_force_pool, 0)
+	player1.free_force = 1
+
+	var boost_card = game_logic.get_card_database().get_card(boost_id)
+	player1.remove_from_continuous_boosts(boost_card)
+
+	assert_eq(player1.zsolt_force_pool, 0)
+	assert_eq(player1.get_force_with_cards([], "CHANGE_CARDS", false, true), 0)
+
 func _find_character_effect_event(events, player, effect_type):
 	for event in events:
 		if event['event_type'] != Enums.EventType.EventType_Strike_CharacterEffect:

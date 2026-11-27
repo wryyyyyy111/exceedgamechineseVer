@@ -149,6 +149,45 @@ func test_miyuki_exceed_bonus_action():
 
 	advance_turn(player2)
 
+## Foxfire skip text during the exceeded character action.
+
+func test_exceeded_ua_foxfire_skip_text_and_followup():
+	player1.exceeded = true
+	var foxfire_card = give_player_specific_card(player1, "miyuki_spiritheal")
+	player1.move_card_from_hand_to_gauge(foxfire_card)
+	assert_true(game_logic.do_character_action(player1, [], 0))
+	assert_true(game_logic.do_boost(player1, foxfire_card, []))
+	assert_eq(game_logic.decision_info.choice[1].get("_choice_text", ""),
+		"跳过(然后会进行角色UA的询问，是否发起战斗)")
+	assert_eq(game_logic.decision_info.choice[0]["effect_type"], "spend_life")
+
+	assert_true(game_logic.do_choice(player1, 1))
+	assert_eq(game_logic.decision_info.choice[0]["effect_type"], "strike")
+	assert_eq(game_logic.decision_info.choice[1]["effect_type"], "pass")
+	assert_false(game_logic.decision_info.choice[1].has("_choice_text"))
+	validate_life(player1, 30, player2, 30)
+
+func test_normal_ua_foxfire_keeps_default_skip_text():
+	var foxfire_card = give_player_specific_card(player1, "miyuki_spiritheal")
+	player1.move_card_from_hand_to_gauge(foxfire_card)
+	assert_true(game_logic.do_character_action(player1, [], 0))
+	assert_true(game_logic.do_boost(player1, foxfire_card, []))
+	assert_false(game_logic.decision_info.choice[1].has("_choice_text"))
+
+func test_exceeded_hand_foxfire_keeps_default_skip_text():
+	player1.exceeded = true
+	var foxfire_card = give_player_specific_card(player1, "miyuki_spiritheal")
+	assert_true(game_logic.do_boost(player1, foxfire_card, []))
+	assert_false(game_logic.decision_info.choice[1].has("_choice_text"))
+
+func test_exceeded_non_ua_gauge_foxfire_keeps_default_skip_text():
+	player1.exceeded = true
+	var foxfire_card = give_player_specific_card(player1, "miyuki_spiritheal")
+	player1.move_card_from_hand_to_gauge(foxfire_card)
+	game_logic.handle_strike_effect(-1, {"effect_type": "boost_from_gauge", "limitation": ""}, player1)
+	assert_true(game_logic.do_boost(player1, foxfire_card, []))
+	assert_false(game_logic.decision_info.choice[1].has("_choice_text"))
+
 ## Spirit Guide - Look at the opponent's hand. Add a card from their hand to Gauge.
 
 func test_miyuki_spirit_guide():
